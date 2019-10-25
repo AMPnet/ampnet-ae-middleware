@@ -23,7 +23,6 @@ async function addWallet(call, callback) {
         let tx = await client.instance().contractCallTx({
             callerId : config.get().contracts.coop.owner,
             contractId : coopAddress,
-            abiVersion : 1,
             amount : 0,
             gas : 10000,
             callData : callData

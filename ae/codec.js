@@ -68,11 +68,13 @@ async function encodeBurnFrom(address, amount) {
 }
 
 async function decodeDataBySource(source, fn, value) {
-    return client.instance().contractDecodeCallDataBySourceAPI(source, fn, value)
+    return client.instance().contractDecodeCallDataBySourceAPI(source, fn, value, {
+        backend: 'fate'
+    })
 }
 
 async function decodeDataByBytecode(bytecode, data) {
-    return client.instance().contractDecodeCallDataByCodeAPI(bytecode, data)
+    return client.instance().contractDecodeCallDataByCodeAPI(bytecode, data, 'fate')
 }
 
 module.exports = {

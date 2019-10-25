@@ -129,6 +129,19 @@ message TransactionsResponse {
     repeated Transaction transactions = 1;
 }
 
+message TransactionInfoRequest {
+    string tx_hash = 1;
+}
+
+message TransactionInfoResponse {
+    string hash = 1;
+    string from_wallet = 2;
+    string to_wallet = 3;
+    string state = 4;
+    string type = 5;
+    string amount = 6;
+}
+
 ///////// Contract create messages /////////
 
 message GenerateCreateOrganizationTxRequest {
@@ -194,5 +207,5 @@ service BlockchainService {
     rpc GetPortfolio(PortfolioRequest) returns (PortfolioResponse);
     rpc GetTransactions(TransactionsRequest) returns (TransactionsResponse);
     rpc GetInvestmentsInProject(InvestmentsInProjectRequest) returns (TransactionsResponse);
-
+    rpc GetTransactionInfo(TransactionInfoRequest) returns (TransactionInfoResponse);
 }

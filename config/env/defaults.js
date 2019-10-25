@@ -55,8 +55,8 @@ function getCompilerUrl() {
     if (process.env.COMPILER_URL) { return process.env.COMPILER_URL }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "http://localhost:3080"
-        case Environment.TESTNET: return "https://compiler.aepps.com"
-        case Environment.MAINNET: return "https://compiler.aepps.com"
+        case Environment.TESTNET: return "https://latest.compiler.aepps.com"
+        case Environment.MAINNET: return "https://latest.compiler.aepps.com"
     }
 }
 
@@ -195,7 +195,7 @@ function getDb() {
     var poolMax = 10
     var idleTimeoutMillis = 30000
     
-    host = process.env.DB_HOST || ((process.env.NODE_ENV == Environment.LOCAL) ? "localhost" : "db")
+    host = process.env.DB_HOST || "localhost"
     port = process.env.DB_PORT || "5432"
 
     switch (process.env.NODE_ENV) {

@@ -168,6 +168,19 @@ module.exports = {
             })
         })
     },
+    getTransactionInfo: async function(txHash) {
+        return new Promise(resolve => {
+            client.getTransactionInfo({
+                txHash
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result)
+                }
+            })
+        })
+    },
     getPortfolio: async function(txHash) {
         return new Promise(resolve => {
             client.getPortfolio({

@@ -26,7 +26,7 @@ async function createProject(call, callback) {
         let result = await client.instance().contractCreateTx({
             ownerId: fromWallet,
             code: contracts.getProjCompiled().bytecode,
-            abiVersion: 1,
+            abiVersion: 3,
             deposit: 0,
             amount: 0,
             gas: 50000,
@@ -53,7 +53,6 @@ async function startRevenueSharesPayout(call, callback) {
         let tx = await client.instance().contractCallTx({
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
-            abiVersion: 1,
             amount: 0,
             gas: 10000,
             callData: callData

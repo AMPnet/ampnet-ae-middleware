@@ -18,7 +18,6 @@ async function mint(call, callback) {
         let tx = await client.instance().contractCallTx({
             callerId: config.get().contracts.eur.owner,
             contractId: config.get().contracts.eur.address,
-            abiVersion: 1,
             amount: 0,
             gas: 10000,
             callData: callData
@@ -41,7 +40,6 @@ async function approveWithdraw(call, callback) {
         let tx = await client.instance().contractCallTx({
             callerId: record.wallet,
             contractId: config.get().contracts.eur.address,
-            abiVersion: 1,
             amount: 0,
             gas: 10000,
             callData: callData
@@ -65,7 +63,6 @@ async function burnFrom(call, callback) {
         let tx = await client.instance().contractCallTx({
             callerId: config.get().contracts.eur.owner,
             contractId: config.get().contracts.eur.address,
-            abiVersion: 1,
             amount: 0,
             gas: 10000,
             callData: callData
@@ -100,8 +97,8 @@ async function balance(call, callback) {
 }
 
 async function invest(call, callback) {
-    logger.debug(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${amount}`)
     try {
+        logger.debug(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${call.request.amount}`)
         let investor = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Investor address: ${investor}`)
         let project = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
@@ -111,7 +108,6 @@ async function invest(call, callback) {
         let tx = await client.instance().contractCallTx({
             callerId: investor,
             contractId: config.get().contracts.eur.address,
-            abiVersion: 1,
             amount: 0,
             gas: 10000,
             callData: callData

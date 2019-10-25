@@ -5,6 +5,7 @@ const err = require('../error/errors')
 const config = require('../config')
 const util = require('../ae/util')
 const enums = require('../enums/enums')
+const { UniversalCrypto } = require('@aeternity/aepp-sdk')
 
 /**
  * Fetches and processes transaction events for given tx hash.
@@ -42,6 +43,7 @@ async function handleTransactionMined(info, poll) {
         logger.info(`Parsed event type: ${type}`)
         tx = await updateTransactionState(info, poll, type)
         logger.info(`Updated state. Saved tx: \n%o`, tx)
+        callSpecialActions(tx)
         transactions.push(tx)
     }
     return transactions
@@ -65,6 +67,11 @@ async function updateTransactionState(info, poll, type) {
             address = util.decodeAddress(event.topics[1])
             walletType = await repo.getWalletTypeOrThrow(address)
             supervisorStatus = (walletType == enums.WalletType.USER) ? enums.SupervisorStatus.REQUIRED : enums.SupervisorStatus.NOT_REQUIRED
+            keypair = Crypto.generateKeyPair()
+            workerKeyPair = (walletType == enums.WalletType.USER) ? {
+                worker_public_key: keypair.publicKey,
+                worker_secret_key: keypair.secretKey
+            } : {}
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
                 to_wallet: address,
@@ -74,7 +81,8 @@ async function updateTransactionState(info, poll, type) {
                 type: enums.TxType.WALLET_CREATE,
                 wallet: address,
                 wallet_type: walletType,
-                processed_at: new Date()
+                processed_at: new Date(),
+                ...workerKeyPair
             })
         case enums.TxType.ORG_CREATE:
             return repo.update(poll.hash, {
@@ -177,6 +185,17 @@ async function updateTransactionState(info, poll, type) {
             })
         default:
             throw new Error(`Unknown transaction processed! Hash: ${poll.hash}`)
+    }
+}
+
+async function callSpecialActions(tx) {
+    if (tx.type == enums.TxType.APPROVE_INVESTMENT) {
+        let investorWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
+        let investorWorkerKeyPair = {
+            publicKey: investorWalletCreationTx.worker_public_key,
+            secretKey: investorWalletCreationTx.worker_secret_key
+        }
+        let client = 
     }
 }
 

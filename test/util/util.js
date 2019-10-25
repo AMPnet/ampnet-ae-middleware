@@ -28,6 +28,11 @@ async function waitMined(txHash) {
     })
 }
 
+async function waitNextBlock(afterHash) {
+    let tx = await client.instance().getTxInfo(afterHash)
+    return client.instance().awaitHeight(tx.height + 5)
+}
+
 function enforceAkPrefix(address) {
     return address.replace("ct_", "ak_")
 }
@@ -43,7 +48,8 @@ function parseError(err) {
 }
 
 module.exports = { 
-    waitMined, 
+    waitMined,
+    waitNextBlock, 
     enforceAkPrefix, 
     currentTimeWithDaysOffset, 
     currentTimeWithSecondsOffset, 

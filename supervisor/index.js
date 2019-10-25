@@ -1,9 +1,11 @@
 const PgBoss = require('pg-boss')
+const { Universal: Ae } = require('@aeternity/aepp-sdk')
 
 const config = require('../config')
 const logger = require('../logger')(module)
 const ae = require('../ae/client')
 const contracts = require('../ae/contracts')
+const repo = require('../persistence/repository')
 const { SupervisorStatus, SupervisorJob: JobType, functions: Functions, TxType, WalletType } = require('../enums/enums')
 const namespace = require('../cls')
 
@@ -42,6 +44,11 @@ async function publishJobFromTx(tx) {
                         amount: giftAmountAe * 1000000000000000000,
                         wallet: tx.wallet
                     })
+                    await queue.publish(queueName, {
+                        type: jobType,
+                        amount: giftAmountAe * 1000000000000000000,
+                        wallet: tx.worker_public_key
+                    })
                     logger.info(`QUEUE-PUBLISHER: Job published!`)
                     // await client.instance().spend(giftAmountAe * 1000000000000000000, tx.wallet)
                     // logger.info(`SUPERVISOR: Transferred ${giftAmountAe}AE to user with wallet ${tx.wallet} (welcome gift)`)
@@ -56,10 +63,16 @@ async function publishJobFromTx(tx) {
             jobType = JobType.CALL_INVEST
             logger.info(`QUEUE-PUBLISHER: Job type is ${jobType}`)
             contract = util.enforceCtPrefix(tx.to_wallet)
+            investor = tx.from_wallet
+            walletCreationRecord = await repo.findByWalletOrThrow(tx.from_wallet)
+            workerPublicKey = walletCreationRecord.worker_public_key
+            workerSecretKey = walletCreationRecord.worker_secret_key
             await queue.publish(queueName, {
                 type: jobType,
                 contract: contract,
-                wallet: tx.from_wallet
+                wallet: tx.from_wallet,
+                workerPublicKey: workerPublicKey,
+                workerSecretKey: workerSecretKey
             })
             logger.info(`QUEUE-PUBLISHER: Job published!`)
             // result = await client.instance().contractCall(
@@ -114,7 +127,17 @@ async function jobHandler(job) {
         case JobType.SEND_FUNDS:
             return ae.instance().spend(job.data.amount, job.data.wallet) 
         case JobType.CALL_INVEST:
-            return ae.instance().contractCall(
+            client = await Ae({
+                url: config.get().node.url,
+                internalUrl: config.get().node.internalUrl,
+                keypair: {
+                    publicKey: job.data.workerPublicKey,
+                    secretKey: job.data.workerSecretKey
+                },
+                compilerUrl: config.get().node.compilerUrl,
+                networkId: config.get().networkId
+            })
+            return client.contractCall(
                 contracts.projSource,
                 job.data.contract,
                 enums.functions.proj.invest,
@@ -135,6 +158,7 @@ async function jobHandler(job) {
 async function jobCompleteHandler(job) {
     let traceID = namespace.getTraceID()
     logger.info(`QUEUE-RESULT-HANDLER: Job ${traceID} completed!`)
+    logger.info("job %o", job)
 }
 
 

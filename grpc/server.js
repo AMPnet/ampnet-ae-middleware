@@ -96,6 +96,7 @@ module.exports = {
             generateInvestTx: eurSvc.invest,
             generateStartRevenueSharesPayoutTx: projSvc.startRevenueSharesPayout,
             postTransaction: txSvc.postTransaction,
+            getTransactionInfo: txSvc.getTransactionInfo,
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
             getProjectsInfo: projSvc.getInfo,

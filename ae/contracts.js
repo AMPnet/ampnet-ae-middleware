@@ -13,10 +13,18 @@ let orgCompiled
 let projCompiled
 
 async function compile() {
-    coopCompiled = await client.instance().contractCompile(coopSource)
-    eurCompiled = await client.instance().contractCompile(eurSource)
-    orgCompiled = await client.instance().contractCompile(orgSource)
-    projCompiled = await client.instance().contractCompile(projSource)
+    coopCompiled = await client.instance().contractCompile(coopSource, {
+        backend: 'fate'
+    })
+    eurCompiled = await client.instance().contractCompile(eurSource, {
+        backend: 'fate'
+    })
+    orgCompiled = await client.instance().contractCompile(orgSource, {
+        backend: 'fate'
+    })
+    projCompiled = await client.instance().contractCompile(projSource, {
+        backend: 'fate'
+    })
 }
 
 function getCoopCompiled() { return coopCompiled }

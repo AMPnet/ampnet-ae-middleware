@@ -82,6 +82,26 @@ async function getPortfolio(call, callback) {
     }
 }
 
+async function getTransactionInfo(call, callback) {
+    logger.debug(`Received request to fetch info for transaction with hash ${call.request.txHash} `)
+    try {
+        let records = await repo.get({ hash: call.request.txHash })
+        let info = {
+            hash: records[0].hash,
+            fromWallet: records[0].from_wallet,
+            toWallet: records[0].to_wallet,
+            state: records[0].state,
+            type: records[0].type,
+            amount: records[0].amount
+        }
+        logger.debug(`Successfully fetched transaction info, state: ${info.state}`)
+        callback(null, info)
+    } catch (error) {
+        logger.error(`Error while fetching transaction info: \n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 async function getTransactions(call, callback) {
     logger.debug(`Received request to fetch transactions for user with wallet txHash ${call.request.txHash}`)
     try {
@@ -190,7 +210,7 @@ async function handleSupervisorAction(tx) {
             if (tx.wallet_type == WalletType.USER) {
                 giftAmountAe = config.get().giftAmount
                 if (giftAmountAe > 0) {
-                    await client.instance().spend(giftAmountAe * 1000000000000000000, tx.wallet)
+                    await client.sender().spend(giftAmountAe * 1000000000000000000, tx.wallet)
                     logger.info(`SUPERVISOR: Transferred ${giftAmountAe}AE to user with wallet ${tx.wallet} (welcome gift)`)
                     await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
                     logger.info(`SUPERVISOR: Updated SUPERVISOR_STATUS in original transaction.`)
@@ -202,7 +222,7 @@ async function handleSupervisorAction(tx) {
         case TxType.APPROVE_INVESTMENT:
             contract = util.enforceCtPrefix(tx.to_wallet)
             logger.info(`SUPERVISOR: Calling invest() on Project Contract ${contract}`)
-            result = await client.instance().contractCall(
+            result = await client.sender().contractCall(
                 contracts.projSource,
                 contract,
                 enums.functions.proj.invest,
@@ -219,7 +239,7 @@ async function handleSupervisorAction(tx) {
             batchCount = 1 
             do {
                 logger.info(`Call #${batchCount} on payout_revenue_shares()`)
-                batchPayout = await client.instance().contractCall(
+                batchPayout = await client.sender().contractCall(
                     contracts.projSource,
                     contract,
                     enums.functions.proj.payoutRevenueSharesBatch,
@@ -263,15 +283,17 @@ async function checkTxCallee(calleeId) {
 }
 
 async function checkContractData(tx) {
+    let orgBytecode = contracts.getOrgCompiled().bytecode
+    let projBytecode = contracts.getProjCompiled().bytecode
     switch (tx.code) {
-        case contracts.getOrgCompiled().bytecode:
-            callData = await codec.decodeDataBySource(contracts.orgSource, "init", tx.callData)
+        case orgBytecode:
+            callData = await codec.decodeDataByBytecode(orgBytecode, tx.callData)
             if (callData.arguments[0].value != config.get().contracts.coop.address) {
                 throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
-        case contracts.getProjCompiled().bytecode:
-            callData = await codec.decodeDataBySource(contracts.projSource, "init", tx.callData)
+        case projBytecode:
+            callData = await codec.decodeDataByBytecode(projBytecode, tx.callData)
             orgAddress = callData.arguments[0].value
             isOrgActive = await isWalletActive(orgAddress)
             if (!isOrgActive) {
@@ -305,5 +327,6 @@ module.exports = {
     postTransaction, 
     getPortfolio, 
     getTransactions,
-    getInvestmentsInProject
+    getInvestmentsInProject,
+    getTransactionInfo
 }
