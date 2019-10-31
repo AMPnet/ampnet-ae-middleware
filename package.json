@@ -26,7 +26,7 @@
     "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 120000"
   },
   "devDependencies": {
-    "@aeternity/aepp-sdk": "^5.0.0",
+    "@aeternity/aepp-sdk": "^6.0.1",
     "chai": "^4.2.0",
     "mocha": "^6.1.4",
     "node-grpc-client": "^1.3.0"
