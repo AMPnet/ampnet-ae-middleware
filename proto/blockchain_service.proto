@@ -140,6 +140,7 @@ message TransactionInfoResponse {
     string state = 4;
     string type = 5;
     string amount = 6;
+    string supervisor_status = 7;
 }
 
 ///////// Contract create messages /////////

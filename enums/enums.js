@@ -2,6 +2,11 @@ let util = require('../ae/util')
 
 let ClsNamespace = "ampnet-ae-middleware"
 
+let ServiceEnv = {
+    DEV: "dev",
+    PROD: "prod"
+}
+
 let Environment = {
     LOCAL: "local",
     TESTNET: "testnet",
@@ -50,6 +55,12 @@ let WalletType = {
     USER: "USER",
     ORGANIZATION: "ORGANIZATION",
     PROJECT: "PROJECT"
+}
+
+let SupervisorJob = {
+    SEND_FUNDS: "SEND_FUNDS",
+    CALL_INVEST: "CALL_INVEST",
+    CALL_PAYOUT_SHARES: "CALL_PAYOUT_SHARES"
 }
 
 let SupervisorStatus = {
@@ -104,10 +115,12 @@ function txTypeToGrpc(type) {
 
 module.exports = {
     Environment,
+    ServiceEnv,
     ClsNamespace,
     TxType,
     TxState,
     WalletType,
+    SupervisorJob,
     SupervisorStatus,
     txTypeValues,
     txStateValues,

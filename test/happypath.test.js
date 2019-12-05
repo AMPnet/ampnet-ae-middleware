@@ -4,10 +4,10 @@ let assert = chai.assert;
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
+let supervisor = require('../supervisor')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
-let deployer = require('./ae/deployer')
 let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 let util = require('./util/util')
@@ -18,7 +18,6 @@ let config = require('../config')
 describe('Main tests', function() {
 
     beforeEach(async() => {
-        // await deployer.deploy()
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -27,13 +26,15 @@ describe('Main tests', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
+        await supervisor.stop()
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        console.log("tx", addBobWalletTx)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let bobBalanceBeforeDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceBeforeDeposit, 0)
@@ -42,17 +43,17 @@ describe('Main tests', function() {
         let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
         
-        await util.waitMined(createOrgTxHash)
+        await util.waitTxProcessed(createOrgTxHash)
         let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
         let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
-        await util.waitMined(addOrgWalletTxHash)
+        await util.waitTxProcessed(addOrgWalletTxHash)
 
         let mintToBobAmount = 101000
         let mintToBobTx = await grpcClient.generateMintTx(addBobWalletTxHash, mintToBobAmount)
         let mintToBobTxSigned = await clients.owner().signTransaction(mintToBobTx)
         let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
-        await util.waitMined(mintToBobTxHash)
+        await util.waitTxProcessed(mintToBobTxHash)
 
         let bobBalanceAfterDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterDeposit, mintToBobAmount)
@@ -61,12 +62,12 @@ describe('Main tests', function() {
         let approveBobWithdrawTx = await grpcClient.generateApproveWithdrawTx(addBobWalletTxHash, withdrawFromBobAmount)
         let approveBobWithdrawTxSigned = await clients.bob().signTransaction(approveBobWithdrawTx)
         let approveBobWithdrawTxHash = await grpcClient.postTransaction(approveBobWithdrawTxSigned)
-        await util.waitMined(approveBobWithdrawTxHash)
+        await util.waitTxProcessed(approveBobWithdrawTxHash)
 
         let burnFromBobTx = await grpcClient.generateBurnFromTx(addBobWalletTxHash)
         let burnFromBobTxSigned = await clients.owner().signTransaction(burnFromBobTx)
         let burnFromBobTxHash = await grpcClient.postTransaction(burnFromBobTxSigned)
-        await util.waitMined(burnFromBobTxHash)
+        await util.waitTxProcessed(burnFromBobTxHash)
 
         let bobBalanceAfterWithdraw = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterWithdraw, mintToBobAmount - withdrawFromBobAmount)
@@ -81,21 +82,18 @@ describe('Main tests', function() {
         )
         let createProjTxSigned = await clients.bob().signTransaction(createProjTx)
         let createProjTxHash = await grpcClient.postTransaction(createProjTxSigned)
-        await util.waitMined(createProjTxHash)
+        await util.waitTxProcessed(createProjTxHash)
         
         let addProjWalletTx = await grpcClient.generateAddWalletTx(createProjTxHash)
         let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
         let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
-        await util.waitMined(addProjWalletTxHash)
+        await util.waitTxProcessed(addProjWalletTxHash)
         
         let bobInvestmentAmount = 100000
         let investTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
         let investTxSigned = await clients.bob().signTransaction(investTx)
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
-        await util.waitMined(investTxHash)
-
-        console.log("Wait for next block to be mined (for investment to be fully processed)")
-        await util.waitNextBlock(investTxHash)
+        await util.waitTxProcessed(investTxHash)
 
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
@@ -104,11 +102,8 @@ describe('Main tests', function() {
         let revenuePayoutTx = await grpcClient.generateStartRevenueSharesPayoutTx(addBobWalletTxHash, addProjWalletTxHash, revenueToPayout)
         let revenuePayoutTxSigned = await clients.bob().signTransaction(revenuePayoutTx)
         let revenuePayoutTxHash = await grpcClient.postTransaction(revenuePayoutTxSigned)
-        await util.waitMined(revenuePayoutTxHash)
+        await util.waitTxProcessed(revenuePayoutTxHash)
         
-        console.log("Wait for next block to be mined (for supervisor to process revenue share payout)")
-        await util.waitNextBlock(revenuePayoutTxHash)
-
         let bobBalanceAfterRevenuePayout = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterRevenuePayout, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount + revenueToPayout)
         

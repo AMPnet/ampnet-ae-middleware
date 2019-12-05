@@ -5,17 +5,19 @@ let grpc = require('grpc-middleware')
 let express = require('express')
 let actuator = require('express-actuator')
 let prometheus = require('prom-client')
-let cls = require('cls-hooked')
 let uuid = require('uuid/v4')
 let interceptors = require('@hpidcock/node-grpc-interceptors')
+let ServiceEnv = require('../enums/enums').ServiceEnv
 
 // initialize global namespace
-let namespace = require('../enums/enums').ClsNamespace
-let clsNamespace = cls.createNamespace(namespace)
+let namespace = require('../cls')
 
 // config
 let config = require('../config')
 let logger = require('../logger')(module)
+
+// supervisor job queue
+let supervisorQueue = require('../supervisor')
 
 // services
 let txSvc = require('../service/transaction')
@@ -43,9 +45,15 @@ let httpServer
 
 module.exports = {
     start: async function() {
+        // Initialize namespace
+        namespace.create()
+        logger.info('Namespace initialized.')
+
         // Initialize config
         await config.init()
-        logger.info('Config initialized: \n%o', config.get())
+        if (config.get().serviceEnv != ServiceEnv.PROD) {
+            logger.info('Config initialized: \n%o', config.get())
+        }
 
         // Initialize database and run migrations
         repo.init()
@@ -59,11 +67,21 @@ module.exports = {
         await contracts.compile()
         logger.info('Contracts compiled.')
 
+        // Initialize supervisor job queue
+        await supervisorQueue.initAndStart({
+            user: 'ae_middleware_local',
+            password: 'password',
+            database: 'ae_middleware_local_queue',
+            host: 'localhost',
+            port: '5432'
+        })
+        logger.info('Supervisor job queue initialized and started.')
+
         // Initialize Grpc server
         grpcServer = interceptors.serverProxy(new grpc.Server())
         grpcServer.use((context, next) => {
-            clsNamespace.run(() => {
-                clsNamespace.set('traceID', uuid())
+            namespace.run(() => {
+                namespace.setTraceID(uuid())
                 next()
             })
         })

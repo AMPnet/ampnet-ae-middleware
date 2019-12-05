@@ -4,10 +4,9 @@ let knex
 
 async function init() {
     knex = require('knex')(config.get().db)
-    return new Promise(resolve => {
-        knex.raw('TRUNCATE TABLE transaction').then(_ => {
-            resolve()
-        })
+    return new Promise(async resolve => {
+        await knex.raw('TRUNCATE TABLE transaction;')
+        resolve()
     })
 }
 

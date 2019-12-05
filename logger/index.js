@@ -3,9 +3,9 @@ const { createLogger, format, transports } = require('winston')
 const { combine, timestamp, splat, printf } = format
 const DailyRotateFile = require('winston-daily-rotate-file')
 
-const { Environment, ClsNamespace } = require('../enums/enums')
+const ServiceEnv = require('../enums/enums').ServiceEnv
 
-const clsNamespace = require('cls-hooked').getNamespace(ClsNamespace)
+const namespace = require('../cls')
 
 const mainLogger = create(
     combine(
@@ -24,10 +24,9 @@ const clsLogger = create(
 )
 
 function create(format) {
-    let env = process.env.NODE_ENV || Environment.LOCAL
+    let env = process.env.ENV || ServiceEnv.DEV
     switch (env) {
-        case Environment.LOCAL:
-        case Environment.TESTNET:
+        case ServiceEnv.DEV:
             return createLogger({
                 level: 'debug',
                 format: format,
@@ -35,7 +34,7 @@ function create(format) {
                     new transports.Console()
                 ]
             })
-        case Environment.MAINNET:
+        case ServiceEnv.PROD:
             return createLogger({
                 level: 'debug',
                 format: format,
@@ -60,10 +59,6 @@ function getFilenameLabel(callingModule) {
     return result
 }
 
-function getTraceID() {
-    return clsNamespace.get('traceID')
-}
-
 module.exports = function(mod) {
     if (!mod) {
         throw new Error('Must provide calling module param when requiring logger!')
@@ -71,7 +66,7 @@ module.exports = function(mod) {
     return new Proxy(mainLogger, {
         get(target, property, receiver) {
             let callingModule = getFilenameLabel(mod)
-            let traceID = getTraceID()
+            let traceID = namespace.getTraceID()
             let targetValue = traceID ? 
                 Reflect.get(clsLogger.child({ traceID, callingModule }), property, receiver) : 
                 Reflect.get(mainLogger.child({ callingModule }), property, receiver)

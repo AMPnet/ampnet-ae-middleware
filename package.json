@@ -16,6 +16,7 @@
     "knex": "^0.19.5",
     "lodash": "^4.17.15",
     "pg": "^7.14.0",
+    "pg-boss": "^3.1.7",
     "prom-client": "^11.5.3",
     "uuidv4": "^6.0.0",
     "winston": "^3.2.1",
@@ -23,7 +24,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 120000"
+    "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 200000"
   },
   "devDependencies": {
     "@aeternity/aepp-sdk": "^6.1.2",
