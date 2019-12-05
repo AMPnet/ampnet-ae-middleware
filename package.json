@@ -1,6 +1,6 @@
 {
   "name": "node-grpc-middleware",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "dependencies": {
     "@grpc/proto-loader": "^0.4.0",
     "@hpidcock/node-grpc-interceptors": "0.0.9",
