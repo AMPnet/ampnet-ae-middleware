@@ -19,7 +19,7 @@
     "prom-client": "^11.5.3",
     "uuidv4": "^5.0.0",
     "winston": "^3.2.1",
-    "winston-daily-rotate-file": "^3.10.0"
+    "winston-daily-rotate-file": "^4.3.0"
   },
   "scripts": {
     "start": "node index.js",
