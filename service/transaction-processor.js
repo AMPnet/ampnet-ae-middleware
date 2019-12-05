@@ -5,7 +5,8 @@ const err = require('../error/errors')
 const config = require('../config')
 const util = require('../ae/util')
 const enums = require('../enums/enums')
-const { UniversalCrypto } = require('@aeternity/aepp-sdk')
+const contracts = require('../ae/contracts')
+const { Universal, Crypto } = require('@aeternity/aepp-sdk')
 
 /**
  * Fetches and processes transaction events for given tx hash.
@@ -121,7 +122,7 @@ async function updateTransactionState(info, poll, type) {
             spender = util.decodeAddress(event.topics[1])
             amount = util.tokenToEur(event.topics[2])
             type = (spender == config.get().contracts.eur.owner) ? enums.TxType.APPROVE_USER_WITHDRAW : enums.TxType.APPROVE_INVESTMENT
-            supervisorStatus = (type == enums.TxType.APPROVE_INVESTMENT) ? enums.SupervisorStatus.REQUIRED : enums.SupervisorStatus.NOT_REQUIRED
+            supervisorStatus = (spender == config.get().contracts.eur.owner) ? enums.SupervisorStatus.NOT_REQUIRED : enums.SupervisorStatus.REQUIRED
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
                 to_wallet: spender,
@@ -189,13 +190,67 @@ async function updateTransactionState(info, poll, type) {
 }
 
 async function callSpecialActions(tx) {
-    if (tx.type == enums.TxType.APPROVE_INVESTMENT) {
-        let investorWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
-        let investorWorkerKeyPair = {
-            publicKey: investorWalletCreationTx.worker_public_key,
-            secretKey: investorWalletCreationTx.worker_secret_key
+    if (tx.supervisor_status == enums.SupervisorStatus.REQUIRED) {
+        logger.info(`Special action call required for transaction ${tx.hash}`)
+        if (tx.type == enums.TxType.APPROVE_INVESTMENT) {
+            let investorWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
+            let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
+            let investorWallet = investorWalletCreationTx.wallet
+            let investorWorkerKeyPair = {
+                publicKey: investorWalletCreationTx.worker_public_key,
+                secretKey: investorWalletCreationTx.worker_secret_key
+            }
+            let projectContractAddress = util.enforceCtPrefix(projectWalletCreationTx.wallet)
+            logger.info(`Calling approve investment for user ${investorWallet} and project ${projectContractAddress}.`)
+            let client = await Universal({
+                url: config.get().node.url,
+                internalUrl: config.get().node.internalUrl,
+                keypair: investorWorkerKeyPair,
+                compilerUrl: config.get().node.compilerUrl,
+                networkId: config.get().networkId
+            })
+            let callResult = await client.contractCall(
+                contracts.projSource,
+                projectContractAddress,
+                enums.functions.proj.invest,
+                [ investorWallet ]
+            )
+            logger.info(`Call result %o`, callResult)
+            repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+            process(callResult.hash)
+        } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
+            let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
+            let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
+            let projectManagerWorkerKeyPair = {
+                publicKey: projectManagerWalletCreationTx.worker_public_key,
+                secretKey: projectManagerWalletCreationTx.worker_secret_key
+            }
+            let projectContractAddress = util.enforceCtPrefix(projectWalletCreationTx.wallet)
+            let client = await Universal({
+                url: config.get().node.url,
+                internalUrl: config.get().node.internalUrl,
+                keypair: projectManagerWorkerKeyPair,
+                compilerUrl: config.get().node.compilerUrl,
+                networkId: config.get().networkId
+            })
+            logger.info(`Calling revenue share payout for project ${projectContractAddress}.`)
+            var batchCount = 0
+            do {
+                batchPayout = await client.contractCall(
+                    contracts.projSource,
+                    projectContractAddress,
+                    enums.functions.proj.payoutRevenueSharesBatch,
+                    [ ]
+                )
+                logger.info(`Call result %o`, batchPayout)
+                shouldPayoutAnotherBatch = await batchPayout.decode()
+                batchCount++
+                logger.info(`Payed out batch #${batchCount}.`)
+                process(batchPayout.hash)
+            } while(shouldPayoutAnotherBatch)
+            logger.info(`All batches payed out.`)
+            repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
         }
-        let client = 
     }
 }
 

@@ -13,7 +13,7 @@ let txProcessor = require('./transaction-processor')
 let supervisor = require('../supervisor')
 let ErrorType = err.type
 
-let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
+let { TxState, TxType, SupervisorStatus } = require('../enums/enums')
 
 async function postTransaction(call, callback) {
     logger.debug(`Received request to post transaction`)
@@ -24,7 +24,7 @@ async function postTransaction(call, callback) {
         txProcessor.process(result.hash).then(
             records => {
                 records.forEach(record => {
-                    if (record.supervisor_status == SupervisorStatus.REQUIRED) {
+                    if (record.supervisor_status == SupervisorStatus.REQUIRED && record.type == enums.TxType.WALLET_CREATE) {
                         logger.info('Supervisor action required. Creating a job.')
                         supervisor.publishJobFromTx(record)
                     }
@@ -92,7 +92,8 @@ async function getTransactionInfo(call, callback) {
             toWallet: records[0].to_wallet,
             state: records[0].state,
             type: records[0].type,
-            amount: records[0].amount
+            amount: records[0].amount,
+            supervisorStatus: records[0].supervisor_status
         }
         logger.debug(`Successfully fetched transaction info, state: ${info.state}`)
         callback(null, info)
@@ -201,62 +202,6 @@ async function performSecurityChecks(data) {
             break
         default:
             throw err.generate(ErrorType.GENERIC_ERROR, `Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
-    }
-}
-
-async function handleSupervisorAction(tx) {
-    switch (tx.type) {
-        case TxType.WALLET_CREATE:
-            if (tx.wallet_type == WalletType.USER) {
-                giftAmountAe = config.get().giftAmount
-                if (giftAmountAe > 0) {
-                    await client.sender().spend(giftAmountAe * 1000000000000000000, tx.wallet)
-                    logger.info(`SUPERVISOR: Transferred ${giftAmountAe}AE to user with wallet ${tx.wallet} (welcome gift)`)
-                    await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
-                    logger.info(`SUPERVISOR: Updated SUPERVISOR_STATUS in original transaction.`)
-                } else {
-                    logger.info(`SUPERVISOR: Not sending welcome gift. (amount in config set to 0)`)
-                }
-            }
-            break
-        case TxType.APPROVE_INVESTMENT:
-            contract = util.enforceCtPrefix(tx.to_wallet)
-            logger.info(`SUPERVISOR: Calling invest() on Project Contract ${contract}`)
-            result = await client.sender().contractCall(
-                contracts.projSource,
-                contract,
-                enums.functions.proj.invest,
-                [ tx.from_wallet ]
-            )
-            logger.info(`SUPERVISOR: Call result: \n%o`, result)
-            await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
-            logger.info(`SUPERVISOR: Updated SUPERVISOR_STATUS in original transaction.`)
-            process(result.hash)
-            break 
-        case TxType.START_REVENUE_PAYOUT:
-            contract = util.enforceCtPrefix(tx.to_wallet)
-            logger.info(`SUPERVISOR: Starting multiple calls on payout_revenue_shares() until all investors on project ${contract} are payed out.`)
-            batchCount = 1 
-            do {
-                logger.info(`Call #${batchCount} on payout_revenue_shares()`)
-                batchPayout = await client.sender().contractCall(
-                    contracts.projSource,
-                    contract,
-                    enums.functions.proj.payoutRevenueSharesBatch,
-                    [ ]
-                )
-                logger.info(`SUPERVISOR: Call result: \n%o`, batchPayout)
-                shouldPayoutAnotherBatch = await batchPayout.decode()
-                logger.info(`SUPERVISOR: Need to call again to payout next batch? ${shouldPayoutAnotherBatch}`)
-                batchCount++
-                process(batchPayout.hash)
-            } while(shouldPayoutAnotherBatch)
-            logger.info(`SUPERVISOR: All batches payed out.`)
-            await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
-            logger.info(`SUPERVISOR: Updated SUPERVISOR_STATUS in original transaction.`)
-            break
-        default:
-            throw new Error(`Supervisor cannot process provided transaction type: ${tx.type}`)
     }
 }
 

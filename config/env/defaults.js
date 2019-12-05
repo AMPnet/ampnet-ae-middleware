@@ -193,7 +193,7 @@ function getDb() {
     var ssl
     
     var poolMin = 2
-    var poolMax = 10
+    var poolMax = process.env.DB_MAX_POOL_SIZE || 5
     var idleTimeoutMillis = 30000
     
     host = process.env.DB_HOST || "localhost"

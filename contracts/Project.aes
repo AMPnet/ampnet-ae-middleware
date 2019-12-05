@@ -20,6 +20,7 @@ contract Project =
       | RevenueSharePayout(address, int)
       | ProjectCreated
       | NewInvestment(address, int)
+      | InvestmentCancelled(address, int)
 
     record state = {
         organization               : OrgInterface,
@@ -89,6 +90,22 @@ contract Project =
         persist_investment(investor, amount)
 
         Chain.event(NewInvestment(investor, amount))
+    
+    stateful entrypoint cancel_investment() =
+        let investment = state.investments[Call.origin = 0]
+        require(
+            !is_completely_funded(),
+            "Can not cancel investment. Project already completely funded.")
+        require(
+            investment > 0,
+            "Can not cancel investment. User did not invest funds in this project.")
+        
+        state.organization.coop().token().transfer(Call.origin, investment)
+        put(state{
+            investments[Call.origin] = 0,
+            totalFundsRaised @ raised = raised - investment })
+        
+        Chain.event(InvestmentCancelled(Call.origin, investment))
 
     stateful entrypoint withdraw(tokenIssuer: address, amount: int) =
         require(

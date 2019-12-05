@@ -21,3 +21,13 @@ CREATE USER ae_middleware_testnet WITH PASSWORD 'password';
 
 DROP USER IF EXISTS ae_middleware_testnet_queue;
 CREATE USER ae_middleware_testnet_queue WITH PASSWORD 'password';
+
+GRANT CREATE ON DATABASE ae_middleware_local_queue TO ae_middleware_local;
+GRANT CREATE ON DATABASE ae_middleware_testnet_queue TO ae_middleware_testnet;
+
+\connect ae_middleware_testnet_queue
+CREATE EXTENSION pgcrypto;
+
+\connect ae_middleware_local_queue
+CREATE EXTENSION pgcrypto;
+
