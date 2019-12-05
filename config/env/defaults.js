@@ -251,24 +251,24 @@ function getQueueDb() {
     var port
     var database
     
-    host = process.env.QUEUE_DB_HOST || ((process.env.NODE_ENV == Environment.LOCAL) ? "localhost" : "db")
+    host = process.env.QUEUE_DB_HOST || "localhost"
     port = process.env.QUEUE_DB_PORT || "5432"
 
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL:
-            user = process.env.QUEUE_DB_USER || "ae_middleware_local"
+            user = process.env.QUEUE_DB_USER || "ae_middleware_local_queue"
             password = process.env.QUEUE_DB_PASSWORD || "password"
-            database = process.env.QUEUE_DB_NAME || "ae_middleware_local"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_local_queue"
             break
         case Environment.TESTNET:
-            user = process.env.QUEUE_DB_USER || "ae_middleware_testnet"
+            user = process.env.QUEUE_DB_USER || "ae_middleware_testnet_queue"
             password = process.env.QUEUE_DB_PASSWORD || "password"
-            database = process.env.QUEUE_DB_NAME || "ae_middleware_testnet"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_testnet_queue"
             break
         case Environment.MAINNET:
-            user = process.env.QUEUE_DB_USER || "ae_middleware_mainnet"
+            user = process.env.QUEUE_DB_USER || "ae_middleware_mainnet_queue"
             password = process.env.QUEUE_DB_PASSWORD || "password"
-            database = process.env.QUEUE_DB_NAME || "ae_middleware_mainnet"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_mainnet_queue"
             break
     }
 

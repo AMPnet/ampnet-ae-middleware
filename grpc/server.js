@@ -68,13 +68,7 @@ module.exports = {
         logger.info('Contracts compiled.')
 
         // Initialize supervisor job queue
-        await supervisorQueue.initAndStart({
-            user: 'ae_middleware_local',
-            password: 'password',
-            database: 'ae_middleware_local_queue',
-            host: 'localhost',
-            port: '5432'
-        })
+        await supervisorQueue.initAndStart(config.get().queueDb)
         logger.info('Supervisor job queue initialized and started.')
 
         // Initialize Grpc server

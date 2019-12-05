@@ -24,7 +24,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 200000"
+    "test": "./node_modules/mocha/bin/mocha --timeout 200000"
   },
   "devDependencies": {
     "@aeternity/aepp-sdk": "^6.1.2",

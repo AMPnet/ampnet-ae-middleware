@@ -19,7 +19,8 @@ async function initAndStart(dbConfig) {
         user: dbConfig.user,
         password: dbConfig.password,
         archiveCompletedJobsEvery: '1 day',
-        deleteArchivedJobsEvery: '7 days'
+        deleteArchivedJobsEvery: '7 days',
+        poolSize: 1
     })
     await queue.start()
     await queue.subscribe(queueName, jobHandler)
