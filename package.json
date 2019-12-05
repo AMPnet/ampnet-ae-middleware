@@ -17,7 +17,7 @@
     "lodash": "^4.17.15",
     "pg": "^7.14.0",
     "prom-client": "^11.5.3",
-    "uuidv4": "^5.0.0",
+    "uuidv4": "^6.0.0",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.3.0"
   },
