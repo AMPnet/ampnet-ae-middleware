@@ -272,7 +272,7 @@ function getQueueDb() {
             break
     }
 
-    sslString = process.env.DB_SSL || ((process.env.ENV == ServiceEnv.PROD) ? "true" : "false")
+    sslString = process.env.QUEUE_DB_SSL || ((process.env.ENV == ServiceEnv.PROD) ? "true" : "false")
     ssl = (sslString == "true")
     return {
         host: host,
