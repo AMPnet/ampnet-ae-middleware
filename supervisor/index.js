@@ -77,6 +77,7 @@ async function publishJobFromTx(tx) {
                         }
                     )
                 } else {
+                    repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
                     logger.info(`QUEUE-PUBLISHER: Send funds job originated from transaction ${tx.hash} not published! (welcome gift amount in config set to 0)`)
                 }
             }
