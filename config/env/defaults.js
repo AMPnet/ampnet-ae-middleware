@@ -272,12 +272,16 @@ function getQueueDb() {
             break
     }
 
+    sslString = process.env.DB_SSL || ((process.env.ENV == ServiceEnv.PROD) ? "true" : "false")
+    ssl = (sslString == "true")
     return {
         host: host,
         user: user,
         password: password,
         port: port,
-        database: database
+        database: database,
+        poolSize: process.env.QUEUE_DB_MAX_POOL_SIZE || 1,
+        ssl: ssl
     }
 }
 
