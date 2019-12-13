@@ -113,8 +113,6 @@ async function getContracts(node, supervisorKeypair) {
             contractAddress: process.env.EUR_ADDRESS
         })
         eurOwner = await (await eurInstance.call('owner', [])).decode()
-        contracts.setCoopAddress(process.env.COOP_ADDRESS)
-        contracts.setEurAddress(process.env.EUR_ADDRESS)
         logger.info(`Fetched Coop owner: ${coopOwner}`)
         logger.info(`Fetched EUR owner: ${eurOwner}`)
         return {
@@ -272,7 +270,7 @@ function getQueueDb() {
             break
     }
 
-    sslString = process.env.QUEUE_DB_SSL || ((process.env.ENV == ServiceEnv.PROD) ? "true" : "false")
+    sslString = process.env.QUEUE_DB_SSL || "false"
     ssl = (sslString == "true")
     return {
         host: host,
