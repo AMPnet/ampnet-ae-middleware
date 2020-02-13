@@ -140,6 +140,50 @@ module.exports = {
             })
         })
     },
+    generateCancelInvestmentTx: async function(fromTxHash, projectTxHash) {
+        return new Promise(resolve => {
+            client.generateCancelInvestmentTx({
+                fromTxHash,
+                projectTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
+    generateApproveProjectWithdrawTx: async function(fromTxHash, projectTxHash, amount) {
+        return new Promise(resolve => {
+            client.generateApproveProjectWithdrawTx({
+                fromTxHash,
+                projectTxHash,
+                amount
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
+    isInvestmentCancelable: async function(investorTxHash, projectTxHash) {
+        return new Promise(resolve => {
+            client.isInvestmentCancelable({
+                investorTxHash,
+                projectTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    console.log("err", err)
+                    resolve(err)
+                } else {
+                    resolve(result.canCancel)
+                }
+            })
+        })
+    },
     generateStartRevenueSharesPayoutTx: async function(fromTxHash, projectTxHash, revenue) {
         return new Promise(resolve => {
             client.generateStartRevenueSharesPayoutTx({

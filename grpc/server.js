@@ -97,7 +97,10 @@ module.exports = {
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
             getProjectsInfo: projSvc.getInfo,
-            getInvestmentsInProject: txSvc.getInvestmentsInProject
+            getInvestmentsInProject: txSvc.getInvestmentsInProject,
+            generateCancelInvestmentTx: projSvc.cancelInvestment,
+            generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
+            isInvestmentCancelable: projSvc.isInvestmentCancelable
         });
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());

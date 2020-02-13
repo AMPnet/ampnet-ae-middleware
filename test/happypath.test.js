@@ -31,10 +31,14 @@ describe('Main tests', function() {
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        console.log("tx", addBobWalletTx)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitTxProcessed(addBobWalletTxHash)
+
+        let addAliceWalletTx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey)
+        let addAliceWalletTxSigned = await clients.owner().signTransaction(addAliceWalletTx)
+        let addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned)
+        await util.waitTxProcessed(addAliceWalletTxHash)
 
         let bobBalanceBeforeDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceBeforeDeposit, 0)
@@ -54,6 +58,12 @@ describe('Main tests', function() {
         let mintToBobTxSigned = await clients.owner().signTransaction(mintToBobTx)
         let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
         await util.waitTxProcessed(mintToBobTxHash)
+
+        let mintToAliceAmount = 10000
+        let mintToAliceTx = await grpcClient.generateMintTx(addAliceWalletTxHash, mintToAliceAmount)
+        let mintToAliceTxSigned = await clients.owner().signTransaction(mintToAliceTx)
+        let mintToAliceTxHash = await grpcClient.postTransaction(mintToAliceTxSigned)
+        await util.waitTxProcessed(mintToAliceTxHash)
 
         let bobBalanceAfterDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterDeposit, mintToBobAmount)
@@ -88,7 +98,27 @@ describe('Main tests', function() {
         let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
         let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
         await util.waitTxProcessed(addProjWalletTxHash)
-        
+
+        let aliceInvestmentAmount = mintToAliceAmount
+        let aliceInvestTx = await grpcClient.generateInvestTx(addAliceWalletTxHash, addProjWalletTxHash, aliceInvestmentAmount)
+        let aliceInvestTxSigned = await clients.alice().signTransaction(aliceInvestTx)
+        let aliceInvestTxHash = await grpcClient.postTransaction(aliceInvestTxSigned)
+        await util.waitTxProcessed(aliceInvestTxHash)
+
+        let aliceBalanceBeforeCancelInvestment = await grpcClient.getBalance(addAliceWalletTxHash)
+        assert.equal(aliceBalanceBeforeCancelInvestment, 0)
+
+        let isAliceInvestmentCancelable = await grpcClient.isInvestmentCancelable(addAliceWalletTxHash, addProjWalletTxHash)
+        assert.isTrue(isAliceInvestmentCancelable)
+
+        let aliceCancelInvestmentTx = await grpcClient.generateCancelInvestmentTx(addAliceWalletTxHash, addProjWalletTxHash)
+        let aliceCancelInvestmentTxSigned = await clients.alice().signTransaction(aliceCancelInvestmentTx)
+        let aliceCancelInvestmentTxHash = await grpcClient.postTransaction(aliceCancelInvestmentTxSigned)
+        await util.waitTxProcessed(aliceCancelInvestmentTxHash)
+
+        let aliceBalanceAfterCancelInvestment = await grpcClient.getBalance(addAliceWalletTxHash)
+        assert.equal(aliceBalanceAfterCancelInvestment, mintToAliceAmount)
+
         let bobInvestmentAmount = 100000
         let investTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
         let investTxSigned = await clients.bob().signTransaction(investTx)
@@ -138,7 +168,7 @@ describe('Main tests', function() {
         assert.equal(bobInvestmentInProject.amount, bobInvestmentAmount)
         assert.exists(bobInvestmentInProject.date)
 
-        let expectedRecordCount = 12
+        let expectedRecordCount = 17
         let allRecords = await db.getAll()
         let recordsCount = allRecords.length
         assert.strictEqual(recordsCount, expectedRecordCount, `Expected ${expectedRecordCount} transactions but found ${recordsCount} in database.`)
@@ -150,6 +180,14 @@ describe('Main tests', function() {
         assert.strictEqual(addBobWalletTxRecord.supervisor_status, SupervisorStatus.PROCESSED)
         assert.strictEqual(addBobWalletTxRecord.type, TxType.WALLET_CREATE)
         assert.strictEqual(addBobWalletTxRecord.wallet_type, WalletType.USER)
+
+        let addAliceWalletTxRecord = (await db.getBy({hash: addAliceWalletTxHash}))[0]
+        assert.strictEqual(addAliceWalletTxRecord.from_wallet, config.get().contracts.coop.owner)
+        assert.strictEqual(addAliceWalletTxRecord.to_wallet, accounts.alice.publicKey)
+        assert.strictEqual(addAliceWalletTxRecord.state, TxState.MINED)
+        assert.strictEqual(addAliceWalletTxRecord.supervisor_status, SupervisorStatus.PROCESSED)
+        assert.strictEqual(addAliceWalletTxRecord.type, TxType.WALLET_CREATE)
+        assert.strictEqual(addAliceWalletTxRecord.wallet_type, WalletType.USER)
         
         let createOrgTxRecord = (await db.getBy({hash: createOrgTxHash}))[0]
         assert.strictEqual(createOrgTxRecord.from_wallet, accounts.bob.publicKey)
@@ -176,6 +214,14 @@ describe('Main tests', function() {
         assert.strictEqual(mintToBobTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(mintToBobTxRecord.type, TxType.DEPOSIT)
         assert.equal(mintToBobTxRecord.amount, mintToBobAmount)
+
+        let mintToAliceTxRecord = (await db.getBy({hash: mintToAliceTxHash}))[0]
+        assert.strictEqual(mintToAliceTxRecord.from_wallet, config.get().contracts.eur.owner)
+        assert.strictEqual(mintToAliceTxRecord.to_wallet, accounts.alice.publicKey)
+        assert.strictEqual(mintToAliceTxRecord.state, TxState.MINED)
+        assert.strictEqual(mintToAliceTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
+        assert.strictEqual(mintToAliceTxRecord.type, TxType.DEPOSIT)
+        assert.equal(mintToAliceTxRecord.amount, mintToAliceAmount)
 
         let approveBobWithdrawTxRecord = (await db.getBy({hash: approveBobWithdrawTxHash}))[0]
         assert.strictEqual(approveBobWithdrawTxRecord.from_wallet, accounts.bob.publicKey)
@@ -211,6 +257,30 @@ describe('Main tests', function() {
         assert.strictEqual(addProjWalletTxRecord.wallet, newProjWallet)
         assert.strictEqual(addProjWalletTxRecord.wallet_type, WalletType.PROJECT)
 
+        let approveAliceInvestmentTxRecord = (await db.getBy({hash: aliceInvestTxHash}))[0]
+        assert.strictEqual(approveAliceInvestmentTxRecord.from_wallet, accounts.alice.publicKey)
+        assert.strictEqual(approveAliceInvestmentTxRecord.to_wallet, newProjWallet)
+        assert.strictEqual(approveAliceInvestmentTxRecord.state, TxState.MINED)
+        assert.strictEqual(approveAliceInvestmentTxRecord.supervisor_status, SupervisorStatus.PROCESSED)
+        assert.strictEqual(approveAliceInvestmentTxRecord.type, TxType.APPROVE_INVESTMENT)
+        assert.equal(approveAliceInvestmentTxRecord.amount, aliceInvestmentAmount)
+
+        let aliceInvestmentTxRecord = (await db.getBy({type: TxType.INVEST, from_wallet: accounts.alice.publicKey}))[0]
+        assert.strictEqual(aliceInvestmentTxRecord.from_wallet, accounts.alice.publicKey)
+        assert.strictEqual(aliceInvestmentTxRecord.to_wallet, newProjWallet)
+        assert.strictEqual(aliceInvestmentTxRecord.state, TxState.MINED)
+        assert.strictEqual(aliceInvestmentTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
+        assert.strictEqual(aliceInvestmentTxRecord.type, TxType.INVEST)
+        assert.equal(aliceInvestmentTxRecord.amount, aliceInvestmentAmount)
+
+        let aliceCancelInvestmentTxRecord = (await db.getBy({type: TxType.CANCEL_INVESTMENT}))[0]
+        assert.strictEqual(aliceCancelInvestmentTxRecord.from_wallet, newProjWallet)
+        assert.strictEqual(aliceCancelInvestmentTxRecord.to_wallet, accounts.alice.publicKey)
+        assert.strictEqual(aliceCancelInvestmentTxRecord.state, TxState.MINED)
+        assert.strictEqual(aliceCancelInvestmentTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
+        assert.strictEqual(aliceCancelInvestmentTxRecord.type, TxType.CANCEL_INVESTMENT)
+        assert.equal(aliceCancelInvestmentTxRecord.amount, aliceInvestmentAmount)
+
         let approveInvestmentTxRecord = (await db.getBy({hash: investTxHash}))[0]
         assert.strictEqual(approveInvestmentTxRecord.from_wallet, accounts.bob.publicKey)
         assert.strictEqual(approveInvestmentTxRecord.to_wallet, newProjWallet)
@@ -219,7 +289,7 @@ describe('Main tests', function() {
         assert.strictEqual(approveInvestmentTxRecord.type, TxType.APPROVE_INVESTMENT)
         assert.equal(approveInvestmentTxRecord.amount, bobInvestmentAmount)
 
-        let investmentTxRecord = (await db.getBy({type: TxType.INVEST}))[0]
+        let investmentTxRecord = (await db.getBy({type: TxType.INVEST, from_wallet: accounts.bob.publicKey}))[0]
         assert.strictEqual(investmentTxRecord.from_wallet, accounts.bob.publicKey)
         assert.strictEqual(investmentTxRecord.to_wallet, newProjWallet)
         assert.strictEqual(investmentTxRecord.state, TxState.MINED)
