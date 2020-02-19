@@ -97,7 +97,10 @@ module.exports = {
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
             getProjectsInfo: projSvc.getInfo,
-            getInvestmentsInProject: txSvc.getInvestmentsInProject
+            getInvestmentsInProject: txSvc.getInvestmentsInProject,
+            generateCancelInvestmentTx: projSvc.cancelInvestment,
+            generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
+            isInvestmentCancelable: projSvc.isInvestmentCancelable
         });
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
@@ -109,6 +112,15 @@ module.exports = {
         expr.get('/prometheus', (req, res) => {
             res.set('Content-Type', prometheus.register.contentType)
             res.end(prometheus.register.metrics())
+        })
+        expr.get('/projects/:projectHash/investors/:investorHash/cancelable', async (req, res) => {
+            let result = await projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
+            let response = {
+                can_cancel: result
+            }
+            res.writeHead(200, { "Content-Type" : "application/json" })
+            res.write(JSON.stringify(response))
+            res.end()
         })
         prometheus.collectDefaultMetrics()
         httpServer = expr.listen(config.get().http.port)

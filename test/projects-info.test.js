@@ -3,6 +3,7 @@ let assert = chai.assert;
 
 let config = require('../config')
 let client = require('../ae/client')
+let supervisor = require('../supervisor')
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
@@ -24,6 +25,7 @@ describe('Test fetching information for list of given projects', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
+        await supervisor.stop()
     })
 
     it('Should be able to fetch info for list of given projects', async () => {
@@ -97,6 +99,7 @@ describe('Test fetching information for list of given projects', function() {
         assert.equal(firstProject.minPerUserInvestment, firstProjMinPerUser)
         assert.equal(firstProject.maxPerUserInvestment, firstProjMaxPerUser)
         assert.equal(firstProject.endsAt, firstProjEndsAt)
+        assert.isFalse(firstProject.payoutInProcess)
 
         let secondProject = projectsInfo.find(info => { return info.projectTxHash == addSecondProjWalletTxHash })
         assert.equal(secondProject.totalFundsRaised, 0)
@@ -104,6 +107,7 @@ describe('Test fetching information for list of given projects', function() {
         assert.equal(secondProject.minPerUserInvestment, secondProjMinPerUser)
         assert.equal(secondProject.maxPerUserInvestment, secondProjMaxPerUser)
         assert.equal(secondProject.endsAt, secondProjEndsAt)
+        assert.isFalse(secondProject.payoutInProcess)
     })
 
 })

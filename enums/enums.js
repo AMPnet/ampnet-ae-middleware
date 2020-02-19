@@ -30,7 +30,8 @@ let TxType = {
     ORG_ACTIVATE: "ORG_ACTIVATE",
     START_REVENUE_PAYOUT: "START_REVENUE_PAYOUT",
     SHARE_PAYOUT: "SHARE_PAYOUT",
-    WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT"
+    WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT",
+    CANCEL_INVESTMENT: "CANCEL_INVESTMENT"
 }
 
 let events = new Map([
@@ -42,7 +43,9 @@ let events = new Map([
     [util.blake2b('TokensBurned'), TxType.WITHDRAW],
     [util.blake2b('ProjectCreated'), TxType.PROJ_CREATE],
     [util.blake2b('StartRevenuePayout'), TxType.START_REVENUE_PAYOUT],
-    [util.blake2b('NewInvestment'), TxType.INVEST]
+    [util.blake2b('NewInvestment'), TxType.INVEST],
+    [util.blake2b('ApproveWithdrawProjectFunds'), TxType.PENDING_PROJ_WITHDRAW],
+    [util.blake2b('InvestmentCanceled'), TxType.CANCEL_INVESTMENT]
 ])
 
 let TxState = {
@@ -85,7 +88,10 @@ let functions = {
         invest: "invest",
         startRevenueSharesPayout: "start_revenue_shares_payout",
         payoutRevenueSharesBatch: "payout_revenue_shares",
-        getInfo: "get_info"
+        getInfo: "get_project_info",
+        withdraw: "withdraw",
+        cancelInvestment: "cancel_investment",
+        isInvestmentCancelable: "can_cancel_investment"
     }
 }
 
@@ -105,10 +111,11 @@ function fromEvent(event) {
 
 function txTypeToGrpc(type) {
     switch (type) {
-        case TxType.DEPOSIT:        return 0
-        case TxType.WITHDRAW:       return 1
-        case TxType.INVEST:         return 2
-        case TxType.SHARE_PAYOUT:   return 3
+        case TxType.DEPOSIT:            return 0
+        case TxType.WITHDRAW:           return 1
+        case TxType.INVEST:             return 2
+        case TxType.SHARE_PAYOUT:       return 3
+        case TxType.CANCEL_INVESTMENT:  return 4
         default: throw new Error(`Cannot convert ${type} to GRPC type!`)
     }
 }

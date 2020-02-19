@@ -29,6 +29,18 @@ async function encodeGetProjectInfo() {
     return contracts.getProjCompiled().encodeCall(functions.proj.getInfo, [ ])
 }
 
+async function encodeApproveWithdrawProjectFunds(amount) {
+    return contracts.getProjCompiled().encodeCall(functions.proj.withdraw, [ amount ])
+}
+
+async function encodeCancelInvestment() {
+    return contracts.getProjCompiled().encodeCall(functions.proj.cancelInvestment, [ ])
+}
+
+async function encodeIsInvestmentCancelable(investor) {
+    return contracts.getProjCompiled().encodeCall(functions.proj.isInvestmentCancelable, [ investor ])
+}
+
 async function decodeGetProjectInfoResult(result) {
     let decoded = await client.instance().contractDecodeData(
         contracts.projSource,
@@ -93,7 +105,10 @@ module.exports = {
         encodeCreateProject,
         encodeGetProjectInfo,
         decodeGetProjectInfoResult,
-        encodeStartRevenueSharesPayout
+        encodeStartRevenueSharesPayout,
+        encodeApproveWithdrawProjectFunds,
+        encodeCancelInvestment,
+        encodeIsInvestmentCancelable
     },
     decodeDataBySource,
     decodeDataByBytecode

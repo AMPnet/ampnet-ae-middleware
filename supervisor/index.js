@@ -3,6 +3,7 @@ const PgBoss = require('pg-boss')
 const config = require('../config')
 const logger = require('../logger')(module)
 const ae = require('../ae/client')
+const util = require('../ae/util')
 const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
 const { SupervisorJob: JobType, TxType, WalletType } = require('../enums/enums')
@@ -32,14 +33,14 @@ async function initAndStart(dbConfig) {
 async function publishSendFundsJob(wallet, amountAe) {
     queue.publish(queueName, {
         type: JobType.SEND_FUNDS,
-        amount: amountAe * 1000000000000000000,
+        amount: util.toToken(amountAe),
         wallet: wallet
     }).then(
         result => {
-            logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job published successfully. Job id: ${result}`)
+            logger.info(`QUEUE-PUBLISHER: Send funds to ${wallet} job published successfully. Job id: ${result}`)
         },
         err => {
-            logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job failed to get published. Error: %o`, err)
+            logger.error(`QUEUE-PUBLISHER: Send funds to ${wallet} job failed to get published. Error: %o`, err)
         }
     )
 }
@@ -53,7 +54,7 @@ async function publishJobFromTx(tx) {
                 if (giftAmountAe > 0) {
                     queue.publish(queueName, {
                         type: jobType,
-                        amount: giftAmountAe * 1000000000000000000,
+                        amount: util.toToken(giftAmountAe),
                         wallet: tx.wallet,
                         originTxHash: tx.hash
                     }).then(
@@ -66,7 +67,7 @@ async function publishJobFromTx(tx) {
                     )
                     queue.publish(queueName, {
                         type: jobType,
-                        amount: giftAmountAe * 1000000000000000000,
+                        amount: util.toToken(giftAmountAe),
                         wallet: tx.worker_public_key,
                         originTxHash: tx.hash
                     }).then(
@@ -103,13 +104,12 @@ async function jobCompleteHandler(job) {
     if (job.data.failed) {
         logger.error(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} failed. Full output: %o`, job)
     } else {
-        logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} completed!`)
         let originHash = job.data.request.data.originTxHash
-        if (typeof originHash === undefined) {
-            logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} did not originate from add_wallet transaction.`)
+        if (typeof originHash === "undefined") {
+            logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} completed!`)
         } else {
             repo.update(job.data.request.data.originTxHash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
-            logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} originated from transaction ${originHash}. Updated origin tx supervisor state to PROCESSED.`)
+            logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} originated from transaction ${originHash} completed! Updated origin tx supervisor state to PROCESSED.`)
         }
     }
 }

@@ -13,7 +13,7 @@ async function init() {
     ownerClient = await Ae({
         url: config.get().node.url,
         internalUrl: config.get().node.internalUrl,
-        keypair: config.get().supervisor,
+        keypair: accounts.owner,
         networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
     })

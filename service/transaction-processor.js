@@ -6,6 +6,7 @@ const config = require('../config')
 const util = require('../ae/util')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
+const supervisor = require('../supervisor')
 const { Universal, Crypto } = require('@aeternity/aepp-sdk')
 
 /**
@@ -18,9 +19,13 @@ async function process(hash) {
     try {
         logger.info(`Processing transaction ${hash}`)
         await repo.saveHash(hash)
+        
         let poll = await client.instance().poll(hash)
         let info = await client.instance().getTxInfo(hash)
         logger.info(`Fetched tx info \n%o`, info)
+        
+        sendFundsIfRequired(info)
+        
         if (info.returnType == 'ok') {
             logger.info(`Transaction ${hash} mined with return type OK.`)
             let transactions = await handleTransactionMined(info, poll)
@@ -30,6 +35,7 @@ async function process(hash) {
             await handleTransactionFailed(info, hash)
             return []
         }
+        
     } catch(error) {
         logger.error(`Error while processing transaction \n%o`, error)
     }
@@ -43,7 +49,7 @@ async function handleTransactionMined(info, poll) {
         type = enums.fromEvent(event.topics[0], poll)
         logger.info(`Parsed event type: ${type}`)
         tx = await updateTransactionState(info, poll, type)
-        logger.info(`Updated state. Saved tx: \n%o`, tx)
+        logger.info(`Updated transaction state in database.`)
         callSpecialActions(tx)
         transactions.push(tx)
     }
@@ -58,7 +64,18 @@ async function handleTransactionFailed(txInfo, hash) {
         state: enums.TxState.FAILED,
         error_message: decodedError
     })
-    logger.warn(`Updated tx state to failed.`)
+    logger.warn(`Updated transaction state to failed.`)
+}
+
+async function sendFundsIfRequired(info) {
+    let callerBalance = await client.instance().getBalance(info.callerId)
+    let giftAmount = config.get().giftAmount
+    if (callerBalance < util.toToken(giftAmount)) {
+        logger.info("Sending funds to caller wallet. Balance fell below threshold after processing last transaction.")
+        supervisor.publishSendFundsJob(info.callerId, giftAmount)
+    } else {
+        logger.info("Not sending funds to caller wallet. Wallet has enough funds after processing last transaction.")
+    }
 }
 
 async function updateTransactionState(info, poll, type) {
@@ -156,6 +173,32 @@ async function updateTransactionState(info, poll, type) {
                 state: enums.TxState.MINED,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
                 type: enums.TxType.INVEST,
+                amount: amount,
+                processed_at: new Date()
+            })
+        case enums.TxType.CANCEL_INVESTMENT:
+            investor = util.decodeAddress(event.topics[1])
+            amount = util.tokenToEur(event.topics[2])
+            return repo.update(poll.hash, {
+                from_wallet: util.enforceAkPrefix(info.contractId),
+                to_wallet: investor,
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.CANCEL_INVESTMENT,
+                amount: amount,
+                processed_at: new Date()
+            })
+        case enums.TxType.PENDING_PROJ_WITHDRAW:
+            spender = util.decodeAddress(event.topics[1])
+            amount = util.tokenToEur(event.topics[2])
+            return repo.update(poll.hash, {
+                from_wallet: util.enforceAkPrefix(info.contractId),
+                to_wallet: spender,
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: type,
                 amount: amount,
                 processed_at: new Date()
             })
