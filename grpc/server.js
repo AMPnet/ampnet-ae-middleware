@@ -36,10 +36,7 @@ let client = require('../ae/client')
 let contracts = require('../ae/contracts')
 
 // grpc service definition
-let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain_service.proto'), {
-    defaults: true,
-    arrays: true
-})
+let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain_service.proto'))
 let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto
 
 // holds running grpc server instance

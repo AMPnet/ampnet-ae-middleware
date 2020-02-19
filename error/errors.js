@@ -59,10 +59,7 @@ function handle(error, callback) {
 
 async function decode(result) {
     error = Buffer.from(result.returnValue).toString()
-    console.log("err result", error)
     if (Crypto.isBase64(error.slice(3))) {
-        let x = Buffer.from(error.slice(3), 'base64').toString()
-        console.log("x", x)
         return Buffer.from(error.slice(3), 'base64').toString().replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
     } else {
         return client.instance().contractDecodeDataAPI('string', error).replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
