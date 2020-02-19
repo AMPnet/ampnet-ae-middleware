@@ -1,6 +1,7 @@
 let config = require('../config')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let enums = require('../enums/enums')
 let ErrorType = err.type
 
 let { TxState, TxType, WalletType } = require('../enums/enums')
@@ -130,6 +131,33 @@ async function getUserTransactions(wallet) {
     })
 }
 
+async function getUserUncanceledInvestments(wallet) {
+    return new Promise(resolve => {
+        knex.raw(`
+            select * from transaction t
+            where 
+                t.from_wallet='${wallet}' and 
+                t.type='${enums.TxType.INVEST}' and 
+                t.state='${enums.TxState.MINED}' and 
+                t.created_at > COALESCE(
+                    (
+                        select max(created_at) from transaction
+                        where 
+                            type='${enums.TxType.CANCEL_INVESTMENT}' and 
+                            state='${enums.TxState.MINED}' and 
+                            from_wallet=t.to_wallet and 
+                            to_wallet=t.from_wallet
+                    ),
+                    to_timestamp(0)
+                )
+        `).then(result => {
+            resolve(result.rows)
+        })
+    })
+}
+
+
+
 async function update(hash, data) {
     return new Promise(resolve => {
         knex('transaction')
@@ -152,6 +180,7 @@ module.exports = {
     getWalletTypeOrThrow,
     get,
     getUserTransactions,
+    getUserUncanceledInvestments,
     saveTransaction,
     update,
     saveHash,

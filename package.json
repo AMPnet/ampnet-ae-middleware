@@ -25,10 +25,11 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "./node_modules/mocha/bin/mocha --timeout 200000"
+    "test": "COOP_OWNER=ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk EUR_OWNER=ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk ./node_modules/mocha/bin/mocha --timeout 2000000"
   },
   "devDependencies": {
     "@aeternity/aepp-sdk": "^6.1.2",
+    "axios": "^0.19.2",
     "chai": "^4.2.0",
     "mocha": "^6.1.4",
     "node-grpc-client": "^1.3.0"

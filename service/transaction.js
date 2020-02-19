@@ -48,14 +48,11 @@ async function getPortfolio(call, callback) {
     try {
         let tx = await repo.findByHashOrThrow(call.request.txHash)
         logger.debug(`Address represented by given hash: ${tx.wallet}`)
+        
+        let records = await repo.getUserUncanceledInvestments(tx.wallet)
+        let recordsLength = records.length
 
         let portfolioMap = new Map()
-        let records = await repo.get({
-            from_wallet: tx.wallet,
-            type: TxType.INVEST,
-            state: TxState.MINED
-        })
-        let recordsLength = records.length
 
         for (var i = 0; i < recordsLength; i++) {
             tx = await repo.findByWalletOrThrow(records[i].to_wallet)
@@ -108,9 +105,9 @@ async function getTransactions(call, callback) {
     try {
         let tx = await repo.findByHashOrThrow(call.request.txHash)
         logger.debug(`Address represented by given hash: ${tx.wallet}`)
-        let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.INVEST, TxType.SHARE_PAYOUT])
+        let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.INVEST, TxType.SHARE_PAYOUT, TxType.CANCEL_INVESTMENT])
         let transactionsPromisified = (await repo.getUserTransactions(tx.wallet))
-            .filter(r => { return types.has(r.type) && r.state == TxState.MINED }) 
+            .filter(r => { return types.has(r.type) && (r.state == TxState.MINED || r.state == TxState.FAILED) }) 
             .map(r => {
                 switch (r.type) {
                     case TxType.DEPOSIT:
@@ -119,7 +116,8 @@ async function getTransactions(call, callback) {
                             resolve({
                                 amount: r.amount,
                                 type: enums.txTypeToGrpc(r.type),
-                                date: (new Date(r.processed_at)).getTime()
+                                date: (new Date(r.processed_at)).getTime(),
+                                state: r.state
                             })
                         })
                     case TxType.INVEST:
@@ -130,7 +128,8 @@ async function getTransactions(call, callback) {
                                     toTxHash: project.hash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
-                                    date: (new Date(r.processed_at)).getTime()
+                                    date: (new Date(r.processed_at)).getTime(),
+                                    state: r.state
                                 })
                             })
                         })
@@ -142,9 +141,23 @@ async function getTransactions(call, callback) {
                                     toTxHash: call.request.txHash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
-                                    date: (new Date(r.processed_at)).getTime()
+                                    date: (new Date(r.processed_at)).getTime(),
+                                    state: r.state
                                 })
                             })                            
+                        })
+                    case TxType.CANCEL_INVESTMENT:
+                        return new Promise(async (resolve) => {
+                            repo.findByWalletOrThrow(r.from_wallet).then(project => {
+                                resolve({
+                                    fromTxHash: project.hash,
+                                    toTxHash: call.request.txHash,
+                                    amount: r.amount,
+                                    type: enums.txTypeToGrpc(r.type),
+                                    date: (new Date(r.processed_at)).getTime(),
+                                    state: r.state
+                                })
+                            })
                         })
                 }
             })
@@ -164,9 +177,9 @@ async function getInvestmentsInProject(call, callback) {
         logger.debug(`Investor wallet represented by given hash: ${investorTx.wallet}`)
         let projectTx = await repo.findByHashOrThrow(call.request.projectTxHash)
         logger.debug(`Project address represented by given hash: ${projectTx.wallet}`)
-        let investments = (await repo.getUserTransactions(investorTx.wallet))
+        let investments = (await repo.getUserUncanceledInvestments(investorTx.wallet))
             .filter(tx => {
-                return tx.type == TxType.INVEST && tx.to_wallet == projectTx.wallet
+                return tx.to_wallet == projectTx.wallet
             })
             .map(tx => {
                 return {
@@ -177,12 +190,10 @@ async function getInvestmentsInProject(call, callback) {
         logger.debug(`Successfully fetched investments \n%o`, investments)
         callback(null, { transactions: investments })
     } catch (error) {
-        logger.error(`Error while fetching transactions \n%o`, error)
+        logger.error(`Error while fetching investments in project \n%o`, error)
         err.handle(error, callback)
     }
 }
-
-
 
 async function performSecurityChecks(data) {
     let txMetadata = TxBuilder.unpackTx(data)

@@ -91,19 +91,9 @@ async function cancelInvestment(call, callback) {
 async function isInvestmentCancelable(call, callback) {
     try {
         logger.debug(`Received request to check if investment is cancelable.`)
-        let investorWallet = (await repo.findByHashOrThrow(call.request.investorTxHash)).wallet
-        logger.debug(`Investor wallet: ${investorWallet}`)
-        let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
-        logger.debug(`Project: ${projectWallet}`) 
-        let result = await client.instance().contractCallStatic(
-            contracts.projSource,
-            util.enforceCtPrefix(projectWallet),
-            functions.proj.isInvestmentCancelable,
-            [ investorWallet ]
-        )
-        let resultDecoded = await result.decode()
-        logger.debug(`Can cancel investment: ${resultDecoded}`)
-        callback(null, { canCancel: resultDecoded })
+        let result = await canCancelInvestment(call.request.projectTxHash, call.request.investorTxHash)
+        logger.debug(`Can cancel investment: ${result}`)
+        callback(null, { canCancel: result })
     } catch(error) {
         logger.error(`Error while checking if investment is cancelable \n%o`, error)
         err.handle(error, callback)
@@ -183,11 +173,27 @@ async function getInfo(call, callback) {
     }
 }
 
+async function canCancelInvestment(projectTxHash, investorTxHash) {
+    logger.debug(`Received request to check if investment is cancelable.`)
+    let investorWallet = (await repo.findByHashOrThrow(investorTxHash)).wallet
+    logger.debug(`Investor wallet: ${investorWallet}`)
+    let projectWallet = (await repo.findByHashOrThrow(projectTxHash)).wallet
+    logger.debug(`Project: ${projectWallet}`) 
+    let result = await client.instance().contractCallStatic(
+        contracts.projSource,
+        util.enforceCtPrefix(projectWallet),
+        functions.proj.isInvestmentCancelable,
+        [ investorWallet ]
+    )
+    return result.decode()
+}
+
 module.exports = { 
     createProject,
     approveWithdraw,
     cancelInvestment,
-    isInvestmentCancelable, 
+    isInvestmentCancelable,
+    canCancelInvestment,
     startRevenueSharesPayout, 
     getInfo 
 }

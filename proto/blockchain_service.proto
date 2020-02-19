@@ -140,12 +140,14 @@ message TransactionsResponse {
             WITHDRAW = 1;
             INVEST = 2;
             SHARE_PAYOUT = 3;
+            CANCEL_INVESTMENT = 4;
         }
         string from_tx_hash = 1;
         string to_tx_hash = 2;
         string amount = 3;
         string date = 4;
         Type type = 5;
+        string state = 6;
     }
     repeated Transaction transactions = 1;
 }

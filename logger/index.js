@@ -2,7 +2,6 @@ const path = require('path')
 const { createLogger, format, transports } = require('winston')
 const { combine, timestamp, splat, printf } = format
 const DailyRotateFile = require('winston-daily-rotate-file')
-const redact = require('redact-secrets')
 
 const ServiceEnv = require('../enums/enums').ServiceEnv
 

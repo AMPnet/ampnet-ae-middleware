@@ -5,6 +5,7 @@ let assert = chai.assert;
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../supervisor')
+let aeUtil = require('../ae/util')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
@@ -46,8 +47,8 @@ describe('Main tests', function() {
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
         let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
-        
         await util.waitTxProcessed(createOrgTxHash)
+
         let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
         let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
@@ -128,7 +129,29 @@ describe('Main tests', function() {
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
 
+        let isBobInvestmentCancelable = await grpcClient.isInvestmentCancelable(addBobWalletTxHash, addProjWalletTxHash)
+        assert.isFalse(isBobInvestmentCancelable)
+
+        let withdrawInvestmentAmount = 100000 // withdraw all funds from project
+        let approveProjectWithdrawTx = await grpcClient.generateApproveProjectWithdrawTx(addBobWalletTxHash, addProjWalletTxHash, withdrawInvestmentAmount) 
+        let approveProjectWithdrawTxSigned = await clients.bob().signTransaction(approveProjectWithdrawTx)
+        let approveProjectWithdrawTxHash = await grpcClient.postTransaction(approveProjectWithdrawTxSigned)
+        await util.waitTxProcessed(approveProjectWithdrawTxHash)
+
+        let burnFromProjectTx = await grpcClient.generateBurnFromTx(addProjWalletTxHash)
+        let burnFromProjectTxSigned = await clients.owner().signTransaction(burnFromProjectTx)
+        let burnFromProjectTxHash = await grpcClient.postTransaction(burnFromProjectTxSigned)
+        await util.waitTxProcessed(burnFromProjectTxHash)
+
+        let projectBalanceAfterWithdraw = await grpcClient.getBalance(addProjWalletTxHash)
+        assert.equal(projectBalanceAfterWithdraw, 0)
+
         let revenueToPayout = 1000
+        let mintRevenueToProjectTx = await grpcClient.generateMintTx(addProjWalletTxHash, revenueToPayout)
+        let mintRevenueToProjectTxSigned = await clients.owner().signTransaction(mintRevenueToProjectTx)
+        let mintRevenueToProjectTxHash = await grpcClient.postTransaction(mintRevenueToProjectTxSigned)
+        await util.waitTxProcessed(mintRevenueToProjectTxHash)
+
         let revenuePayoutTx = await grpcClient.generateStartRevenueSharesPayoutTx(addBobWalletTxHash, addProjWalletTxHash, revenueToPayout)
         let revenuePayoutTxSigned = await clients.bob().signTransaction(revenuePayoutTx)
         let revenuePayoutTxHash = await grpcClient.postTransaction(revenuePayoutTxSigned)
@@ -148,19 +171,23 @@ describe('Main tests', function() {
         let bobTransactionsDeposit = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
         assert.equal(bobTransactionsDeposit.amount, mintToBobAmount)
         assert.exists(bobTransactionsDeposit.date)
+        assert.equal(bobTransactionsDeposit.state, enums.TxState.MINED)
         let bobTransactionsWithdraw = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.WITHDRAW) })[0]
         assert.equal(bobTransactionsWithdraw.amount, withdrawFromBobAmount)
         assert.exists(bobTransactionsWithdraw.date)
+        assert.equal(bobTransactionsWithdraw.state, enums.TxState.MINED)
         let bobTransactionsInvest = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.INVEST) })[0]
         assert.strictEqual(bobTransactionsInvest.fromTxHash, addBobWalletTxHash)
         assert.strictEqual(bobTransactionsInvest.toTxHash, addProjWalletTxHash)
         assert.equal(bobTransactionsInvest.amount, bobInvestmentAmount)
         assert.exists(bobTransactionsInvest.date)
+        assert.equal(bobTransactionsInvest.state, enums.TxState.MINED)
         let bobTransactionsPayout = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.SHARE_PAYOUT) })[0]
         assert.strictEqual(bobTransactionsPayout.fromTxHash, addProjWalletTxHash)
         assert.strictEqual(bobTransactionsPayout.toTxHash, addBobWalletTxHash)
         assert.equal(bobTransactionsPayout.amount, revenueToPayout)
         assert.exists(bobTransactionsPayout.date)
+        assert.equal(bobTransactionsPayout.state, enums.TxState.MINED)
 
         let bobInvestmentsInProject = await grpcClient.getInvestmentsInProject(addBobWalletTxHash, addProjWalletTxHash)
         assert.strictEqual(bobInvestmentsInProject.length, 1)
@@ -168,7 +195,33 @@ describe('Main tests', function() {
         assert.equal(bobInvestmentInProject.amount, bobInvestmentAmount)
         assert.exists(bobInvestmentInProject.date)
 
-        let expectedRecordCount = 17
+        let alicePortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
+        assert.isUndefined(alicePortfolio)
+
+        let aliceInvestmentsInProject = await grpcClient.getInvestmentsInProject(addAliceWalletTxHash, addProjWalletTxHash)
+        assert.isUndefined(aliceInvestmentsInProject)
+
+        let aliceTransactions = await grpcClient.getTransactions(addAliceWalletTxHash)
+        assert.strictEqual(aliceTransactions.length, 3)
+
+        let aliceTransactionsDeposit = aliceTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
+        assert.equal(aliceTransactionsDeposit.amount, mintToAliceAmount)
+        assert.exists(aliceTransactionsDeposit.date)
+        assert.equal(aliceTransactionsDeposit.state, enums.TxState.MINED)
+        let aliceTransactionsInvest = aliceTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.INVEST) })[0]
+        assert.strictEqual(aliceTransactionsInvest.fromTxHash, addAliceWalletTxHash)
+        assert.strictEqual(aliceTransactionsInvest.toTxHash, addProjWalletTxHash)
+        assert.equal(aliceTransactionsInvest.amount, mintToAliceAmount)
+        assert.exists(aliceTransactionsInvest.date)
+        assert.equal(aliceTransactionsInvest.state, enums.TxState.MINED)
+        let aliceTransactionsCancel = aliceTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.CANCEL_INVESTMENT) })[0]
+        assert.strictEqual(aliceTransactionsCancel.fromTxHash, addProjWalletTxHash)
+        assert.strictEqual(aliceTransactionsCancel.toTxHash, addAliceWalletTxHash)
+        assert.equal(aliceTransactionsCancel.amount, mintToAliceAmount)
+        assert.exists(aliceTransactionsCancel.date)
+        assert.equal(aliceTransactionsCancel.state, enums.TxState.MINED)
+
+        let expectedRecordCount = 20
         let allRecords = await db.getAll()
         let recordsCount = allRecords.length
         assert.strictEqual(recordsCount, expectedRecordCount, `Expected ${expectedRecordCount} transactions but found ${recordsCount} in database.`)
@@ -296,6 +349,15 @@ describe('Main tests', function() {
         assert.strictEqual(investmentTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(investmentTxRecord.type, TxType.INVEST)
         assert.equal(investmentTxRecord.amount, bobInvestmentAmount)
+
+        let mintToProjTxRecord = (await db.getBy({hash: mintRevenueToProjectTxHash}))[0]
+        let projectContractAddress = aeUtil.enforceAkPrefix((await clients.owner().getTxInfo(createProjTxHash)).contractId)
+        assert.strictEqual(mintToProjTxRecord.from_wallet, config.get().contracts.eur.owner)
+        assert.strictEqual(mintToProjTxRecord.to_wallet, projectContractAddress)
+        assert.strictEqual(mintToProjTxRecord.state, TxState.MINED)
+        assert.strictEqual(mintToProjTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
+        assert.strictEqual(mintToProjTxRecord.type, TxType.DEPOSIT)
+        assert.equal(mintToProjTxRecord.amount, revenueToPayout)
         
         let startRevenuePayoutTxRecord = (await db.getBy({hash: revenuePayoutTxHash}))[0]
         assert.strictEqual(startRevenuePayoutTxRecord.from_wallet, accounts.bob.publicKey)

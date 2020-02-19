@@ -36,7 +36,10 @@ let client = require('../ae/client')
 let contracts = require('../ae/contracts')
 
 // grpc service definition
-let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain_service.proto'))
+let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain_service.proto'), {
+    defaults: true,
+    arrays: true
+})
 let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto
 
 // holds running grpc server instance
@@ -112,6 +115,15 @@ module.exports = {
         expr.get('/prometheus', (req, res) => {
             res.set('Content-Type', prometheus.register.contentType)
             res.end(prometheus.register.metrics())
+        })
+        expr.get('/projects/:projectHash/investors/:investorHash/cancelable', async (req, res) => {
+            let result = await projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
+            let response = {
+                can_cancel: result
+            }
+            res.writeHead(200, { "Content-Type" : "application/json" })
+            res.write(JSON.stringify(response))
+            res.end()
         })
         prometheus.collectDefaultMetrics()
         httpServer = expr.listen(config.get().http.port)
