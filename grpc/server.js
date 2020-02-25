@@ -5,17 +5,19 @@ let grpc = require('grpc-middleware')
 let express = require('express')
 let actuator = require('express-actuator')
 let prometheus = require('prom-client')
-let cls = require('cls-hooked')
 let uuid = require('uuid/v4')
 let interceptors = require('@hpidcock/node-grpc-interceptors')
+let ServiceEnv = require('../enums/enums').ServiceEnv
 
 // initialize global namespace
-let namespace = require('../enums/enums').ClsNamespace
-let clsNamespace = cls.createNamespace(namespace)
+let namespace = require('../cls')
 
 // config
 let config = require('../config')
 let logger = require('../logger')(module)
+
+// supervisor job queue
+let supervisorQueue = require('../supervisor')
 
 // services
 let txSvc = require('../service/transaction')
@@ -43,9 +45,15 @@ let httpServer
 
 module.exports = {
     start: async function() {
+        // Initialize namespace
+        namespace.create()
+        logger.info('Namespace initialized.')
+
         // Initialize config
         await config.init()
-        logger.info('Config initialized: \n%o', config.get())
+        if (config.get().serviceEnv != ServiceEnv.PROD) {
+            logger.info('Config initialized: \n%o', config.get())
+        }
 
         // Initialize database and run migrations
         repo.init()
@@ -59,11 +67,15 @@ module.exports = {
         await contracts.compile()
         logger.info('Contracts compiled.')
 
+        // Initialize supervisor job queue
+        await supervisorQueue.initAndStart(config.get().queueDb)
+        logger.info('Supervisor job queue initialized and started.')
+
         // Initialize Grpc server
         grpcServer = interceptors.serverProxy(new grpc.Server())
         grpcServer.use((context, next) => {
-            clsNamespace.run(() => {
-                clsNamespace.set('traceID', uuid())
+            namespace.run(() => {
+                namespace.setTraceID(uuid())
                 next()
             })
         })
@@ -85,7 +97,10 @@ module.exports = {
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
             getProjectsInfo: projSvc.getInfo,
-            getInvestmentsInProject: txSvc.getInvestmentsInProject
+            getInvestmentsInProject: txSvc.getInvestmentsInProject,
+            generateCancelInvestmentTx: projSvc.cancelInvestment,
+            generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
+            isInvestmentCancelable: projSvc.isInvestmentCancelable
         });
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
@@ -97,6 +112,15 @@ module.exports = {
         expr.get('/prometheus', (req, res) => {
             res.set('Content-Type', prometheus.register.contentType)
             res.end(prometheus.register.metrics())
+        })
+        expr.get('/projects/:projectHash/investors/:investorHash/cancelable', async (req, res) => {
+            let result = await projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
+            let response = {
+                can_cancel: result
+            }
+            res.writeHead(200, { "Content-Type" : "application/json" })
+            res.write(JSON.stringify(response))
+            res.end()
         })
         prometheus.collectDefaultMetrics()
         httpServer = expr.listen(config.get().http.port)

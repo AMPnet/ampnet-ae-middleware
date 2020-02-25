@@ -8,7 +8,7 @@ let functions = require('../enums/enums').functions
 let logger = require('../logger')(module)
 
 async function createProject(call, callback) {
-    logger.debug(`Received request to generate createProject transaction.\Caller: ${call.request.fromTxHash}`)
+    logger.debug(`Received request to generate createProject transaction.\nCaller: ${call.request.fromTxHash}`)
     try {
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller address represented by given hash: ${fromWallet}`)
@@ -40,9 +40,69 @@ async function createProject(call, callback) {
     }
 }
 
+async function approveWithdraw(call, callback) {
+    try {
+        logger.debug(`Received request to generate approveWithdrawProjectFunds transaction.\nCaller: ${call.request.fromTxHash} wants to withdraw ${call.request.amount} tokens from project with hash ${call.request.projectTxHash}`)
+        let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
+        logger.debug(`Caller wallet: ${fromWallet}`)
+        let amount = util.eurToToken(call.request.amount)
+        logger.debug(`Tokens to withdraw: ${amount}`)
+        let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
+        logger.debug(`Project: ${projectWallet}`)
+        let callData = await codec.proj.encodeApproveWithdrawProjectFunds(amount)
+        let tx = await client.instance().contractCallTx({
+            callerId: fromWallet,
+            contractId: util.enforceCtPrefix(projectWallet),
+            amount: 0,
+            gas: 10000,
+            callData: callData
+        })
+        logger.debug(`Successfully generated approveWithdrawProjectFunds transaction: ${tx}`)
+        callback(null, { tx: tx })
+    } catch(error) {
+        logger.error(`Error while generating approveWithdrawProjectFunds transaction \n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
+async function cancelInvestment(call, callback) {
+    try {
+        logger.debug(`Received request to generate cancelInvestment transaction.\nCaller: ${call.request.fromTxHash} wants to cancel investment in project with hash ${call.request.projectTxHash}`)
+        let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
+        logger.debug(`Caller wallet: ${fromWallet}`)
+        let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
+        logger.debug(`Project: ${projectWallet}`)
+        let callData = await codec.proj.encodeCancelInvestment()
+        let tx = await client.instance().contractCallTx({
+            callerId: fromWallet,
+            contractId: util.enforceCtPrefix(projectWallet),
+            amount: 0,
+            gas: 10000,
+            callData: callData
+        })
+        logger.debug(`Successfully generated cancelInvestment transaction: ${tx}`)
+        callback(null, { tx: tx })
+    } catch(error) {
+        logger.error(`Error while generating cancelInvestment transaction \n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
+async function isInvestmentCancelable(call, callback) {
+    try {
+        logger.debug(`Received request to check if investment is cancelable.`)
+        let result = await canCancelInvestment(call.request.projectTxHash, call.request.investorTxHash)
+        logger.debug(`Can cancel investment: ${result}`)
+        callback(null, { canCancel: result })
+    } catch(error) {
+        logger.error(`Error while checking if investment is cancelable \n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 async function startRevenueSharesPayout(call, callback) {
     try {
-        logger.debug(`Received request to generate startRevenueSharesPayout transaction.\Caller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
+        logger.debug(`Received request to generate startRevenueSharesPayout transaction.\nCaller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller wallet: ${fromWallet}`)
         let revenue = util.eurToToken(call.request.revenue)
@@ -93,11 +153,12 @@ async function getInfo(call, callback) {
                         result.decode().then(decoded => {
                             resolve({
                                 projectTxHash: walletToHashMap.get(wallet),
-                                totalFundsRaised: util.tokenToEur(decoded[0]),
-                                investmentCap: util.tokenToEur(decoded[1]),
-                                minPerUserInvestment: util.tokenToEur(decoded[2]),
-                                maxPerUserInvestment: util.tokenToEur(decoded[3]),
-                                endsAt: decoded[4]
+                                minPerUserInvestment: util.tokenToEur(decoded[0]),
+                                maxPerUserInvestment: util.tokenToEur(decoded[1]),
+                                investmentCap: util.tokenToEur(decoded[2]),
+                                endsAt: decoded[3],
+                                totalFundsRaised: util.tokenToEur(decoded[4]),
+                                payoutInProcess: decoded[5],
                             })
                         })
                     })
@@ -112,4 +173,27 @@ async function getInfo(call, callback) {
     }
 }
 
-module.exports = { createProject, startRevenueSharesPayout, getInfo }
+async function canCancelInvestment(projectTxHash, investorTxHash) {
+    logger.debug(`Received request to check if investment is cancelable.`)
+    let investorWallet = (await repo.findByHashOrThrow(investorTxHash)).wallet
+    logger.debug(`Investor wallet: ${investorWallet}`)
+    let projectWallet = (await repo.findByHashOrThrow(projectTxHash)).wallet
+    logger.debug(`Project: ${projectWallet}`) 
+    let result = await client.instance().contractCallStatic(
+        contracts.projSource,
+        util.enforceCtPrefix(projectWallet),
+        functions.proj.isInvestmentCancelable,
+        [ investorWallet ]
+    )
+    return result.decode()
+}
+
+module.exports = { 
+    createProject,
+    approveWithdraw,
+    cancelInvestment,
+    isInvestmentCancelable,
+    canCancelInvestment,
+    startRevenueSharesPayout, 
+    getInfo 
+}

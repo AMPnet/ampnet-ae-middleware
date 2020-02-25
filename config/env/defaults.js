@@ -3,10 +3,11 @@ let path = require('path')
 let { Universal: Ae } = require('@aeternity/aepp-sdk')
 
 let contracts = require('../../ae/contracts')
-let Environment = require('../../enums/enums').Environment
+let { Environment, ServiceEnv } = require('../../enums/enums')
 let logger = require('../../logger')(module)
 
 async function get() {
+    process.env.ENV = process.env.ENV || ServiceEnv.DEV
     process.env.NODE_ENV = process.env.NODE_ENV || Environment.LOCAL
     let node = {
         url: getNodeUrl(),
@@ -19,7 +20,9 @@ async function get() {
     let grpc = getGrpc()
     let http = getHttp()
     let db = getDb()
+    let queueDb = getQueueDb()
     return {
+        serviceEnv: process.env.ENV,
         env: process.env.NODE_ENV,
         node: node,
         supervisor: supervisorKeypair,
@@ -27,6 +30,7 @@ async function get() {
         grpc: grpc,
         http: http,
         db: db,
+        queueDb: queueDb,
         giftAmount: process.env.GIFT_AMOUNT || 0.3
     }
 }
@@ -109,8 +113,6 @@ async function getContracts(node, supervisorKeypair) {
             contractAddress: process.env.EUR_ADDRESS
         })
         eurOwner = await (await eurInstance.call('owner', [])).decode()
-        contracts.setCoopAddress(process.env.COOP_ADDRESS)
-        contracts.setEurAddress(process.env.EUR_ADDRESS)
         logger.info(`Fetched Coop owner: ${coopOwner}`)
         logger.info(`Fetched EUR owner: ${eurOwner}`)
         return {
@@ -139,13 +141,13 @@ async function getContracts(node, supervisorKeypair) {
  
         if (process.env.COOP_OWNER) {
             logger.info(`Transferring Coop contract ownership to ${process.env.COOP_OWNER}`)
-            coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
+            await coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
             logger.info(`Ownership transferred.`)
         }
 
         if (process.env.EUR_OWNER) {
             logger.info(`Transferring EUR contract ownership to ${process.env.EUR_OWNER}`)
-            eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
+            await eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
             logger.info(`Ownership transferred.`)
         }
 
@@ -191,8 +193,8 @@ function getDb() {
     var ssl
     
     var poolMin = 2
-    var poolMax = 10
-    var idleTimeoutMillis = 30000 
+    var poolMax = process.env.DB_MAX_POOL_SIZE || 5
+    var idleTimeoutMillis = 30000
     
     host = process.env.DB_HOST || "localhost"
     port = process.env.DB_PORT || "5432"
@@ -237,6 +239,47 @@ function getDb() {
         migrations: {
             directory: path.join(__dirname, '..', '..', 'db', 'migrations'),
         }
+    }
+}
+
+function getQueueDb() {
+    var host
+    var user
+    var password
+    var port
+    var database
+    
+    host = process.env.QUEUE_DB_HOST || "localhost"
+    port = process.env.QUEUE_DB_PORT || "5432"
+
+    switch (process.env.NODE_ENV) {
+        case Environment.LOCAL:
+            user = process.env.QUEUE_DB_USER || "ae_middleware_local_queue"
+            password = process.env.QUEUE_DB_PASSWORD || "password"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_local_queue"
+            break
+        case Environment.TESTNET:
+            user = process.env.QUEUE_DB_USER || "ae_middleware_testnet_queue"
+            password = process.env.QUEUE_DB_PASSWORD || "password"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_testnet_queue"
+            break
+        case Environment.MAINNET:
+            user = process.env.QUEUE_DB_USER || "ae_middleware_mainnet_queue"
+            password = process.env.QUEUE_DB_PASSWORD || "password"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_mainnet_queue"
+            break
+    }
+
+    sslString = process.env.QUEUE_DB_SSL || "false"
+    ssl = (sslString == "true")
+    return {
+        host: host,
+        user: user,
+        password: password,
+        port: port,
+        database: database,
+        poolSize: process.env.QUEUE_DB_MAX_POOL_SIZE || 1,
+        ssl: ssl
     }
 }
 
