@@ -141,13 +141,13 @@ async function getContracts(node, supervisorKeypair) {
  
         if (process.env.COOP_OWNER) {
             logger.info(`Transferring Coop contract ownership to ${process.env.COOP_OWNER}`)
-            coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
+            await coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
             logger.info(`Ownership transferred.`)
         }
 
         if (process.env.EUR_OWNER) {
             logger.info(`Transferring EUR contract ownership to ${process.env.EUR_OWNER}`)
-            eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
+            await eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
             logger.info(`Ownership transferred.`)
         }
 

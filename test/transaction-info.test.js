@@ -3,6 +3,7 @@ let assert = chai.assert;
 
 let config = require('../config')
 let client = require('../ae/client')
+let supervisor = require('../supervisor')
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
@@ -23,6 +24,7 @@ describe('Test fetching information for list of given projects', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
+        await supervisor.stop()
     })
 
     it('Should be able to fetch transaction info for some tx hash', async () => {
@@ -34,7 +36,7 @@ describe('Test fetching information for list of given projects', function() {
 
         let info = await grpcClient.getTransactionInfo(addBobWalletTxHash)
         assert.equal(info.hash, addBobWalletTxHash)
-        assert.equal(info.fromWallet, accounts.coop.publicKey)
+        assert.equal(info.fromWallet, accounts.owner.publicKey)
         assert.equal(info.toWallet, accounts.bob.publicKey)
         assert.equal(info.state, 'MINED')
         assert.equal(info.type, 'WALLET_CREATE')
