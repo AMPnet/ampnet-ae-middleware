@@ -50,7 +50,6 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
 }
 
 function handle(error, callback) {
-    console.log("Handling error", error)
     if (typeof error.response !== 'undefined') {
         callback(generate(type.AEPP_SDK_ERROR, error.response.data.reason), null)
     } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
