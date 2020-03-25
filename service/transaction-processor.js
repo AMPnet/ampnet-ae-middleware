@@ -7,7 +7,7 @@ const util = require('../ae/util')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
 const supervisor = require('../supervisor')
-const { Universal, Crypto } = require('@aeternity/aepp-sdk')
+const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 /**
  * Fetches and processes transaction events for given tx hash.
@@ -245,12 +245,20 @@ async function callSpecialActions(tx) {
             }
             let projectContractAddress = util.enforceCtPrefix(projectWalletCreationTx.wallet)
             logger.info(`Calling approve investment for user ${investorWallet} and project ${projectContractAddress}.`)
-            let client = await Universal({
+            let node = await Node({
                 url: config.get().node.url,
-                internalUrl: config.get().node.internalUrl,
-                keypair: investorWorkerKeyPair,
+                internalUrl: config.get().node.internalUrl
+            })
+            let client = await Universal({
+                nodes: [
+                    { name: "node", instance: node }
+                ],
                 compilerUrl: config.get().node.compilerUrl,
-                networkId: config.get().networkId
+                accounts: [
+                    MemoryAccount({ keypair: investorWorkerKeyPair })
+                ],
+                address: investorWorkerKeyPair.publicKey,
+                networkId: config.get().node.networkId
             })
             let callResult = await client.contractCall(
                 contracts.projSource,
@@ -269,12 +277,20 @@ async function callSpecialActions(tx) {
                 secretKey: projectManagerWalletCreationTx.worker_secret_key
             }
             let projectContractAddress = util.enforceCtPrefix(projectWalletCreationTx.wallet)
-            let client = await Universal({
+            let node = await Node({
                 url: config.get().node.url,
-                internalUrl: config.get().node.internalUrl,
-                keypair: projectManagerWorkerKeyPair,
+                internalUrl: config.get().node.internalUrl
+            })
+            let client = await Universal({
+                nodes: [
+                    { name: "node", instance: node }
+                ],
                 compilerUrl: config.get().node.compilerUrl,
-                networkId: config.get().networkId
+                accounts: [
+                    MemoryAccount({ keypair: projectManagerWorkerKeyPair })
+                ],
+                address: projectManagerWorkerKeyPair.publicKey,
+                networkId: config.get().node.networkId
             })
             logger.info(`Calling revenue share payout for project ${projectContractAddress}.`)
             var batchCount = 0

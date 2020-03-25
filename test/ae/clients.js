@@ -1,6 +1,6 @@
 let url = require('url')
 
-let { Universal: Ae } = require('@aeternity/aepp-sdk')
+let { Universal: Ae, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 let config = require('../../config')
 let accounts = require('./accounts')
 
@@ -10,36 +10,57 @@ let aliceClient
 let emptyClient
 
 async function init() {
-    ownerClient = await Ae({
+    let node = await Node({
         url: config.get().node.url,
-        internalUrl: config.get().node.internalUrl,
-        keypair: accounts.owner,
-        networkId: config.get().node.networkId,
-        compilerUrl: config.get().node.compilerUrl
+        internalUrl: config.get().node.internalUrl
+    })
+
+    ownerClient = await Ae({
+        nodes: [
+            { name: "node", instance: node } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: accounts.owner })
+        ],
+        address: accounts.owner.publicKey,
+        networkId: config.get().node.networkId
     })
 
     bobClient = await Ae({
-        url: config.get().node.url,
-        internalUrl: config.get().node.internalUrl,
-        keypair: accounts.bob,
-        networkId: config.get().node.networkId,
-        compilerUrl: config.get().node.compilerUrl
+        nodes: [
+            { name: "node", instance: node } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: accounts.bob })
+        ],
+        address: accounts.bob.publicKey,
+        networkId: config.get().node.networkId
     })
 
     aliceClient = await Ae({
-        url: config.get().node.url,
-        internalUrl: config.get().node.internalUrl,
-        keypair: accounts.alice,
-        networkId: config.get().node.networkId,
-        compilerUrl: config.get().node.compilerUrl
+        nodes: [
+            { name: "node", instance: node } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: accounts.alice })
+        ],
+        address: accounts.alice.publicKey,
+        networkId: config.get().node.networkId
     })
 
     emptyClient = await Ae({
-        url: config.get().node.url,
-        internalUrl: config.get().node.internalUrl,
-        keypair: accounts.empty,
-        networkId: config.get().node.networkId,
-        compilerUrl: config.get().node.compilerUrl
+        nodes: [
+            { name: "node", instance: node } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: accounts.empty })
+        ],
+        address: accounts.empty.publicKey,
+        networkId: config.get().node.networkId
     })
 }
 

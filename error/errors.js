@@ -6,6 +6,7 @@ let type = {
     TX_NOT_SIGNED: "01",
     TX_NOT_MINED: "02",
     TX_INVALID_CONTRACT_CALLED: "03",
+    TX_VERIFICATION_ERROR: "04",
     WALLET_NOT_FOUND: "10",
     WALLET_CREATION_FAILED: "11",
     WALLET_CREATION_PENDING: "12",
@@ -31,11 +32,12 @@ let DefaultMessages = new Map([
 
 function generate(errorType, message = DefaultMessages.get(errorType)) {
     let errorData = `${errorType} > ${message}`
-    switch (errorType) {
+    switch (errorType) { 
         case type.MALFORMED_CONTRACT_CODE:
         case type.WALLET_NOT_FOUND:
         case type.WALLET_CREATION_FAILED:
         case type.WALLET_CREATION_PENDING:
+        case type.TX_VERIFICATION_ERROR:
         case type.TX_NOT_SIGNED: return new grpcErrors.FailedPreconditionError(errorData)
         
         case type.TX_INVALID_CONTRACT_CALLED:
@@ -48,10 +50,24 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
 }
 
 function handle(error, callback) {
+    console.log("Handling error", error)
     if (typeof error.response !== 'undefined') {
         callback(generate(type.AEPP_SDK_ERROR, error.response.data.reason), null)
     } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
-        callback(error, null)
+        if (errorCodeExists(error.message)) {
+            callback(error, null)
+        } else {
+            if (error.code === 'TX_VERIFICATION_ERROR' && typeof error.errorData.validation !== 'undefined') {
+                let validationArray = error.errorData.validation
+                if (validationArray.length > 0) {
+                    callback(generate(type.TX_VERIFICATION_ERROR, error.errorData.validation[0].msg), null)
+                } else {
+                    callback(generate(type.TX_VERIFICATION_ERROR, error.message), null)
+                }
+            } else {
+                callback(generate(type.GENERIC_ERROR), null)
+            }
+        }
     } else {
         callback(generate(type.GENERIC_ERROR), null)
     }
@@ -59,11 +75,23 @@ function handle(error, callback) {
 
 async function decode(result) {
     error = Buffer.from(result.returnValue).toString()
-    if (Crypto.isBase64(error.slice(3))) {
+    if (isBase64(error.slice(3))) {
         return Buffer.from(error.slice(3), 'base64').toString().replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
     } else {
-        return client.instance().contractDecodeDataAPI('string', error).replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+        let decoded = await client.instance().contractDecodeDataAPI('string', error)
+        return decoded.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
     }
+}
+
+function errorCodeExists(message) {
+    let parts = message.split(">")
+    if (parts.length != 2) { return false }
+    let code = parts[0].trim()
+    return Object.values(type).indexOf(code) > -1
+}
+
+function isBase64(str) {
+    return Buffer.from(str, 'base64').toString('base64') === str
 }
 
 module.exports = { generate, type, handle, decode }

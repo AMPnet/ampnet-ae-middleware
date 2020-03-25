@@ -42,6 +42,10 @@ function toToken(amount) {
     return amount * tokenFactor
 }
 
+function toAe(amount) {
+    return amount / tokenFactor
+}
+
 module.exports = { 
     enforceAkPrefix,
     enforceCtPrefix,
@@ -50,5 +54,6 @@ module.exports = {
     decodeAddress,
     blake2b,
     bigNumberToHex,
-    toToken
+    toToken,
+    toAe
 }

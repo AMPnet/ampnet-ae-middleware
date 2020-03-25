@@ -10,7 +10,7 @@ let grpcClient = require('./grpc/client')
 let db = require('./util/db')
 
 
-describe('Main tests', function() {
+describe('Portfolio fetch tests', function() {
 
     beforeEach(async() => {
         await grpcServer.start()
