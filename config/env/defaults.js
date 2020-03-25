@@ -1,6 +1,6 @@
 let path = require('path')
 
-let { Universal: Ae } = require('@aeternity/aepp-sdk')
+let { Universal: Ae, MemoryAccount, Node } = require('@aeternity/aepp-sdk')
 
 let contracts = require('../../ae/contracts')
 let { Environment, ServiceEnv } = require('../../enums/enums')
@@ -94,12 +94,20 @@ function getSupervisorKeypair() {
 }
 
 async function getContracts(node, supervisorKeypair) {
-    client = await Ae({
+    let nodeInstance = await Node({
         url: node.url,
-        internalUrl: node.internalUrl,
-        keypair: supervisorKeypair,
-        networkId: node.networkId,
-        compilerUrl: node.compilerUrl
+        internalUrl: node.internalUrl
+    })
+    client = await Ae({
+        nodes: [
+            { name: "node", instance: nodeInstance } 
+        ],
+        compilerUrl: node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: supervisorKeypair })
+        ],
+        address: supervisorKeypair.publicKey,
+        networkId: node.networkId
     })
     if (process.env.COOP_ADDRESS && process.env.EUR_ADDRESS) {
         logger.info("Base contracts pre-deployed.")
