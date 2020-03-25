@@ -17,7 +17,7 @@ let db = require('./util/db')
 
 let config = require('../config')
 
-describe('Main tests', function() {
+describe('Investment cancelable test', function() {
 
     beforeEach(async() => {
         await grpcServer.start()

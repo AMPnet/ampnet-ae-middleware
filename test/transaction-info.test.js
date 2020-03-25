@@ -13,7 +13,7 @@ let accounts = require('./ae/accounts')
 let util = require('./util/util')
 let db = require('./util/db')
 
-describe('Test fetching information for list of given projects', function() {
+describe('Fetch transaction info tests', function() {
 
     beforeEach(async() => {
         await grpcServer.start()

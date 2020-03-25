@@ -16,7 +16,7 @@ let db = require('./util/db')
 
 let config = require('../config')
 
-describe('Main tests', function() {
+describe('Happy path scenario', function() {
 
     beforeEach(async() => {
         await grpcServer.start()

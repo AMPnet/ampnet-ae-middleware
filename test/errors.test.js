@@ -2,7 +2,6 @@ let chai = require('chai');
 let assert = chai.assert;
 
 let grpcClient = require('./grpc/client')
-let deployer = require('./ae/deployer')
 let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 let util = require('./util/util')
@@ -33,226 +32,225 @@ describe('Error handling tests', function() {
         await supervisor.stop()
     })
 
-    // it('Should fail with correct error message if transaction broadcasted but not signed', async () => {
-    //     addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-    //     errResponse = await grpcClient.postTransaction(addBobWalletTx)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
-    // }) 
+    it('Should fail with correct error message if transaction broadcasted but not signed', async () => {
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let errResponse = await grpcClient.postTransaction(addBobWalletTx)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
+    }) 
 
-    // it('Should fail with correct error message if invalid contract is called', async () => {
-    //     addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-    //     addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-    //     addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-    //     await util.waitMined(addBobWalletTxHash)
+    it('Should fail with correct error message if invalid contract is called', async () => {
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        await util.waitMined(addBobWalletTxHash)
 
-    //     randomContractId = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
-    //     randomCallData = await codec.org.encodeCreateOrganization()
-    //     randomContractCallTx = await client.instance().contractCallTx({
-    //         callerId: accounts.bob.publicKey,
-    //         contractId: randomContractId,
-    //         abiVersion: 1,
-    //         amount: 0,
-    //         gas: 10000,
-    //         callData:  randomCallData
-    //     })
-    //     randomContractCallTxSigned = await clients.bob().signTransaction(randomContractCallTx)
+        let randomContractId = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
+        let randomCallData = await codec.org.encodeCreateOrganization()
+        let randomContractCallTx = await client.instance().contractCallTx({
+            callerId: accounts.bob.publicKey,
+            contractId: randomContractId,
+            abiVersion: 1,
+            amount: 0,
+            gas: 10000,
+            callData:  randomCallData
+        })
+        let randomContractCallTxSigned = await clients.bob().signTransaction(randomContractCallTx)
     
-    //     errResponse = await grpcClient.postTransaction(randomContractCallTxSigned)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_INVALID_CONTRACT_CALLED).message)
-    // })
+        let errResponse = await grpcClient.postTransaction(randomContractCallTxSigned)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_INVALID_CONTRACT_CALLED).message)
+    })
 
-    // it('Should fail with correct error message if Org is created with invalid Coop as argument', async () => {
-    //     addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-    //     addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-    //     addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-    //     await util.waitMined(addBobWalletTxHash)
+    it('Should fail with correct error message if Org is created with invalid Coop as argument', async () => {
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        await util.waitMined(addBobWalletTxHash)
 
-    //     badCoopAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
-    //     callData = await contracts.getOrgCompiled().encodeCall("init", [ badCoopAddr ])
-    //     badTx = await client.instance().contractCreateTx({
-    //         ownerId: accounts.bob.publicKey,
-    //         code: contracts.getOrgCompiled().bytecode,
-    //         abiVersion: 1,
-    //         deposit: 0,
-    //         amount: 0,
-    //         gas: 50000,
-    //         callData: callData
-    //     })
-    //     badTxSigned = await clients.bob().signTransaction(badTx.tx)
-    //     errResponse = await grpcClient.postTransaction(badTxSigned)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.GROUP_INVALID_COOP_ARG).message)
-    // }) 
+        let badCoopAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
+        let callData = await contracts.getOrgCompiled().encodeCall("init", [ badCoopAddr ])
+        let badTx = await client.instance().contractCreateTx({
+            ownerId: accounts.bob.publicKey,
+            code: contracts.getOrgCompiled().bytecode,
+            abiVersion: 1,
+            deposit: 0,
+            amount: 0,
+            gas: 50000,
+            callData: callData
+        })
+        let badTxSigned = await clients.bob().signTransaction(badTx.tx)
+        let errResponse = await grpcClient.postTransaction(badTxSigned)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.GROUP_INVALID_COOP_ARG).message)
+    }) 
 
-    // it('Should fail with correct error message if Proj is created with invalid Org as argument', async () => {
-    //     addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-    //     addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-    //     addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-    //     await util.waitMined(addBobWalletTxHash)
+    it('Should fail with correct error message if Proj is created with invalid Org as argument', async () => {
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        await util.waitMined(addBobWalletTxHash)
 
-    //     badOrgAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
-    //     callData = await codec.proj.encodeCreateProject(
-    //         badOrgAddr,
-    //         '1000',
-    //         '1000000',
-    //         '1000000',
-    //         '999999999'
-    //     )
-    //     badTx = await client.instance().contractCreateTx({
-    //         ownerId: accounts.bob.publicKey,
-    //         code: contracts.getProjCompiled().bytecode,
-    //         abiVersion: 1,
-    //         deposit: 0,
-    //         amount: 0,
-    //         gas: 50000,
-    //         callData: callData
-    //     })
-    //     badTxSigned = await clients.bob().signTransaction(badTx.tx)
+        let badOrgAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
+        let callData = await codec.proj.encodeCreateProject(
+            badOrgAddr,
+            '1000',
+            '1000000',
+            '1000000',
+            '999999999'
+        )
+        let badTx = await client.instance().contractCreateTx({
+            ownerId: accounts.bob.publicKey,
+            code: contracts.getProjCompiled().bytecode,
+            abiVersion: 1,
+            deposit: 0,
+            amount: 0,
+            gas: 50000,
+            callData: callData
+        })
+        let badTxSigned = await clients.bob().signTransaction(badTx.tx)
 
-    //     errResponse = await grpcClient.postTransaction(badTxSigned)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.PROJ_INVALID_GROUP_ARG).message)
-    // })
+        let errResponse = await grpcClient.postTransaction(badTxSigned)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.PROJ_INVALID_GROUP_ARG).message)
+    })
 
-    // it('Should fail with correct error message if trying to deploy arbitrary Contract as Proj/Org', async () => {
-    //     addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-    //     addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-    //     addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-    //     await util.waitMined(addBobWalletTxHash)
+    it('Should fail with correct error message if trying to deploy arbitrary Contract as Proj/Org', async () => {
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        await util.waitMined(addBobWalletTxHash)
 
-    //     source = 'contract HelloWorld = \n\tentrypoint hello_world() = "Hello World!"'
-    //     compiled = await client.instance().contractCompile(source)
-    //     callData = await codec.org.encodeCreateOrganization()
-    //     deployTx = await client.instance().contractCreateTx({
-    //         ownerId: accounts.bob.publicKey,
-    //         code: compiled.bytecode,
-    //         abiVersion: 1,
-    //         deposit: 0,
-    //         amount: 0,
-    //         gas: 50000,
-    //         callData: callData
-    //     })
-    //     deployTxSigned = await clients.bob().signTransaction(deployTx.tx)
+        let source = 'contract HelloWorld = \n\tentrypoint hello_world() = "Hello World!"'
+        let compiled = await client.instance().contractCompile(source)
+        let callData = await codec.org.encodeCreateOrganization()
+        let deployTx = await client.instance().contractCreateTx({
+            ownerId: accounts.bob.publicKey,
+            code: compiled.bytecode,
+            abiVersion: 1,
+            deposit: 0,
+            amount: 0,
+            gas: 50000,
+            callData: callData
+        })
+        let deployTxSigned = await clients.bob().signTransaction(deployTx.tx)
         
-    //     errResponse = await grpcClient.postTransaction(deployTxSigned)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.MALFORMED_CONTRACT_CODE).message)
-    // })
+        let errResponse = await grpcClient.postTransaction(deployTxSigned)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.MALFORMED_CONTRACT_CODE).message)
+    })
 
-    // it('Should fail with correct message if trying to post transaction but user wallet not registered on Platform', async () => {
-    //     callData = await codec.org.encodeCreateOrganization()
-    //     badTx = await client.instance().contractCreateTx({
-    //         ownerId: accounts.bob.publicKey,
-    //         code: contracts.getOrgCompiled().bytecode,
-    //         abiVersion: 1,
-    //         deposit: 0,
-    //         amount: 0,
-    //         gas: 50000,
-    //         callData: callData
-    //     })
-    //     badTxSigned = await clients.bob().signTransaction(badTx.tx)
+    it('Should fail with correct message if trying to post transaction but user wallet not registered on Platform', async () => {
+        let callData = await codec.org.encodeCreateOrganization()
+        let badTx = await client.instance().contractCreateTx({
+            ownerId: accounts.bob.publicKey,
+            code: contracts.getOrgCompiled().bytecode,
+            abiVersion: 1,
+            deposit: 0,
+            amount: 0,
+            gas: 50000,
+            callData: callData
+        })
+        let badTxSigned = await clients.bob().signTransaction(badTx.tx)
 
-    //     errResponse = await grpcClient.postTransaction(badTxSigned)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_NOT_FOUND).message)
-    // })
+        let errResponse = await grpcClient.postTransaction(badTxSigned)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_NOT_FOUND).message)
+    })
 
-    // it('Should fail if trying to generate addWallet for txHash but transaction with given hash does not exist', async () => {
-    //     randomTxHash = 'th_vwXLMLZt3Nkog5BrhiCV2wS4qyUFoBtWnaS38zsi4B2xpwTcD'
-    //     errResponse = await grpcClient.generateAddWalletTx(randomTxHash)
-    //     errResponseParsed = util.parseError(errResponse.details)
-    //     assert.strictEqual(errResponseParsed.message, 'Transaction not found')
-    // })
+    it('Should fail if trying to generate addWallet for txHash but transaction with given hash does not exist', async () => {
+        let randomTxHash = 'th_vwXLMLZt3Nkog5BrhiCV2wS4qyUFoBtWnaS38zsi4B2xpwTcD'
+        let errResponse = await grpcClient.generateAddWalletTx(randomTxHash)
+        let errResponseParsed = util.parseError(errResponse.details)
+        assert.strictEqual(errResponseParsed.message, 'Transaction not found')
+    })
 
-    // it('Should fail if trying to generate addWallet for txHash but transaction with given hash not yet mined', async () => {
-    //     tx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-    //     txSigned = await clients.owner().signTransaction(tx)
-    //     txHash = await grpcClient.postTransaction(txSigned)
+    it('Should fail if trying to generate addWallet for txHash but transaction with given hash not yet mined', async () => {
+        let tx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let txSigned = await clients.owner().signTransaction(tx)
+        let txHash = await grpcClient.postTransaction(txSigned)
 
-    //     // try to add txHash as new wallet, doesnt make sense but serves the purpose as txHash most probably still not mined
-    //     errResponse = await grpcClient.generateAddWalletTx(txHash)
-    //     errResponseParsed = util.parseError(errResponse.details)
-    //     assert.strictEqual(errResponseParsed.message, 'Tx not mined')
-    // })
+        let errResponse = await grpcClient.generateAddWalletTx(txHash)
+        let errResponseParsed = util.parseError(errResponse.details)
+        assert.strictEqual(errResponseParsed.message, 'Tx not mined')
+    })
 
-    // it('Should fail if trying to check isWalletActive for non-existing wallet txHash', async () => {
-    //     nonExistingHash = "non-existing-hash"
-    //     errResponse = await grpcClient.isWalletActive(nonExistingHash)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_NOT_FOUND).message)
-    // })
+    it('Should fail if trying to check isWalletActive for non-existing wallet txHash', async () => {
+        let nonExistingHash = "non-existing-hash"
+        let errResponse = await grpcClient.isWalletActive(nonExistingHash)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_NOT_FOUND).message)
+    })
 
-    // it('Should fail if trying to check isWalletActive for txHash which failed', async () => {
-    //     failedHash = "failed-hash"
-    //     await db.insert({
-    //         hash: failedHash,
-    //         type: TxType.WALLET_CREATE,
-    //         state: TxState.FAILED,
-    //         created_at: new Date()
-    //     })
-    //     errResponse = await grpcClient.isWalletActive(failedHash)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_FAILED).message)
-    // })
+    it('Should fail if trying to check isWalletActive for txHash which failed', async () => {
+        let failedHash = "failed-hash"
+        await db.insert({
+            hash: failedHash,
+            type: TxType.WALLET_CREATE,
+            state: TxState.FAILED,
+            created_at: new Date()
+        })
+        let errResponse = await grpcClient.isWalletActive(failedHash)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_FAILED).message)
+    })
 
-    // it('Should fail if trying to check isWalletActive for txHash which is not yet mined', async () => {
-    //     pendingHash = "pending-hash"
-    //     await db.insert({
-    //         hash: pendingHash,
-    //         type: TxType.WALLET_CREATE,
-    //         state: TxState.PENDING,
-    //         created_at: new Date()
-    //     })
-    //     errResponse = await grpcClient.isWalletActive(pendingHash)
-    //     assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_PENDING).message)
-    // })
+    it('Should fail if trying to check isWalletActive for txHash which is not yet mined', async () => {
+        let pendingHash = "pending-hash"
+        await db.insert({
+            hash: pendingHash,
+            type: TxType.WALLET_CREATE,
+            state: TxState.PENDING,
+            created_at: new Date()
+        })
+        let errResponse = await grpcClient.isWalletActive(pendingHash)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_PENDING).message)
+    })
     
-    // it('Should fail if trying to check isWalletActive for txHash which represents another type of transcation (not wallet)', async () => {
-    //     investHash = "invest-hash"
-    //     await db.insert({
-    //         hash: investHash,
-    //         type: TxType.INVEST,
-    //         state: TxState.MINED,
-    //         created_at: new Date()
-    //     })
-    //     errResponse = await grpcClient.isWalletActive(investHash)
-    //     errResponseParsed = util.parseError(errResponse.details)
-    //     assert.strictEqual(errResponseParsed.message, "Given hash does not represent wallet creation transaction!")
-    // })
+    it('Should fail if trying to check isWalletActive for txHash which represents another type of transcation (not wallet)', async () => {
+        let investHash = "invest-hash"
+        await db.insert({
+            hash: investHash,
+            type: TxType.INVEST,
+            state: TxState.MINED,
+            created_at: new Date()
+        })
+        let errResponse = await grpcClient.isWalletActive(investHash)
+        let errResponseParsed = util.parseError(errResponse.details)
+        assert.strictEqual(errResponseParsed.message, "Given hash does not represent wallet creation transaction!")
+    })
 
     it('Transaction that fails on Contract level should be updated correctly in its db entry', async () => {
-        addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
         // For example, Bob tries to approve Alice's wallet but only admin can do such a thing, tx should fail
-        callData = await codec.coop.encodeAddWallet(accounts.alice.publicKey)
-        tx = await client.instance().contractCallTx({
+        let callData = await codec.coop.encodeAddWallet(accounts.alice.publicKey)
+        let tx = await client.instance().contractCallTx({
             callerId : accounts.bob.publicKey,
             contractId : config.get().contracts.coop.address,
             amount : 0,
             gas : 10000,
             callData : callData
         })
-        txSigned = await clients.bob().signTransaction(tx)
-        faultyTxHash = await grpcClient.postTransaction(txSigned)
+        let txSigned = await clients.bob().signTransaction(tx)
+        let faultyTxHash = await grpcClient.postTransaction(txSigned)
         await util.waitMined(faultyTxHash)
 
         // Sleep for 2 seconds to wait for updated tx state in database
         await util.sleep(2000)
 
-        faultyTxRecord = (await db.getBy({hash: faultyTxHash}))[0]
+        let faultyTxRecord = (await db.getBy({hash: faultyTxHash}))[0]
         assert.strictEqual(faultyTxRecord.hash, faultyTxHash)
         assert.strictEqual(faultyTxRecord.state, TxState.FAILED)
         assert.strictEqual(faultyTxRecord.error_message, 'Only owner can make this action!')
     })
 
-    it.only('Transaction that fails on Protocol level should be update correctly in its db entry', async () => {
-        addEmptyWalletTx = await grpcClient.generateAddWalletTx(accounts.empty.publicKey)
-        addEmptyWalletTxSigned = await clients.owner().signTransaction(addEmptyWalletTx)
-        addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
+    it('Transaction that fails immediately after posting should generate descriptive error message', async () => {
+        let addEmptyWalletTx = await grpcClient.generateAddWalletTx(accounts.empty.publicKey)
+        let addEmptyWalletTxSigned = await clients.owner().signTransaction(addEmptyWalletTx)
+        let addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
         await util.waitMined(addEmptyWalletTxHash)
 
-        emptyWalletBalance = await client.instance().balance(accounts.empty.publicKey)
-        console.log('emptyWalletBalance', emptyWalletBalance)
-        
-        callData = await codec.org.encodeCreateOrganization()
-        txResult = await client.instance().contractCreateTx({
+        await clients.empty().spend(299980000000000000, accounts.owner.publicKey)
+        let emptyWalletBalance = await client.instance().balance(accounts.empty.publicKey)
+
+        let callData = await codec.org.encodeCreateOrganization()
+        let txResult = await client.instance().contractCreateTx({
             ownerId: accounts.empty.publicKey,
             code: contracts.getOrgCompiled().bytecode,
             deposit: 0,
@@ -260,17 +258,9 @@ describe('Error handling tests', function() {
             gas: 0,
             callData: callData
         })
-        txSigned = await clients.empty().signTransaction(txResult.tx)
-        faultyHash = await grpcClient.postTransaction(txSigned)
-        await util.waitMined(faultyHash)
-
-        // Sleep for 2 second to wait for updated tx state in database
-        await util.sleep(2000)
-
-        faultyTxRecord = (await db.getBy({hash: faultyHash}))[0]
-        assert.strictEqual(faultyTxRecord.hash, faultyHash)
-        assert.strictEqual(faultyTxRecord.state, TxState.FAILED)
-        assert.strictEqual(faultyTxRecord.error_message, 'outofgasG')
+        let txSigned = await clients.empty().signTransaction(txResult.tx)
+        let err = await grpcClient.postTransaction(txSigned)
+        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 04 > The account balance 3180000000000 is not enough to execute the transaction")
     })
 
 })

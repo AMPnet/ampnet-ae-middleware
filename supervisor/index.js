@@ -48,40 +48,38 @@ async function publishSendFundsJob(wallet, amountAe) {
 async function publishJobFromTx(tx) {
     switch (tx.type) {
         case TxType.WALLET_CREATE:
+            giftAmountAe = config.get().giftAmount
             jobType = JobType.SEND_FUNDS
-            if (tx.wallet_type == WalletType.USER) {
-                giftAmountAe = config.get().giftAmount
-                if (giftAmountAe > 0) {
-                    queue.publish(queueName, {
-                        type: jobType,
-                        amount: util.toToken(giftAmountAe),
-                        wallet: tx.wallet,
-                        originTxHash: tx.hash
-                    }).then(
-                        result => {
-                            logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
-                        },
-                        err => {
-                            logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
-                        }
-                    )
-                    queue.publish(queueName, {
-                        type: jobType,
-                        amount: util.toToken(giftAmountAe),
-                        wallet: tx.worker_public_key,
-                        originTxHash: tx.hash
-                    }).then(
-                        result => {
-                            logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
-                        },
-                        err => {
-                            logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
-                        }
-                    )
-                } else {
-                    repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
-                    logger.info(`QUEUE-PUBLISHER: Send funds job originated from transaction ${tx.hash} not published! (welcome gift amount in config set to 0)`)
-                }
+            if (giftAmountAe > 0) {
+                queue.publish(queueName, {
+                    type: jobType,
+                    amount: util.toToken(giftAmountAe),
+                    wallet: tx.wallet,
+                    originTxHash: tx.hash
+                }).then(
+                    result => {
+                        logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
+                    },
+                    err => {
+                        logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
+                    }
+                )
+                queue.publish(queueName, {
+                    type: jobType,
+                    amount: util.toToken(giftAmountAe),
+                    wallet: tx.worker_public_key,
+                    originTxHash: tx.hash
+                }).then(
+                    result => {
+                        logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
+                    },
+                    err => {
+                        logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
+                    }
+                )
+            } else {
+                repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+                logger.info(`QUEUE-PUBLISHER: Send funds job originated from transaction ${tx.hash} not published! (welcome gift amount in config set to 0)`)
             }
             break
         default:

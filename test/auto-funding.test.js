@@ -1,7 +1,7 @@
 let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
-let { Crypto, Universal } = require('@aeternity/aepp-sdk')
+let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
@@ -16,7 +16,7 @@ let db = require('./util/db')
 
 let config = require('../config')
 
-describe('Main tests', function() {
+describe('Auto funding test', function() {
 
     beforeEach(async() => {
         await grpcServer.start()
@@ -32,12 +32,20 @@ describe('Main tests', function() {
 
     it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
         let randomWallet = Crypto.generateKeyPair()
-        let client = await Universal({
+        let node = await Node({
             url: config.get().node.url,
-            internalUrl: config.get().node.internalUrl,
-            keypair: randomWallet,
-            networkId: config.get().node.networkId,
-            compilerUrl: config.get().node.compilerUrl
+            internalUrl: config.get().node.internalUrl
+        })
+        let client = await Universal({
+            nodes: [
+                { name: "node", instance: node }
+            ],
+            compilerUrl: config.get().node.compilerUrl,
+            accounts: [
+                MemoryAccount({ keypair: randomWallet })
+            ],
+            address: randomWallet.publicKey,
+            networkId: config.get().node.networkId
         })
 
         let addRandomWalletTx = await grpcClient.generateAddWalletTx(randomWallet.publicKey)

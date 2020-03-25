@@ -1,26 +1,39 @@
 let url = require('url')
-let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract, Universal } = require('@aeternity/aepp-sdk')
+let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract, Universal, Node } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
 
 async function init() {
+    let node = await Node({
+        url: config.get().node.url,
+        internalUrl: config.get().node.internalUrl
+    })
     let ContractWithAE = await Contract
         .compose(ContractCompilerAPI)
         .compose(Transaction, MemoryAccount, ChainNode)
-
+    
     aeInstance = await ContractWithAE({
-        url: config.get().node.url,
-        internalUrl: config.get().node.internalUrl,
-        keypair: config.get().supervisor,
+        nodes: [
+            { name: "node", instance: node } 
+        ],
         compilerUrl: config.get().node.compilerUrl,
+        keypair: config.get().supervisor,
+        accounts: [
+            MemoryAccount({ keypair: config.get().supervisor })
+        ],
+        address: config.get().supervisor.publicKey,
         networkId: config.get().networkId
     })
 
     aeSender = await Universal({
-        url: config.get().node.url,
-        internalUrl: config.get().node.internalUrl,
-        keypair: config.get().supervisor,
+        nodes: [
+            { name: "node", instance: node } 
+        ],
         compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: config.get().supervisor })
+        ],
+        address: config.get().supervisor.publicKey,
         networkId: config.get().networkId
     })
 }

@@ -24,7 +24,7 @@ async function postTransaction(call, callback) {
         txProcessor.process(result.hash).then(
             records => {
                 records.forEach(record => {
-                    if (record.supervisor_status == SupervisorStatus.REQUIRED && record.type == enums.TxType.WALLET_CREATE) {
+                    if (record.supervisor_status == SupervisorStatus.REQUIRED && record.type == enums.TxType.WALLET_CREATE && record.wallet_type == enums.WalletType.USER) {
                         logger.info('Supervisor action required. Creating a job.')
                         supervisor.publishJobFromTx(record)
                     }
