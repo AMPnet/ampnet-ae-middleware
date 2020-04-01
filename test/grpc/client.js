@@ -277,5 +277,27 @@ module.exports = {
                 }
             })
         })
+    },
+    getPlatformManager: async function() {
+        return new Promise(resolve => {
+            client.getPlatformManager({}, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.wallet)
+                }
+            })
+        })
+    },
+    getTokenIssuer: async function() {
+        return new Promise(resolve => {
+            client.getTokenIssuer({}, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.wallet)
+                }
+            })
+        })
     }
 }

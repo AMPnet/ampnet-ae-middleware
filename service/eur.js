@@ -130,10 +130,29 @@ async function allowance(owner) {
     return result.decode()
 }
 
+async function getTokenIssuer(call, callback) {
+    logger.debug(`Received request to fetch token issuer wallet.`)
+    try {
+        let result = await client.instance().contractCallStatic(
+            contracts.eurSource,
+            config.get().contracts.eur.address,
+            functions.eur.getOwner,
+            [ ]
+        )
+        let resultDecoded = await result.decode()
+        logger.debug(`Fetched token issuer: ${resultDecoded}`)
+        callback(null, { wallet: resultDecoded })
+    } catch (error) {
+        logger.error(`Error while fetching token issuer wallet:\n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 module.exports = { 
     mint, 
     approveWithdraw, 
     burnFrom, 
     balance, 
-    invest 
+    invest ,
+    getTokenIssuer
 }

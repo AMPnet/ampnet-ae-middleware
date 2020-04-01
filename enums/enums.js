@@ -75,14 +75,16 @@ let SupervisorStatus = {
 let functions = {
     coop: {
         addWallet: "add_wallet",
-        isWalletActive: "is_wallet_active"
+        isWalletActive: "is_wallet_active",
+        getOwner: "owner"
     },
     eur: {
         mint: "mint",
         allowance: "allowance",
         balanceOf: "balance_of",
         burnFrom: "burn",
-        approve: "approve"
+        approve: "approve",
+        getOwner: "owner"
     },
     proj: {
         invest: "invest",

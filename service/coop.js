@@ -55,7 +55,26 @@ async function walletActive(call, callback) {
     }
 }
 
+async function getPlatformManager(call, callback) {
+    logger.debug(`Received request to fetch platform manager wallet.`)
+    try {
+        let result = await client.instance().contractCallStatic(
+            contracts.coopSource,
+            config.get().contracts.coop.address,
+            functions.coop.getOwner,
+            [ ]
+        )
+        let resultDecoded = await result.decode()
+        logger.debug(`Fetched platform manager: ${resultDecoded}`)
+        callback(null, { wallet: resultDecoded })
+    } catch (error) {
+        logger.error(`Error while fetching platform manager wallet:\n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 module.exports = { 
     addWallet,
-    walletActive
+    walletActive,
+    getPlatformManager
 }
