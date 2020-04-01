@@ -100,7 +100,9 @@ module.exports = {
             getInvestmentsInProject: txSvc.getInvestmentsInProject,
             generateCancelInvestmentTx: projSvc.cancelInvestment,
             generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
-            isInvestmentCancelable: projSvc.isInvestmentCancelable
+            isInvestmentCancelable: projSvc.isInvestmentCancelable,
+            getPlatformManager: coopSvc.getPlatformManager,
+            getTokenIssuer: eurSvc.getTokenIssuer
         });
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());

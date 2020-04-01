@@ -21,6 +21,10 @@ message WalletActiveResponse {
     bool active = 1;
 }
 
+message PlatformManagerResponse {
+    string wallet = 1;
+}
+
 
 ///////// EUR contract messages //////////
 
@@ -50,6 +54,10 @@ message GenerateInvestTxRequest {
     string from_tx_hash = 1;
     string project_tx_hash = 2;
     string amount = 3;
+}
+
+message TokenIssuerResponse {
+    string wallet = 1;
 }
 
 ///////// Organization contract //////////
@@ -200,7 +208,7 @@ service BlockchainService {
 
     rpc GenerateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
     rpc IsWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
-
+    rpc GetPlatformManager(Empty) returns (PlatformManagerResponse);
 
     // EUR
 
@@ -209,7 +217,7 @@ service BlockchainService {
     rpc GenerateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
     rpc GenerateInvestTx(GenerateInvestTxRequest) returns (RawTxResponse);
     rpc GetBalance(BalanceRequest) returns (BalanceResponse);
-
+    rpc GetTokenIssuer(Empty) returns (TokenIssuerResponse);
 
     // Organization
 
