@@ -20,8 +20,9 @@ async function addWallet(call, callback) {
         }
         let callData = await codec.coop.encodeAddWallet(address)
         let coopAddress = config.get().contracts.coop.address
+        let coopOwner = await config.get().contracts.coop.owner()
         let tx = await client.instance().contractCallTx({
-            callerId : config.get().contracts.coop.owner,
+            callerId : coopOwner,
             contractId : coopAddress,
             amount : 0,
             gas : 10000,
@@ -73,8 +74,30 @@ async function getPlatformManager(call, callback) {
     }
 }
 
+async function transferOwnership(call, callback) {
+    logger.debug(`Received request to generate platform manager ownership transaction. New owner: ${call.request.newOwnerWallet}`)
+    try {
+        let callData = await codec.coop.encodeTransferCoopOwnership(call.request.newOwnerWallet)
+        let coopOwner = await config.get().contracts.coop.owner()
+        console.log("coop owner", coopOwner)
+        let tx = await client.instance().contractCallTx({
+            callerId: coopOwner,
+            contractId: config.get().contracts.coop.address,
+            amount: 0,
+            gas: 10000,
+            callData: callData
+        })
+        logger.debug('Successfully generated transferOwnership transaction \n%o', tx)
+        callback(null, { tx: tx })
+    } catch(error) {
+        logger.error(`Error while generating platform manager ownership change transaction:\n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 module.exports = { 
     addWallet,
     walletActive,
-    getPlatformManager
+    getPlatformManager,
+    transferOwnership
 }

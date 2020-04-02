@@ -62,7 +62,8 @@ async function handleTransactionFailed(txInfo, hash) {
     logger.warn(`Decoded error: ${decodedError}`)
     await repo.update(hash, {
         state: enums.TxState.FAILED,
-        error_message: decodedError
+        error_message: decodedError,
+        processed_at: new Date()
     })
     logger.warn(`Updated transaction state to failed.`)
 }
@@ -138,8 +139,9 @@ async function updateTransactionState(info, poll, type) {
         case enums.TxType.APPROVE:
             spender = util.decodeAddress(event.topics[1])
             amount = util.tokenToEur(event.topics[2])
-            type = (spender == config.get().contracts.eur.owner) ? enums.TxType.APPROVE_USER_WITHDRAW : enums.TxType.APPROVE_INVESTMENT
-            supervisorStatus = (spender == config.get().contracts.eur.owner) ? enums.SupervisorStatus.NOT_REQUIRED : enums.SupervisorStatus.REQUIRED
+            eurOwner = await config.get().contracts.eur.owner()
+            type = (spender == eurOwner) ? enums.TxType.APPROVE_USER_WITHDRAW : enums.TxType.APPROVE_INVESTMENT
+            supervisorStatus = (spender == eurOwner) ? enums.SupervisorStatus.NOT_REQUIRED : enums.SupervisorStatus.REQUIRED
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
                 to_wallet: spender,
@@ -225,6 +227,28 @@ async function updateTransactionState(info, poll, type) {
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
                 type: enums.TxType.SHARE_PAYOUT,
                 amount: share,
+                processed_at: new Date()
+            })
+        case enums.TxType.COOP_OWNERSHIP_TRANSFER:
+            newOwner = util.decodeAddress(event.topics[1])
+            return repo.update(poll.hash, {
+                from_wallet: info.callerId,
+                to_wallet: newOwner,
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.COOP_OWNERSHIP_TRANSFER,
+                processed_at: new Date()
+            })
+        case enums.TxType.EUR_OWNERSHIP_TRANSFER:
+            newOwner = util.decodeAddress(event.topics[1])
+            return repo.update(poll.hash, {
+                from_wallet: info.callerId,
+                to_wallet: newOwner,
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.EUR_OWNERSHIP_TRANSFER,
                 processed_at: new Date()
             })
         default:

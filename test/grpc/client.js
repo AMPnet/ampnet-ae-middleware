@@ -299,5 +299,27 @@ module.exports = {
                 }
             })
         })
+    },
+    generateTransferTokenIssuerOwnershipTx: async function(newOwnerWallet) {
+        return new Promise(resolve => {
+            client.generateTransferTokenIssuerOwnershipTx({ newOwnerWallet }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
+    generateTransferPlatformManagerOwnershipTx: async function(newOwnerWallet) {
+        return new Promise(resolve => {
+            client.generateTransferPlatformManagerOwnershipTx({ newOwnerWallet }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
     }
 }

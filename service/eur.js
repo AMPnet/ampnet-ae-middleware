@@ -15,8 +15,9 @@ async function mint(call, callback) {
         let record = await repo.findByHashOrThrow(call.request.toTxHash)
         logger.debug(`Address represented by given hash: ${record.wallet}`)
         let callData = await codec.eur.encodeMint(record.wallet, util.eurToToken(call.request.amount))
+        let eurOwner = await config.get().contracts.eur.owner()
         let tx = await client.instance().contractCallTx({
-            callerId: config.get().contracts.eur.owner,
+            callerId: eurOwner,
             contractId: config.get().contracts.eur.address,
             amount: 0,
             gas: 10000,
@@ -36,7 +37,8 @@ async function approveWithdraw(call, callback) {
         let record = await repo.findByHashOrThrow(call.request.fromTxHash)
         logger.debug(`Address represented by given hash: ${record.wallet}`)
         let amount = util.eurToToken(call.request.amount)
-        let callData = await codec.eur.encodeApprove(config.get().contracts.eur.owner, amount)
+        let eurOwner = await config.get().contracts.eur.owner()
+        let callData = await codec.eur.encodeApprove(eurOwner, amount)
         let tx = await client.instance().contractCallTx({
             callerId: record.wallet,
             contractId: config.get().contracts.eur.address,
@@ -60,8 +62,9 @@ async function burnFrom(call, callback) {
         let amount = await allowance(record.wallet)
         logger.debug(`Amount to burn: ${amount}`)
         let callData = await codec.eur.encodeBurnFrom(record.wallet, amount)
+        let eurOwner = await config.get().contracts.eur.owner()
         let tx = await client.instance().contractCallTx({
-            callerId: config.get().contracts.eur.owner,
+            callerId: eurOwner,
             contractId: config.get().contracts.eur.address,
             amount: 0,
             gas: 10000,
@@ -121,11 +124,12 @@ async function invest(call, callback) {
 }
 
 async function allowance(owner) {
+    let eurOwner = await config.get().contracts.eur.owner() 
     let result = await client.instance().contractCallStatic(
         contracts.eurSource,
         config.get().contracts.eur.address,
         functions.eur.allowance,
-        [ owner, config.get().contracts.eur.owner ]
+        [ owner, eurOwner ]
     )
     return result.decode()
 }
@@ -148,11 +152,32 @@ async function getTokenIssuer(call, callback) {
     }
 }
 
+async function transferOwnership(call, callback) {
+    logger.debug(`Received request to generate token issuer ownership transaction. New owner: ${call.request.newOwnerWallet}`)
+    try {
+        let callData = await codec.eur.encodeTransferEurOwnership(call.request.newOwnerWallet)
+        let eurOwner = await config.get().contracts.eur.owner()
+        let tx = await client.instance().contractCallTx({
+            callerId: eurOwner,
+            contractId: config.get().contracts.eur.address,
+            amount: 0,
+            gas: 10000,
+            callData: callData
+        })
+        logger.debug('Successfully generated transferOwnership transaction \n%o', tx)
+        callback(null, { tx: tx })
+    } catch(error) {
+        logger.error(`Error while generating token issuer ownership change transaction:\n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 module.exports = { 
     mint, 
     approveWithdraw, 
     burnFrom, 
     balance, 
     invest ,
-    getTokenIssuer
+    getTokenIssuer,
+    transferOwnership
 }

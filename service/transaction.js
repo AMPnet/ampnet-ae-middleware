@@ -217,8 +217,8 @@ async function performSecurityChecks(data) {
 }
 
 async function checkTxCaller(callerId) {
-    let coopAuthorityId = config.get().contracts.coop.owner
-    let issuingAuthorityId = config.get().contracts.eur.owner
+    let coopAuthorityId = await config.get().contracts.coop.owner()
+    let issuingAuthorityId = await config.get().contracts.eur.owner()
     
     // if caller is coop or token authority return normally
     if(callerId == coopAuthorityId || callerId == issuingAuthorityId) {

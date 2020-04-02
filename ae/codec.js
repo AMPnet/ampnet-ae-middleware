@@ -79,6 +79,14 @@ async function encodeBurnFrom(address, amount) {
     return contracts.getEurCompiled().encodeCall(functions.eur.burnFrom, [ address, amount ])
 }
 
+async function encodeTransferCoopOwnership(newOwnerAddress) {
+    return contracts.getCoopCompiled().encodeCall(functions.coop.transferOwnership, [ newOwnerAddress ])
+}
+
+async function encodeTransferEurOwnership(newOwnerAddress) {
+    return contracts.getEurCompiled().encodeCall(functions.eur.transferOwnership, [ newOwnerAddress ])
+}
+
 async function decodeDataBySource(source, fn, value) {
     return client.instance().contractDecodeCallDataBySourceAPI(source, fn, value, {
         backend: 'fate'
@@ -91,7 +99,8 @@ async function decodeDataByBytecode(bytecode, data) {
 
 module.exports = {
     coop: {
-        encodeAddWallet
+        encodeAddWallet,
+        encodeTransferCoopOwnership
     },
     org: {
         encodeCreateOrganization
@@ -99,7 +108,8 @@ module.exports = {
     eur: {
         encodeMint,
         encodeApprove,
-        encodeBurnFrom
+        encodeBurnFrom,
+        encodeTransferEurOwnership
     },
     proj: {
         encodeCreateProject,

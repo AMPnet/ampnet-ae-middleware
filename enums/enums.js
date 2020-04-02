@@ -31,7 +31,9 @@ let TxType = {
     START_REVENUE_PAYOUT: "START_REVENUE_PAYOUT",
     SHARE_PAYOUT: "SHARE_PAYOUT",
     WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT",
-    CANCEL_INVESTMENT: "CANCEL_INVESTMENT"
+    CANCEL_INVESTMENT: "CANCEL_INVESTMENT",
+    COOP_OWNERSHIP_TRANSFER: "COOP_OWNERSHIP_TRANSFER",
+    EUR_OWNERSHIP_TRANSFER: "EUR_OWNERSHIP_TRANSFER"
 }
 
 let events = new Map([
@@ -45,7 +47,9 @@ let events = new Map([
     [util.blake2b('StartRevenuePayout'), TxType.START_REVENUE_PAYOUT],
     [util.blake2b('NewInvestment'), TxType.INVEST],
     [util.blake2b('ApproveWithdrawProjectFunds'), TxType.PENDING_PROJ_WITHDRAW],
-    [util.blake2b('InvestmentCanceled'), TxType.CANCEL_INVESTMENT]
+    [util.blake2b('InvestmentCanceled'), TxType.CANCEL_INVESTMENT],
+    [util.blake2b('CoopOwnershipChanged'), TxType.COOP_OWNERSHIP_TRANSFER],
+    [util.blake2b('EurOwnershipChanged'), TxType.EUR_OWNERSHIP_TRANSFER]
 ])
 
 let TxState = {
@@ -76,7 +80,8 @@ let functions = {
     coop: {
         addWallet: "add_wallet",
         isWalletActive: "is_wallet_active",
-        getOwner: "owner"
+        getOwner: "owner",
+        transferOwnership: "transfer_ownership"
     },
     eur: {
         mint: "mint",
@@ -84,7 +89,8 @@ let functions = {
         balanceOf: "balance_of",
         burnFrom: "burn",
         approve: "approve",
-        getOwner: "owner"
+        getOwner: "owner",
+        transferOwnership: "transfer_ownership"
     },
     proj: {
         invest: "invest",

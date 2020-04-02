@@ -126,11 +126,17 @@ async function getContracts(node, supervisorKeypair) {
         return {
             coop: {
                 address: process.env.COOP_ADDRESS,
-                owner: coopOwner
+                owner: async () => {
+                    let result = await coopInstance.call('owner', [], { callStatic: true })
+                    return result.decode()
+                }
             },
             eur: {
                 address: process.env.EUR_ADDRESS,
-                owner: eurOwner
+                owner: async () => {
+                    let result = await eurInstance.call('owner', [], { callStatic: true })
+                    return result.decode()
+                }
             }
         }
     } else {
@@ -159,17 +165,20 @@ async function getContracts(node, supervisorKeypair) {
             logger.info(`Ownership transferred.`)
         }
 
-        coopOwner = await (await coopInstance.call('owner', [])).decode()
-        eurOwner = await (await eurInstance.call('owner', [])).decode()
-
         return {
             coop: {
                 address: coop.address,
-                owner: coopOwner
+                owner: async () => {
+                    let result = await coopInstance.call('owner', [], { callStatic: true })
+                    return result.decode()
+                }
             },
             eur: {
                 address: eur.address,
-                owner: eurOwner
+                owner: async () => {
+                    let result = await eurInstance.call('owner', [], { callStatic: true })
+                    return result.decode()
+                }
             }
         }
     }
