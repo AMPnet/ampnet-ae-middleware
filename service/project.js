@@ -35,7 +35,7 @@ async function createProject(call, callback) {
         logger.debug(`Successfully generated createProject transaction!`)
         callback(null, { tx: result.tx })
     } catch (error) {
-        logger.error(`Error generating createProject transaction \n%o`, error)
+        logger.error(`Error generating createProject transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -60,7 +60,7 @@ async function approveWithdraw(call, callback) {
         logger.debug(`Successfully generated approveWithdrawProjectFunds transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch(error) {
-        logger.error(`Error while generating approveWithdrawProjectFunds transaction \n%o`, error)
+        logger.error(`Error while generating approveWithdrawProjectFunds transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -83,7 +83,7 @@ async function cancelInvestment(call, callback) {
         logger.debug(`Successfully generated cancelInvestment transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch(error) {
-        logger.error(`Error while generating cancelInvestment transaction \n%o`, error)
+        logger.error(`Error while generating cancelInvestment transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -95,7 +95,7 @@ async function isInvestmentCancelable(call, callback) {
         logger.debug(`Can cancel investment: ${result}`)
         callback(null, { canCancel: result })
     } catch(error) {
-        logger.error(`Error while checking if investment is cancelable \n%o`, error)
+        logger.error(`Error while checking if investment is cancelable \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -109,6 +109,7 @@ async function startRevenueSharesPayout(call, callback) {
         logger.debug(`Revenue: ${revenue}`)
         let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
         logger.debug(`Project: ${projectWallet}`)
+        await checkSharePayoutPreconditions(fromWallet, projectWallet, revenue)
         let callData = await codec.proj.encodeStartRevenueSharesPayout(revenue)
         let tx = await client.instance().contractCallTx({
             callerId: fromWallet,
@@ -120,7 +121,7 @@ async function startRevenueSharesPayout(call, callback) {
         logger.debug(`Successfully generated startRevenueSharesPayout transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch(error) {
-        logger.error(`Error while generating startRevenueSharesPayout transaction \n%o`, error)
+        logger.error(`Error while generating startRevenueSharesPayout transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -131,10 +132,12 @@ async function getInfo(call, callback) {
         let walletToHashMap = new Map()
         let projectWallets = await Promise.all(
             call.request.projectTxHashes.map(async (projectTxHash) => {
-                return new Promise(resolve => {
+                return new Promise((resolve, reject) => {
                     repo.findByHashOrThrow(projectTxHash).then(tx => { 
                         walletToHashMap.set(tx.wallet, projectTxHash)
                         resolve(tx.wallet) 
+                    }).catch(error => {
+                        reject(error)
                     })
                 })
             })
@@ -143,7 +146,7 @@ async function getInfo(call, callback) {
 
         let projectInfoResults = await Promise.all(
             projectWallets.map(wallet => {
-                return new Promise(resolve => {
+                return new Promise((resolve, reject) => {
                     client.instance().contractCallStatic(
                         contracts.projSource,
                         util.enforceCtPrefix(wallet),
@@ -161,6 +164,8 @@ async function getInfo(call, callback) {
                                 payoutInProcess: decoded[5],
                             })
                         })
+                    }).catch(error => {
+                        reject(error)
                     })
                 })
             })
@@ -168,7 +173,8 @@ async function getInfo(call, callback) {
         logger.debug(`Projects info response fetched \n%o`, projectInfoResults)
         callback(null, { projects: projectInfoResults })
     } catch(error) {
-        logger.error(`Error while fetching statuses for given projects list \n%o`, error)
+        console.log("WHAT THE FUCK", error.error)
+        logger.error(`Error while fetching statuses for given projects list \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -187,6 +193,17 @@ async function canCancelInvestment(projectTxHash, investorTxHash) {
     )
     return result.decode()
 }
+
+async function checkSharePayoutPreconditions(caller, project, revenue) {
+    logger.debug(`Checking share payout preconditions`)
+    let result = await client.instance().contractCallStatic(
+        contracts.projSource,
+        util.enforceCtPrefix(project),
+        functions.proj.checkSharePayoutPreconditions,
+        [ caller, revenue ]
+    )
+    logger.debug(`Preconditions checklist result: %o`, result)
+}   
 
 module.exports = { 
     createProject,

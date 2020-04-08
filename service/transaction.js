@@ -1,4 +1,4 @@
-let { TxBuilder: TxBuilder } = require('@aeternity/aepp-sdk')
+let { TxBuilder: TxBuilder, ChainNode, Node } = require('@aeternity/aepp-sdk')
 
 let client = require('../ae/client')
 let repo = require('../persistence/repository')
@@ -19,8 +19,14 @@ async function postTransaction(call, callback) {
     logger.debug(`Received request to post transaction`)
     try {
         let tx = call.request.data
-        await performSecurityChecks(tx)
+        let txData = TxBuilder.unpackTx(tx)
+
+        // Two layers of security. dryRun() is experimental and will fail silently if anything unexpected occurs.
+        await performSecurityChecks(txData)
+        await dryRun(txData)
+        
         let result = await client.instance().sendTransaction(tx, { waitMined: false })
+        
         txProcessor.process(result.hash).then(
             records => {
                 records.forEach(record => {
@@ -34,6 +40,7 @@ async function postTransaction(call, callback) {
                 logger.error(`Processing of transaction ${result.hash} failed with error: \n%o`, error)
             }
         )
+        
         logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
     } catch(error) {
@@ -195,13 +202,11 @@ async function getInvestmentsInProject(call, callback) {
     }
 }
 
-async function performSecurityChecks(data) {
-    let txMetadata = TxBuilder.unpackTx(data)
-    if (txMetadata.txType != 'signedTx') {
+async function performSecurityChecks(txData) {
+    if (txData.txType != 'signedTx') {
         throw err.generate(ErrorType.TX_NOT_SIGNED)
     }
-    let unpackedTx = txMetadata.tx.encodedTx
-
+    let unpackedTx = txData.tx.encodedTx
     switch (unpackedTx.txType) {
         case 'contractCallTx':
             await checkTxCaller(unpackedTx.tx.callerId)
@@ -277,6 +282,71 @@ async function isWalletActive(wallet) {
         [ address ]
     )
     return result.decode()
+}
+
+/**
+ * Adds another layer of security and is used as a first filter when broadcasting transactions.
+ * If some error occurs while dry running transaction this function fails silently (return statements).
+ */
+async function dryRun(txData) {
+    logger.debug(`Dry running transaction.`)
+    let unpackedTx = txData.tx.encodedTx
+    let unsignedTx = TxBuilder.buildTx(unpackedTx.tx, unpackedTx.txType).tx
+    let callerId = unpackedTx.txType === 'contractCreateTx' ? unpackedTx.tx.ownerId : unpackedTx.tx.callerId
+    logger.debug(`Caller id: ${callerId}`)
+    
+    let response = await client.chainNode().txDryRun([unsignedTx], [{ pubKey: callerId, amount: 0 }])
+    if (response.results === 'undefined') {
+        logger.warn(`Error while dry running tx. Expected json with <results> field but got: %o`, response)
+        return
+    }
+    let results = response.results
+    if (results.length == 0) {
+        logger.warn(`Error while dry running tx. <results> field in response empty! Full response: %o`, response)
+        return
+    }
+    if (results.length > 1) {
+        logger.warn(`Warning: Dry run resulted in more than one result. Further analysis is required! Moving on and taking first result in array as relevant one. Full response: %o`, response)
+    }
+
+    let result = results[0]
+    logger.debug(`Received result:\n%o`, result)
+    
+    if (result.result !== 'undefined') {
+        let status = result.result
+        if (status === "ok") {
+            if (result.callObj === 'undefined') {
+                logger.warn(`Warning: Expected <callObj> property missing in json result. Further analysis is required!`)
+                return
+            } 
+            let callObj = result.callObj
+            if (callObj.returnType === "revert") {
+                logger.debug(`Error detected while dryRunning transaction!`)
+                let errorMessage = await err.decode(callObj)
+                logger.debug(`Decoded error message: ${errorMessage}`)
+                throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
+            } else if (callObj.returnType === "ok") {
+                logger.debug(`No errors detected while dryRunning transaction! Transaction is safe for broadcasting.`)
+                return
+            } else {
+                logger.warn(`Unknown <returnType> field value detected in callObj response. Further analysis is requried!`)
+                return
+            }
+        } else if (status === "error") {
+            logger.debug(`Error detected while dryRunning transaction!`)
+            if (result.reason === 'undefined') {
+                logger.warn(`Error while parsing dry run result. <reason> field not found.`)
+                throw err.generate(ErrorType.DRY_RUN_ERROR)
+            }
+            let errorMessage = result.reason
+            logger.debug(`Error message: ${errorMessage}`)
+            throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
+        } else {
+            logger.warn(`Error while parsing dry run result. Unexpected <result> field value.`)
+        }
+    } else {
+        logger.warn(`Error while parsing dry run result. Missing <result> field.`)
+    }
 }
 
 module.exports = { 

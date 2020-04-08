@@ -99,7 +99,9 @@ let functions = {
         getInfo: "get_project_info",
         withdraw: "withdraw",
         cancelInvestment: "cancel_investment",
-        isInvestmentCancelable: "can_cancel_investment"
+        isInvestmentCancelable: "can_cancel_investment",
+        checkInvestmentPreconditions: "check_investment_preconditions",
+        checkSharePayoutPreconditions: "check_share_payout_preconditions"
     }
 }
 

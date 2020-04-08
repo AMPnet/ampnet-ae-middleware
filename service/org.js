@@ -24,7 +24,7 @@ async function createOrganization(call, callback) {
         logger.debug(`Successfully generated createOrganization transaction!`)
         callback(null, { tx: result.tx })
     } catch (error) {
-        logger.error(`Error while generating organization create transaction \n%o`, error)
+        logger.error(`Error while generating organization create transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }

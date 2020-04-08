@@ -26,7 +26,7 @@ async function mint(call, callback) {
         logger.debug(`Successfully generated mint transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        logger.error(`Error while generating mint transaction \n%o`, error)
+        logger.error(`Error while generating mint transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -49,7 +49,7 @@ async function approveWithdraw(call, callback) {
         logger.debug(`Successfully generated approve withdraw transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        logger.error(`Error while withdraw approve transaction \n%o`, error)
+        logger.error(`Error while withdraw approve transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -73,7 +73,7 @@ async function burnFrom(call, callback) {
         logger.debug(`Successfully generated burn transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        logger.error(`Error while generating burn transaction \n%o`, error)
+        logger.error(`Error while generating burn transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -94,7 +94,7 @@ async function balance(call, callback) {
         logger.debug(`Successfully fetched balance: ${resultInEur}`)
         callback(null, { balance: resultInEur })
     } catch (error) {
-        logger.error(`Error while fetching balance \n%o`, error)
+        logger.error(`Error while fetching balance \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -107,6 +107,7 @@ async function invest(call, callback) {
         let project = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
         logger.debug(`Project address: ${project}`)
         let amount = util.eurToToken(call.request.amount)
+        await checkInvestmentPreconditions(project, investor, amount)
         let callData = await codec.eur.encodeApprove(project, amount)
         let tx = await client.instance().contractCallTx({
             callerId: investor,
@@ -118,20 +119,9 @@ async function invest(call, callback) {
         logger.debug(`Successfully generated invest tx: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        logger.error(`Error while generating invest transaction \n%o`, error)
+        logger.error(`Error while generating invest transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
-}
-
-async function allowance(owner) {
-    let eurOwner = await config.get().contracts.eur.owner() 
-    let result = await client.instance().contractCallStatic(
-        contracts.eurSource,
-        config.get().contracts.eur.address,
-        functions.eur.allowance,
-        [ owner, eurOwner ]
-    )
-    return result.decode()
 }
 
 async function getTokenIssuer(call, callback) {
@@ -147,7 +137,7 @@ async function getTokenIssuer(call, callback) {
         logger.debug(`Fetched token issuer: ${resultDecoded}`)
         callback(null, { wallet: resultDecoded })
     } catch (error) {
-        logger.error(`Error while fetching token issuer wallet:\n%o`, error)
+        logger.error(`Error while fetching token issuer wallet:\n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -167,9 +157,31 @@ async function transferOwnership(call, callback) {
         logger.debug('Successfully generated transferOwnership transaction \n%o', tx)
         callback(null, { tx: tx })
     } catch(error) {
-        logger.error(`Error while generating token issuer ownership change transaction:\n%o`, error)
+        logger.error(`Error while generating token issuer ownership change transaction:\n%o`, err.pretty(error))
         err.handle(error, callback)
     }
+}
+
+async function allowance(owner) {
+    let eurOwner = await config.get().contracts.eur.owner() 
+    let result = await client.instance().contractCallStatic(
+        contracts.eurSource,
+        config.get().contracts.eur.address,
+        functions.eur.allowance,
+        [ owner, eurOwner ]
+    )
+    return result.decode()
+}
+
+async function checkInvestmentPreconditions(project, investor, amount) {
+    logger.debug(`Checking new investment preconditions`)
+    let result = await client.instance().contractCallStatic(
+        contracts.projSource,
+        util.enforceCtPrefix(project),
+        functions.proj.checkInvestmentPreconditions,
+        [ investor, amount ]
+    )
+    logger.debug(`Preconditions checklist result: %o`, result)
 }
 
 module.exports = { 

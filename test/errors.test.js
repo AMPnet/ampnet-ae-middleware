@@ -42,7 +42,7 @@ describe('Error handling tests', function() {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let randomContractId = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
         let randomCallData = await codec.org.encodeCreateOrganization()
@@ -64,14 +64,14 @@ describe('Error handling tests', function() {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let badCoopAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
         let callData = await contracts.getOrgCompiled().encodeCall("init", [ badCoopAddr ])
         let badTx = await client.instance().contractCreateTx({
             ownerId: accounts.bob.publicKey,
             code: contracts.getOrgCompiled().bytecode,
-            abiVersion: 1,
+            abiVersion: 3,
             deposit: 0,
             amount: 0,
             gas: 50000,
@@ -86,7 +86,7 @@ describe('Error handling tests', function() {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let badOrgAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
         let callData = await codec.proj.encodeCreateProject(
@@ -115,7 +115,7 @@ describe('Error handling tests', function() {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let source = 'contract HelloWorld = \n\tentrypoint hello_world() = "Hello World!"'
         let compiled = await client.instance().contractCompile(source)
@@ -216,7 +216,7 @@ describe('Error handling tests', function() {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         // For example, Bob tries to approve Alice's wallet but only admin can do such a thing, tx should fail
         let callData = await codec.coop.encodeAddWallet(accounts.alice.publicKey)
@@ -228,26 +228,19 @@ describe('Error handling tests', function() {
             callData : callData
         })
         let txSigned = await clients.bob().signTransaction(tx)
-        let faultyTxHash = await grpcClient.postTransaction(txSigned)
-        await util.waitMined(faultyTxHash)
-
-        // Sleep for 2 seconds to wait for updated tx state in database
-        await util.sleep(2000)
-
-        let faultyTxRecord = (await db.getBy({hash: faultyTxHash}))[0]
-        assert.strictEqual(faultyTxRecord.hash, faultyTxHash)
-        assert.strictEqual(faultyTxRecord.state, TxState.FAILED)
-        assert.strictEqual(faultyTxRecord.error_message, 'Only owner can make this action!')
+        let err = await grpcClient.postTransaction(txSigned)
+        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Only owner can make this action!")
     })
 
     it('Transaction that fails immediately after posting should generate descriptive error message', async () => {
         let addEmptyWalletTx = await grpcClient.generateAddWalletTx(accounts.empty.publicKey)
         let addEmptyWalletTxSigned = await clients.owner().signTransaction(addEmptyWalletTx)
         let addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
-        await util.waitMined(addEmptyWalletTxHash)
+        await util.waitTxProcessed(addEmptyWalletTxHash)
 
         await clients.empty().spend(299980000000000000, accounts.owner.publicKey)
         let emptyWalletBalance = await client.instance().balance(accounts.empty.publicKey)
+        console.log("empty wallet balance", emptyWalletBalance)
 
         let callData = await codec.org.encodeCreateOrganization()
         let txResult = await client.instance().contractCreateTx({
@@ -260,7 +253,7 @@ describe('Error handling tests', function() {
         })
         let txSigned = await clients.empty().signTransaction(txResult.tx)
         let err = await grpcClient.postTransaction(txSigned)
-        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 04 > The account balance 3180000000000 is not enough to execute the transaction")
+        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Internal error:\n  insufficient_funds\n")
     })
 
 })

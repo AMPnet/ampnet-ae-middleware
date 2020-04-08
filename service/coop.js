@@ -31,7 +31,7 @@ async function addWallet(call, callback) {
         logger.debug('Successfully generated addWallet transaction \n%o', tx)
         callback(null, { tx: tx })
     } catch (error) {
-        logger.error(`Error generating addWallet transaction \n%o`, error)
+        logger.error(`Error generating addWallet transaction \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -51,7 +51,7 @@ async function walletActive(call, callback) {
         logger.debug(`Wallet active: ${resultDecoded}`)
         callback(null, { active: resultDecoded })
     } catch (error) {
-        logger.error(`Error fetching wallet active status \n%o`, error)
+        logger.error(`Error fetching wallet active status \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -69,7 +69,7 @@ async function getPlatformManager(call, callback) {
         logger.debug(`Fetched platform manager: ${resultDecoded}`)
         callback(null, { wallet: resultDecoded })
     } catch (error) {
-        logger.error(`Error while fetching platform manager wallet:\n%o`, error)
+        logger.error(`Error while fetching platform manager wallet:\n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }
@@ -90,7 +90,7 @@ async function transferOwnership(call, callback) {
         logger.debug('Successfully generated transferOwnership transaction \n%o', tx)
         callback(null, { tx: tx })
     } catch(error) {
-        logger.error(`Error while generating platform manager ownership change transaction:\n%o`, error)
+        logger.error(`Error while generating platform manager ownership change transaction:\n%o`, err.pretty(error))
         err.handle(error, callback)
     }
 }

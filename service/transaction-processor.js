@@ -1,5 +1,5 @@
 const repo = require('../persistence/repository')
-const client = require('../ae/client')
+const clients = require('../ae/client')
 const logger = require('../logger')(module)
 const err = require('../error/errors')
 const config = require('../config')
@@ -20,8 +20,8 @@ async function process(hash) {
         logger.info(`Processing transaction ${hash}`)
         await repo.saveHash(hash)
         
-        let poll = await client.instance().poll(hash)
-        let info = await client.instance().getTxInfo(hash)
+        let poll = await clients.instance().poll(hash)
+        let info = await clients.instance().getTxInfo(hash)
         logger.info(`Fetched tx info \n%o`, info)
         
         sendFundsIfRequired(info)
@@ -69,7 +69,7 @@ async function handleTransactionFailed(txInfo, hash) {
 }
 
 async function sendFundsIfRequired(info) {
-    let callerBalance = await client.instance().getBalance(info.callerId)
+    let callerBalance = await clients.instance().getBalance(info.callerId)
     let giftAmount = config.get().giftAmount
     if (callerBalance < util.toToken(giftAmount)) {
         logger.info("Sending funds to caller wallet. Balance fell below threshold after processing last transaction.")
@@ -269,13 +269,9 @@ async function callSpecialActions(tx) {
             }
             let projectContractAddress = util.enforceCtPrefix(projectWalletCreationTx.wallet)
             logger.info(`Calling approve investment for user ${investorWallet} and project ${projectContractAddress}.`)
-            let node = await Node({
-                url: config.get().node.url,
-                internalUrl: config.get().node.internalUrl
-            })
             let client = await Universal({
                 nodes: [
-                    { name: "node", instance: node }
+                    { name: "node", instance: clients.node() }
                 ],
                 compilerUrl: config.get().node.compilerUrl,
                 accounts: [
@@ -301,13 +297,9 @@ async function callSpecialActions(tx) {
                 secretKey: projectManagerWalletCreationTx.worker_secret_key
             }
             let projectContractAddress = util.enforceCtPrefix(projectWalletCreationTx.wallet)
-            let node = await Node({
-                url: config.get().node.url,
-                internalUrl: config.get().node.internalUrl
-            })
             let client = await Universal({
                 nodes: [
-                    { name: "node", instance: node }
+                    { name: "node", instance: clients.node() }
                 ],
                 compilerUrl: config.get().node.compilerUrl,
                 accounts: [

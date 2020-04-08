@@ -32,7 +32,7 @@ describe('Test fetching information for list of given projects', function() {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let bobBalanceBeforeDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceBeforeDeposit, 0)
@@ -40,12 +40,12 @@ describe('Test fetching information for list of given projects', function() {
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
         let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
-        await util.waitMined(createOrgTxHash)
+        await util.waitTxProcessed(createOrgTxHash)
 
         let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
         let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
-        await util.waitMined(addOrgWalletTxHash)
+        await util.waitTxProcessed(addOrgWalletTxHash)
 
         let firstProjMinPerUser = 100
         let firstProjMaxPerUser = 200
@@ -61,12 +61,12 @@ describe('Test fetching information for list of given projects', function() {
         )
         let createFirstProjTxSigned = await clients.bob().signTransaction(createFirstProjTx)
         let createFirstProjTxHash = await grpcClient.postTransaction(createFirstProjTxSigned)
-        await util.waitMined(createFirstProjTxHash)
+        await util.waitTxProcessed(createFirstProjTxHash)
         
         let addFirstProjWalletTx = await grpcClient.generateAddWalletTx(createFirstProjTxHash)
         let addFirstProjWalletTxSigned = await clients.owner().signTransaction(addFirstProjWalletTx)
         let addFirstProjWalletTxHash = await grpcClient.postTransaction(addFirstProjWalletTxSigned)
-        await util.waitMined(addFirstProjWalletTxHash)
+        await util.waitTxProcessed(addFirstProjWalletTxHash)
 
 
         let secondProjMinPerUser = 500
@@ -83,12 +83,12 @@ describe('Test fetching information for list of given projects', function() {
         )
         let createSecondProjTxSigned = await clients.bob().signTransaction(createSecondProjTx)
         let createSecondProjTxHash = await grpcClient.postTransaction(createSecondProjTxSigned)
-        await util.waitMined(createSecondProjTxHash)
+        await util.waitTxProcessed(createSecondProjTxHash)
         
         let addSecondProjWalletTx = await grpcClient.generateAddWalletTx(createSecondProjTxHash)
         let addSecondProjWalletTxSigned = await clients.owner().signTransaction(addSecondProjWalletTx)
         let addSecondProjWalletTxHash = await grpcClient.postTransaction(addSecondProjWalletTxSigned)
-        await util.waitMined(addSecondProjWalletTxHash)
+        await util.waitTxProcessed(addSecondProjWalletTxHash)
 
         let projectsInfo = await grpcClient.getProjectsInfo([addFirstProjWalletTxHash, addSecondProjWalletTxHash])        
         assert.strictEqual(projectsInfo.length, 2)
@@ -108,6 +108,12 @@ describe('Test fetching information for list of given projects', function() {
         assert.equal(secondProject.maxPerUserInvestment, secondProjMaxPerUser)
         assert.equal(secondProject.endsAt, secondProjEndsAt)
         assert.isFalse(secondProject.payoutInProcess)
+    })
+
+    it('should return correct error message if some of the provided tx hashes do not represent project wallet creation transaction', async () => {
+        let nonExistingProjectHash = "th_2s48ucdFRcCr4keCBHFh8oVzbLCukjdzn4sts31wT6Yq8jsBGM"
+        let projectsInfo = await grpcClient.getProjectsInfo([nonExistingProjectHash])
+        console.log("projectsInfo", projectsInfo)
     })
 
 })

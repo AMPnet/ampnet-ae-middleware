@@ -13,6 +13,8 @@ let type = {
     GROUP_INVALID_COOP_ARG: "20",
     PROJ_INVALID_GROUP_ARG: "30",
     AEPP_SDK_ERROR: "40",
+    DRY_RUN_ERROR: "50",
+    PRECONDITION_FAILED_ERROR: "60",
     MALFORMED_CONTRACT_CODE: "90",
     GENERIC_ERROR: "99"
 }
@@ -27,7 +29,9 @@ let DefaultMessages = new Map([
     [type.WALLET_NOT_FOUND, "Wallet not found!"],
     [type.WALLET_CREATION_PENDING, "Wallet creation transaction still pending!"],
     [type.WALLET_CREATION_FAILED, "Wallet creation transaction failed!"],
-    [type.AEPP_SDK_ERROR, "Ae Sdk error was thrown."]
+    [type.AEPP_SDK_ERROR, "Ae Sdk error was thrown."],
+    [type.DRY_RUN_ERROR, "Unknown error occured while dry running transaction. Contact system administrator!"],
+    [type.PRECONDITION_FAILED_ERROR, "Error: precondition failed."]
 ])
 
 function generate(errorType, message = DefaultMessages.get(errorType)) {
@@ -38,6 +42,8 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
         case type.WALLET_CREATION_FAILED:
         case type.WALLET_CREATION_PENDING:
         case type.TX_VERIFICATION_ERROR:
+        case type.DRY_RUN_ERROR:
+        case type.PRECONDITION_FAILED_ERROR:
         case type.TX_NOT_SIGNED: return new grpcErrors.FailedPreconditionError(errorData)
         
         case type.TX_INVALID_CONTRACT_CALLED:
@@ -52,6 +58,8 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
 function handle(error, callback) {
     if (typeof error.response !== 'undefined') {
         callback(generate(type.AEPP_SDK_ERROR, error.response.data.reason), null)
+    } else if (typeof error.decodedError !== 'undefined') {
+        callback(generate(type.PRECONDITION_FAILED_ERROR, filterMessage(error.decodedError)), null)
     } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
         if (errorCodeExists(error.message)) {
             callback(error, null)
@@ -75,10 +83,10 @@ function handle(error, callback) {
 async function decode(result) {
     error = Buffer.from(result.returnValue).toString()
     if (isBase64(error.slice(3))) {
-        return Buffer.from(error.slice(3), 'base64').toString().replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+        return filterMessage(Buffer.from(error.slice(3), 'base64').toString())
     } else {
         let decoded = await client.instance().contractDecodeDataAPI('string', error)
-        return decoded.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+        return filterMessage(decoded)
     }
 }
 
@@ -93,4 +101,17 @@ function isBase64(str) {
     return Buffer.from(str, 'base64').toString('base64') === str
 }
 
-module.exports = { generate, type, handle, decode }
+function pretty(error) {
+    if (typeof error.error !== 'undefined') {
+        if (typeof error.error.isAxiosError !== 'undefined' && error.error.isAxiosError) {
+            return error.error.toJSON()
+        }
+    }
+    return error
+}
+
+function filterMessage(str) {
+    return str.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+}
+
+module.exports = { generate, type, handle, decode, pretty }

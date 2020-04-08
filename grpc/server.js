@@ -44,10 +44,22 @@ let grpcServer
 let httpServer
 
 module.exports = {
-    start: async function() {
+    start: async function(envOverrides) {
         // Initialize namespace
         namespace.create()
         logger.info('Namespace initialized.')
+
+        // Load ENV overrides if any
+        if (typeof envOverrides !== 'undefined') {
+            logger.info('Parsing ENV overrides.')
+            for (const k in envOverrides) {
+                process.env[k] = envOverrides[k]
+                logger.info(`${k}=${envOverrides[k]}`)
+            }
+            logger.info('ENV overrides loaded.')
+        } else {
+            logger.info('No ENV overrides detected.')
+        }
 
         // Initialize config
         await config.init()
@@ -126,6 +138,7 @@ module.exports = {
             res.write(JSON.stringify(response))
             res.end()
         })
+
         prometheus.collectDefaultMetrics()
         httpServer = expr.listen(config.get().http.port)
         logger.info(`HTTP server started at port ${config.get().http.port}`)

@@ -32,7 +32,7 @@ describe('Fetch transaction info tests', function() {
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         
-        await util.waitMined(addBobWalletTxHash)
+        await util.waitTxProcessed(addBobWalletTxHash)
 
         let info = await grpcClient.getTransactionInfo(addBobWalletTxHash)
         assert.equal(info.hash, addBobWalletTxHash)

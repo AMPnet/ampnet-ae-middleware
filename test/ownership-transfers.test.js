@@ -87,12 +87,8 @@ describe('Fetch transaction info tests', function() {
             callData: coopTransferCallData
         })
         let forbiddenCoopOwnershipTransferTxSigned = await clients.bob().signTransaction(forbiddenCoopOwnershipTransferTx)
-        let forbiddenCoopOwnershipTransferTxHash = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned)
-        await util.waitTxProcessed(forbiddenCoopOwnershipTransferTxHash)
-
-        let forbiddenCoopOwnershipTransferRecord = (await db.getBy({hash: forbiddenCoopOwnershipTransferTxHash}))[0]
-        assert.strictEqual(forbiddenCoopOwnershipTransferRecord.state, TxState.FAILED)
-        assert.strictEqual(forbiddenCoopOwnershipTransferRecord.error_message, 'Only owner can make this action!')
+        let forbiddenCoopOwnership = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned)
+        assert.equal(forbiddenCoopOwnership.details, "50 > Only owner can make this action!")
 
         let eurTransferCallData = await codec.eur.encodeTransferEurOwnership(accounts.bob.publicKey)
         let forbiddenEurOwnershipTransferTx = await client.instance().contractCallTx({
@@ -103,12 +99,8 @@ describe('Fetch transaction info tests', function() {
             callData: eurTransferCallData
         })
         let forbiddenEurOwnershipTransferTxSigned = await clients.bob().signTransaction(forbiddenEurOwnershipTransferTx)
-        let forbiddenEurOwnershipTransferTxHash = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned)
-        await util.waitTxProcessed(forbiddenEurOwnershipTransferTxHash)
-
-        let forbiddenEurOwnershipTransferRecord = (await db.getBy({hash: forbiddenEurOwnershipTransferTxHash}))[0]
-        assert.strictEqual(forbiddenEurOwnershipTransferRecord.state, TxState.FAILED)
-        assert.strictEqual(forbiddenEurOwnershipTransferRecord.error_message, 'Only owner can make this action!')
+        let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned)
+        assert.equal(forbiddenEurOwnership.details, "50 > Only owner can make this action!")
     })
 
 })

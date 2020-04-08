@@ -51,12 +51,16 @@ async function publishJobFromTx(tx) {
             giftAmountAe = config.get().giftAmount
             jobType = JobType.SEND_FUNDS
             if (giftAmountAe > 0) {
+                let options = {
+                    retryLimit: 1,
+                    retryDelay: 5
+                }
                 queue.publish(queueName, {
                     type: jobType,
                     amount: util.toToken(giftAmountAe),
                     wallet: tx.wallet,
                     originTxHash: tx.hash
-                }).then(
+                }, options).then(
                     result => {
                         logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
                     },
@@ -69,7 +73,7 @@ async function publishJobFromTx(tx) {
                     amount: util.toToken(giftAmountAe),
                     wallet: tx.worker_public_key,
                     originTxHash: tx.hash
-                }).then(
+                }, options).then(
                     result => {
                         logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
                     },
@@ -91,7 +95,7 @@ async function jobHandler(job) {
     logger.info(`QUEUE-SUBSCRIBER: Processing job with queue id ${job.id}`)
     switch (job.data.type) {
         case JobType.SEND_FUNDS:
-            return ae.sender().spend(job.data.amount, job.data.wallet)
+            return ae.sender().spend(job.data.amount, job.data.wallet).catch(console.log)
         default:
             logger.error(`QUEUE-SUBSCRIBER: Processing job with queue id ${job.id} failed. Unknown job type.`)
             job.done(new Error(`Processing job with queue id ${job.id} failed. Unknown job type.`))
