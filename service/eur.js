@@ -5,6 +5,7 @@ let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let { Crypto } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
 let logger = require('../logger')(module)
@@ -87,7 +88,10 @@ async function balance(call, callback) {
             contracts.eurSource,
             config.get().contracts.eur.address,
             functions.eur.balanceOf,
-            [ tx.wallet ]
+            [ tx.wallet ],
+            {
+                callerId: Crypto.generateKeyPair().publicKey
+            }
         )
         let resultDecoded = await result.decode()
         let resultInEur = util.tokenToEur(resultDecoded)
@@ -131,7 +135,10 @@ async function getTokenIssuer(call, callback) {
             contracts.eurSource,
             config.get().contracts.eur.address,
             functions.eur.getOwner,
-            [ ]
+            [ ],
+            {
+                callerId: Crypto.generateKeyPair().publicKey
+            }
         )
         let resultDecoded = await result.decode()
         logger.debug(`Fetched token issuer: ${resultDecoded}`)
@@ -168,7 +175,10 @@ async function allowance(owner) {
         contracts.eurSource,
         config.get().contracts.eur.address,
         functions.eur.allowance,
-        [ owner, eurOwner ]
+        [ owner, eurOwner ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
     )
     return result.decode()
 }
@@ -179,7 +189,10 @@ async function checkInvestmentPreconditions(project, investor, amount) {
         contracts.projSource,
         util.enforceCtPrefix(project),
         functions.proj.checkInvestmentPreconditions,
-        [ investor, amount ]
+        [ investor, amount ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
     )
     logger.debug(`Preconditions checklist result: %o`, result)
 }

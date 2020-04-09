@@ -6,6 +6,7 @@ let util = require('../ae/util')
 let err = require('../error/errors')
 let functions = require('../enums/enums').functions
 let logger = require('../logger')(module)
+let { Crypto } = require('@aeternity/aepp-sdk')
 
 async function createProject(call, callback) {
     logger.debug(`Received request to generate createProject transaction.\nCaller: ${call.request.fromTxHash}`)
@@ -151,7 +152,10 @@ async function getInfo(call, callback) {
                         contracts.projSource,
                         util.enforceCtPrefix(wallet),
                         functions.proj.getInfo,
-                        [ ]
+                        [ ],
+                        {
+                            callerId: Crypto.generateKeyPair().publicKey
+                        }
                     ).then(result => {
                         result.decode().then(decoded => {
                             resolve({
@@ -188,7 +192,10 @@ async function canCancelInvestment(projectTxHash, investorTxHash) {
         contracts.projSource,
         util.enforceCtPrefix(projectWallet),
         functions.proj.isInvestmentCancelable,
-        [ investorWallet ]
+        [ investorWallet ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
     )
     return result.decode()
 }
@@ -199,7 +206,10 @@ async function checkSharePayoutPreconditions(caller, project, revenue) {
         contracts.projSource,
         util.enforceCtPrefix(project),
         functions.proj.checkSharePayoutPreconditions,
-        [ caller, revenue ]
+        [ caller, revenue ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
     )
     logger.debug(`Preconditions checklist result: %o`, result)
 }   

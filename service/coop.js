@@ -5,6 +5,7 @@ let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let { Crypto } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
 let logger = require('../logger')(module)
@@ -45,7 +46,10 @@ async function walletActive(call, callback) {
             contracts.coopSource, 
             config.get().contracts.coop.address,
             functions.coop.isWalletActive, 
-            [ tx.wallet ]
+            [ tx.wallet ],
+            {
+                callerId: Crypto.generateKeyPair().publicKey
+            }
         )
         let resultDecoded = await result.decode()
         logger.debug(`Wallet active: ${resultDecoded}`)
@@ -63,7 +67,10 @@ async function getPlatformManager(call, callback) {
             contracts.coopSource,
             config.get().contracts.coop.address,
             functions.coop.getOwner,
-            [ ]
+            [ ],
+            {
+                callerId: Crypto.generateKeyPair().publicKey
+            }
         )
         let resultDecoded = await result.decode()
         logger.debug(`Fetched platform manager: ${resultDecoded}`)

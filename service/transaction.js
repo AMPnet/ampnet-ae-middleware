@@ -1,4 +1,4 @@
-let { TxBuilder: TxBuilder, ChainNode, Node } = require('@aeternity/aepp-sdk')
+let { TxBuilder: TxBuilder, Crypto } = require('@aeternity/aepp-sdk')
 
 let client = require('../ae/client')
 let repo = require('../persistence/repository')
@@ -279,7 +279,10 @@ async function isWalletActive(wallet) {
         contracts.coopSource, 
         config.get().contracts.coop.address, 
         enums.functions.coop.isWalletActive,
-        [ address ]
+        [ address ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
     )
     return result.decode()
 }

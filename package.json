@@ -25,7 +25,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "./node_modules/mocha/bin/mocha --timeout 2000000"
+    "test": "GIFT_AMOUNT=0 ./node_modules/mocha/bin/mocha --timeout 2000000"
   },
   "devDependencies": {
     "@aeternity/aepp-sdk": "^7.0.0",

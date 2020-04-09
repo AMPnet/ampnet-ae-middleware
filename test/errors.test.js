@@ -238,10 +238,6 @@ describe('Error handling tests', function() {
         let addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
         await util.waitTxProcessed(addEmptyWalletTxHash)
 
-        await clients.empty().spend(299980000000000000, accounts.owner.publicKey)
-        let emptyWalletBalance = await client.instance().balance(accounts.empty.publicKey)
-        console.log("empty wallet balance", emptyWalletBalance)
-
         let callData = await codec.org.encodeCreateOrganization()
         let txResult = await client.instance().contractCreateTx({
             ownerId: accounts.empty.publicKey,
