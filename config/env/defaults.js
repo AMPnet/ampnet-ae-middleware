@@ -31,7 +31,9 @@ async function get() {
         http: http,
         db: db,
         queueDb: queueDb,
-        giftAmount: process.env.GIFT_AMOUNT || 0.3
+        giftAmount: process.env.GIFT_AMOUNT || 0.3,
+        contractCreateGasAmount: process.env.CONTRACT_CREATE_GAS_AMOUNT || 50000,
+        contractCallGasAmount: process.env.CONTRACT_CALL_GAS_AMOUNT || 10000
     }
 }
 

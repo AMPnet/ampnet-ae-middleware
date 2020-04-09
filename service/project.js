@@ -5,6 +5,7 @@ let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
 let functions = require('../enums/enums').functions
+let config = require('../config')
 let logger = require('../logger')(module)
 let { Crypto } = require('@aeternity/aepp-sdk')
 
@@ -30,7 +31,7 @@ async function createProject(call, callback) {
             abiVersion: 3,
             deposit: 0,
             amount: 0,
-            gas: 50000,
+            gas: config.get().contractCreateGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated createProject transaction!`)
@@ -55,7 +56,7 @@ async function approveWithdraw(call, callback) {
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated approveWithdrawProjectFunds transaction: ${tx}`)
@@ -78,7 +79,7 @@ async function cancelInvestment(call, callback) {
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated cancelInvestment transaction: ${tx}`)
@@ -116,7 +117,7 @@ async function startRevenueSharesPayout(call, callback) {
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated startRevenueSharesPayout transaction: ${tx}`)

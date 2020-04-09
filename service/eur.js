@@ -21,7 +21,7 @@ async function mint(call, callback) {
             callerId: eurOwner,
             contractId: config.get().contracts.eur.address,
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated mint transaction: ${tx}`)
@@ -44,7 +44,7 @@ async function approveWithdraw(call, callback) {
             callerId: record.wallet,
             contractId: config.get().contracts.eur.address,
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated approve withdraw transaction: ${tx}`)
@@ -68,7 +68,7 @@ async function burnFrom(call, callback) {
             callerId: eurOwner,
             contractId: config.get().contracts.eur.address,
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated burn transaction: ${tx}`)
@@ -117,7 +117,7 @@ async function invest(call, callback) {
             callerId: investor,
             contractId: config.get().contracts.eur.address,
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated invest tx: ${tx}`)
@@ -158,7 +158,7 @@ async function transferOwnership(call, callback) {
             callerId: eurOwner,
             contractId: config.get().contracts.eur.address,
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug('Successfully generated transferOwnership transaction \n%o', tx)

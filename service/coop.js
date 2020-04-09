@@ -26,7 +26,7 @@ async function addWallet(call, callback) {
             callerId : coopOwner,
             contractId : coopAddress,
             amount : 0,
-            gas : 10000,
+            gas : config.get().contractCallGasAmount,
             callData : callData
         })
         logger.debug('Successfully generated addWallet transaction \n%o', tx)
@@ -91,7 +91,7 @@ async function transferOwnership(call, callback) {
             callerId: coopOwner,
             contractId: config.get().contracts.coop.address,
             amount: 0,
-            gas: 10000,
+            gas: config.get().contractCallGasAmount,
             callData: callData
         })
         logger.debug('Successfully generated transferOwnership transaction \n%o', tx)

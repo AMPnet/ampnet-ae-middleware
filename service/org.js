@@ -3,6 +3,7 @@ let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
 let err = require('../error/errors')
+let config = require('../config')
 
 let logger = require('../logger')(module)
 
@@ -18,7 +19,7 @@ async function createOrganization(call, callback) {
             abiVersion: 3,
             deposit: 0,
             amount: 0,
-            gas: 50000,
+            gas: config.get().contractCreateGasAmount,
             callData: callData
         })
         logger.debug(`Successfully generated createOrganization transaction!`)

@@ -27,6 +27,7 @@ describe('Happy path scenario', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
+        await supervisor.clearStorage()
         await supervisor.stop()
     })
 

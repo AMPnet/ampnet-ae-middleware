@@ -17,6 +17,7 @@ let db = require('./util/db')
 describe('Test fetching information for list of given projects', function() {
 
     beforeEach(async() => {
+        process.env['GIFT_AMOUNT'] = 0
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -24,11 +25,13 @@ describe('Test fetching information for list of given projects', function() {
     })
 
     afterEach(async() => {
+        delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
+        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
-    it('Should be able to fetch info for list of given projects', async () => {
+    it.only('Should be able to fetch info for list of given projects', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)

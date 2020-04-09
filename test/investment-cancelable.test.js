@@ -20,6 +20,7 @@ let config = require('../config')
 describe('Investment cancelable test', function() {
 
     beforeEach(async() => {
+        process.env['GIFT_AMOUNT'] = 0
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -27,7 +28,9 @@ describe('Investment cancelable test', function() {
     })
 
     afterEach(async() => {
+        delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
+        await supervisor.clearStorage()
         await supervisor.stop()
     })
 

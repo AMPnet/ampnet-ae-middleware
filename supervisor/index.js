@@ -120,9 +120,14 @@ async function stop() {
     return queue.stop()
 }
 
+async function clearStorage() {
+    return queue.deleteAllQueues()
+}
+
 module.exports = {
     initAndStart,
     publishSendFundsJob,
     publishJobFromTx,
-    stop
+    stop,
+    clearStorage
 }

@@ -19,7 +19,6 @@ let config = require('../config')
 describe('Auto funding test', function() {
 
     beforeEach(async() => {
-        process.env['GIFT_AMOUNT'] = 0.3
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -28,6 +27,7 @@ describe('Auto funding test', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
+        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
