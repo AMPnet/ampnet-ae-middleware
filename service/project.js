@@ -173,7 +173,6 @@ async function getInfo(call, callback) {
         logger.debug(`Projects info response fetched \n%o`, projectInfoResults)
         callback(null, { projects: projectInfoResults })
     } catch(error) {
-        console.log("WHAT THE FUCK", error.error)
         logger.error(`Error while fetching statuses for given projects list \n%o`, err.pretty(error))
         err.handle(error, callback)
     }
