@@ -1,4 +1,5 @@
 let express = require('express')
+let cors = require('cors')
 let actuator = require('express-actuator')
 let prometheus = require('prom-client')
 
@@ -12,6 +13,7 @@ var httpServer;
 async function start(config) {
     expr = express()
 
+    configureCors()
     configureHealthAndMetrics()
     addInvestmentCancelableRoute()
     addPlatformSummaryRoute()
@@ -21,6 +23,10 @@ async function start(config) {
 
 async function stop() {
     return httpServer.close()
+}
+
+function configureCors() {
+    expr.use(cors())
 }
 
 function addInvestmentCancelableRoute() {
