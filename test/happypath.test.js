@@ -127,6 +127,8 @@ describe('Happy path scenario', function() {
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
         await util.waitTxProcessed(investTxHash)
 
+        
+
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
 

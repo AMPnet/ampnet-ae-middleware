@@ -156,7 +156,22 @@ async function getUserUncanceledInvestments(wallet) {
     })
 }
 
-
+async function getProjectTransactions(projectWallet) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where({
+                state: TxState.MINED,
+                type: TxType.INVEST,
+                to_wallet: projectWallet
+            }).orWhere({
+                state: TxState.MINED,
+                type: TxType.CANCEL_INVESTMENT,
+                from_wallet: projectWallet
+            }).then(result => {
+                resolve(result)
+            })
+    })
+}
 
 async function update(hash, data) {
     return new Promise(resolve => {
@@ -180,6 +195,7 @@ module.exports = {
     getWalletTypeOrThrow,
     get,
     getUserTransactions,
+    getProjectTransactions,
     getUserUncanceledInvestments,
     saveTransaction,
     update,

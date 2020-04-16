@@ -2,9 +2,6 @@
 let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc-middleware')
-let express = require('express')
-let actuator = require('express-actuator')
-let prometheus = require('prom-client')
 let uuid = require('uuid/v4')
 let interceptors = require('@hpidcock/node-grpc-interceptors')
 let ServiceEnv = require('../enums/enums').ServiceEnv
@@ -15,6 +12,9 @@ let namespace = require('../cls')
 // config
 let config = require('../config')
 let logger = require('../logger')(module)
+
+// http server
+let httpServer = require('../http/server')
 
 // supervisor job queue
 let supervisorQueue = require('../supervisor')
@@ -41,7 +41,6 @@ let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.c
 
 // holds running grpc server instance
 let grpcServer
-let httpServer
 
 module.exports = {
     start: async function(envOverrides) {
@@ -123,30 +122,10 @@ module.exports = {
         await grpcServer.start()
         logger.info(`GRPC server started at ${config.get().grpc.url}`)
 
-        let expr = express()
-        expr.use(actuator())
-        expr.get('/prometheus', (req, res) => {
-            res.set('Content-Type', prometheus.register.contentType)
-            res.end(prometheus.register.metrics())
-        })
-        expr.get('/projects/:projectHash/investors/:investorHash/cancelable', async (req, res) => {
-            let result = await projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
-            let response = {
-                can_cancel: result
-            }
-            res.writeHead(200, { "Content-Type" : "application/json" })
-            res.write(JSON.stringify(response))
-            res.end()
-        })
-
-        prometheus.collectDefaultMetrics()
-        httpServer = expr.listen(config.get().http.port)
-        logger.info(`HTTP server started at port ${config.get().http.port}`)
-        logger.info(`Prometheus metrics available at /prometheus`)
-        logger.info(`Health info and basic metrics available at /info and /metrics`)
+        await httpServer.start(config.get())
     },
     stop: async function() {
-        await httpServer.close()
+        await httpServer.stop()
         return grpcServer.forceShutdown()
     }
 }

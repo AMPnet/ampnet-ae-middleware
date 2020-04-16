@@ -7,6 +7,7 @@ let accounts = require('./accounts')
 let ownerClient
 let bobClient
 let aliceClient
+let janeClient
 let emptyClient
 
 async function init() {
@@ -51,6 +52,18 @@ async function init() {
         networkId: config.get().node.networkId
     })
 
+    janeClient = await Ae({
+        nodes: [
+            { name: "node", instance: node } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: accounts.jane })
+        ],
+        address: accounts.jane.publicKey,
+        networkId: config.get().node.networkId
+    })
+
     emptyClient = await Ae({
         nodes: [
             { name: "node", instance: node } 
@@ -69,5 +82,6 @@ module.exports = {
     owner: function() { return ownerClient },
     bob: function() { return bobClient },
     alice: function() { return aliceClient },
+    jane: function() { return janeClient },
     empty: function() { return emptyClient }
 }

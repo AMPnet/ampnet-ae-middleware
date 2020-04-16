@@ -45,7 +45,7 @@ async function postTransaction(call, callback) {
         callback(null, { txHash: result.hash })
     } catch(error) {
         logger.error("Error while posting transaction \n%o", call.request.data)
-        logger.error("Error log \n%o", error)
+        logger.error("Error log \n%o", err.pretty(error))
         err.handle(error, callback)
     }
 }
