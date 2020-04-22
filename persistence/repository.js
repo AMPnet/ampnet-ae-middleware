@@ -163,11 +163,14 @@ async function getProjectTransactions(projectWallet) {
                 state: TxState.MINED,
                 type: TxType.INVEST,
                 to_wallet: projectWallet
-            }).orWhere({
+            })
+            .orWhere({
                 state: TxState.MINED,
                 type: TxType.CANCEL_INVESTMENT,
                 from_wallet: projectWallet
-            }).then(result => {
+            })
+            .orderBy('processed_at', 'asc')
+            .then(result => {
                 resolve(result)
             })
     })

@@ -21,6 +21,7 @@ async function getSummary() {
     })
 
     let projectWalletCreateRecordsSize = projectWalletCreateRecords.length
+
     for (i = 0; i < projectWalletCreateRecordsSize; i++) {
         let projectWalletCreateRecord = projectWalletCreateRecords[i]
         let projectWallet = projectWalletCreateRecord.wallet
@@ -56,19 +57,28 @@ async function getSummary() {
         projectsCount++
 
         let investmentsSum = 0
+        let investmentsMap = {}
         for (j = 0; j < investmentRecordsSize; j++) {
             let record = investmentRecords[j]
+            let key = record.from_wallet
+            console.log("key")
             switch (record.type) {
                 case TxType.INVEST:
                     amount = Number(record.amount)
                     investmentsSum += amount
                     investmentsCount++
                     investmentAmountsSum += amount
+                    if (key in investmentsMap) {
+                        investmentsMap[key].push(amount)
+                    } else {
+                        investmentsMap[key] = [amount]
+                    }
                     break;
                 case TxType.CANCEL_INVESTMENT:
                     amount = Number(record.amount)
+                    usersInvestments = investmentsMap[key]
                     investmentsSum -= amount
-                    investmentsCount--
+                    investmentsCount -= usersInvestments.length
                     investmentAmountsSum -= amount
                     break;
             }

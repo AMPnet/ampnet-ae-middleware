@@ -126,6 +126,11 @@ describe('Happy path scenario', function() {
         let secondBobInvestTxSigned = await clients.bob().signTransaction(secondBobInvestTx)
         let secondBobInvestTxHash = await grpcClient.postTransaction(secondBobInvestTxSigned)
         await util.waitTxProcessed(secondBobInvestTxHash)
+
+        let thirdBobInvestTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addNonFundedProjWalletTxHash, 10000)
+        let thirdBobInvestTxSigned = await clients.bob().signTransaction(thirdBobInvestTx)
+        let thirdBobInvestTxHash = await grpcClient.postTransaction(thirdBobInvestTxSigned)
+        await util.waitTxProcessed(thirdBobInvestTxHash)
         
         let bobCancelTx = await grpcClient.generateCancelInvestmentTx(addBobWalletTxHash, addNonFundedProjWalletTxHash)
         let bobCancelTxSigned = await clients.bob().signTransaction(bobCancelTx)
