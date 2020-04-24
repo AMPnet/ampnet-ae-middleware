@@ -25,6 +25,7 @@ let coopSvc = require('../service/coop')
 let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
+let stateChecker = require('../service/state-checker')
 
 // repository
 let repo = require('../persistence/repository')
@@ -118,10 +119,15 @@ module.exports = {
             generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership
         });
 
+        // Check state
+        await stateChecker.processAllRecords()
+
+        // Bind GRPC server
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
         await grpcServer.start()
         logger.info(`GRPC server started at ${config.get().grpc.url}`)
 
+        // Bind HTTP server
         await httpServer.start(config.get())
     },
     stop: async function() {
