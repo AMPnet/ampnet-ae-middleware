@@ -232,7 +232,7 @@ describe('Error handling tests', function() {
         })
         let txSigned = await clients.bob().signTransaction(tx)
         let err = await grpcClient.postTransaction(txSigned)
-        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Only owner can make this action!")
+        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Only Platform Manager can make this action!")
     })
 
     it('Transaction that fails immediately after posting should generate descriptive error message', async () => {

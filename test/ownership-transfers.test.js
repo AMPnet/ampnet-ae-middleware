@@ -91,7 +91,7 @@ describe('Fetch transaction info tests', function() {
         })
         let forbiddenCoopOwnershipTransferTxSigned = await clients.bob().signTransaction(forbiddenCoopOwnershipTransferTx)
         let forbiddenCoopOwnership = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned)
-        assert.equal(forbiddenCoopOwnership.details, "50 > Only owner can make this action!")
+        assert.equal(forbiddenCoopOwnership.details, "50 > Only Platform Manager can make this action!")
 
         let eurTransferCallData = await codec.eur.encodeTransferEurOwnership(accounts.bob.publicKey)
         let forbiddenEurOwnershipTransferTx = await client.instance().contractCallTx({
@@ -103,7 +103,7 @@ describe('Fetch transaction info tests', function() {
         })
         let forbiddenEurOwnershipTransferTxSigned = await clients.bob().signTransaction(forbiddenEurOwnershipTransferTx)
         let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned)
-        assert.equal(forbiddenEurOwnership.details, "50 > Only owner can make this action!")
+        assert.equal(forbiddenEurOwnership.details, "50 > Only Token Issuer can make this action!")
     })
 
 })

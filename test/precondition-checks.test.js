@@ -67,10 +67,10 @@ describe('Auto funding test', function() {
         await util.waitTxProcessed(addProjWalletTxHash)
 
         let faultyRevenueSharePayoutTx = await grpcClient.generateStartRevenueSharesPayoutTx(addBobWalletTxHash, addProjWalletTxHash, 100000)
-        assert.equal(faultyRevenueSharePayoutTx.details, "60 > Cannot start revenue share payout on project which is still in funding phase.")
+        assert.equal(faultyRevenueSharePayoutTx.details, "60 > Can not start revenue share payout on project which is still in funding phase.")
 
         let faultyInvestTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, 10000)
-        assert.equal(faultyInvestTx.details, "60 > Can not invest. Insufficient funds.I")
+        assert.equal(faultyInvestTx.details, "60 > Can not invest. Insufficient funds.")
     })
 
 })
