@@ -15,10 +15,12 @@ const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk'
  * @param {string} hash Transaction hash 
  * @returns {Array.<Object>} Returns list of records saved in db which represent one parsed event each
  */
-async function process(hash) {
+async function process(hash, shouldCreateRecord = true) {
     try {
         logger.info(`Processing transaction ${hash}`)
-        await repo.saveHash(hash)
+        if (shouldCreateRecord) {
+            await repo.saveHash(hash)
+        }
         
         let poll = await clients.instance().poll(hash)
         let info = await clients.instance().getTxInfo(hash)
@@ -325,6 +327,8 @@ async function callSpecialActions(tx) {
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
             repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+        } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
+            supervisor.publishJobFromTx(tx)
         }
     }
 }

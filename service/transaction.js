@@ -29,12 +29,7 @@ async function postTransaction(call, callback) {
         
         txProcessor.process(result.hash).then(
             records => {
-                records.forEach(record => {
-                    if (record.supervisor_status == SupervisorStatus.REQUIRED && record.type == enums.TxType.WALLET_CREATE && record.wallet_type == enums.WalletType.USER) {
-                        logger.info('Supervisor action required. Creating a job.')
-                        supervisor.publishJobFromTx(record)
-                    }
-                })
+                logger.info(`Processing of transaction ${result.hash} completed successfully. ${records.length} record(s) updated.`)
             },
             error => {
                 logger.error(`Processing of transaction ${result.hash} failed with error: \n%o`, error)
