@@ -10,6 +10,7 @@ jobs:
     steps:
       - checkout
       - run: docker network prune -f
+      - run: docker-compose up -d
 
       - run: |
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
