@@ -61,7 +61,6 @@ async function getSummary() {
         for (j = 0; j < investmentRecordsSize; j++) {
             let record = investmentRecords[j]
             let key = record.from_wallet
-            console.log("key")
             switch (record.type) {
                 case TxType.INVEST:
                     amount = Number(record.amount)

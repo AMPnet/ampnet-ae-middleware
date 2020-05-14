@@ -86,7 +86,6 @@ async function transferOwnership(call, callback) {
     try {
         let callData = await codec.coop.encodeTransferCoopOwnership(call.request.newOwnerWallet)
         let coopOwner = await config.get().contracts.coop.owner()
-        console.log("coop owner", coopOwner)
         let tx = await client.instance().contractCallTx({
             callerId: coopOwner,
             contractId: config.get().contracts.coop.address,
