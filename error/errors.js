@@ -111,7 +111,13 @@ function pretty(error) {
 }
 
 function filterMessage(str) {
-    return str.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+    let startPosition = str.indexOf("#")
+    let endPosition = str.lastIndexOf("#")
+    if (startPosition == -1 || endPosition == -1 || startPosition == endPosition) {
+        return str.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+    } else {
+        return str.substring(startPosition + 1, endPosition)
+    }
 }
 
 module.exports = { generate, type, handle, decode, pretty }
