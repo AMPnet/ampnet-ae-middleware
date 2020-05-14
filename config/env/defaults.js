@@ -40,7 +40,7 @@ async function get() {
 function getNodeUrl() {
     if (process.env.NODE_URL) { return process.env.NODE_URL }
     switch (process.env.NODE_ENV) {
-        case Environment.LOCAL: return "http://localhost:3001/"
+        case Environment.LOCAL: return "http://localhost:3013/"
         case Environment.TESTNET: return "https://sdk-testnet.aepps.com/"
         case Environment.MAINNET: return "https://sdk-mainnet.aepps.com"
     }
@@ -49,7 +49,7 @@ function getNodeUrl() {
 function getNodeInternalUrl() {
     if (process.env.NODE_INTERNAL_URL) { return process.env.NODE_INTERNAL_URL }
     switch (process.env.NODE_ENV) {
-        case Environment.LOCAL: return "http://localhost:3001/internal"
+        case Environment.LOCAL: return "http://localhost:3113/"
         case Environment.TESTNET: return "https://sdk-testnet.aepps.com"
         case Environment.MAINNET: return "https://sdk-mainnet.aepps.com"
     }
@@ -67,7 +67,7 @@ function getCompilerUrl() {
 function getNetworkId() {
     if (process.env.NETWORK_ID) { return process.env.NETWORK_ID }
     switch (process.env.NODE_ENV) {
-        case Environment.LOCAL: return "ae_devnet"
+        case Environment.LOCAL: return "ae_docker"
         case Environment.TESTNET: return "ae_uat"
         case Environment.MAINNET: return "ae_mainnet"
     }

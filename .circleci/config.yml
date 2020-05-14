@@ -1,0 +1,53 @@
+version: 2.1
+executorType: machine
+jobs:
+  test:
+    machine: true
+    environment:
+      TERM: dumb
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run: docker network prune -f
+
+      - run: |
+            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            echo ' [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+      - run: |
+          nvm install v12
+          nvm alias default v12
+          node -v
+
+      - restore_cache: # special step to restore the dependency cache
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          key: dependency-cache-{{ checksum "package.json" }}
+
+      - run: npm install
+      - save_cache: # special step to save the dependency cache
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run: npm test
+
+  deploy:
+    machine: true
+    steps:
+      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - run: ./docker-build-and-push.sh
+
+workflows:
+  version: 2.1
+  test:
+    jobs:
+      - test:
+          filters:
+            branches:
+              ignore: master
+
+  deploy:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only: master
