@@ -32,7 +32,9 @@ jobs:
 
   deploy:
     machine: true
+    working_directory: ~/repo
     steps:
+      - checkout
       - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - run: ./docker-build-and-push.sh
 
