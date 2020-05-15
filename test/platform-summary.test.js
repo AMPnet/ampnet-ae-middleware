@@ -17,7 +17,7 @@ let db = require('./util/db')
 
 let config = require('../config')
 
-describe('Happy path scenario', function() {
+describe('Platform summary', function() {
 
     beforeEach(async() => {
         await grpcServer.start()

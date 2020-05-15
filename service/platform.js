@@ -60,9 +60,9 @@ async function getSummary() {
         let investmentsMap = {}
         for (j = 0; j < investmentRecordsSize; j++) {
             let record = investmentRecords[j]
-            let key = record.from_wallet
             switch (record.type) {
                 case TxType.INVEST:
+                    key = record.from_wallet
                     amount = Number(record.amount)
                     investmentsSum += amount
                     investmentsCount++
@@ -74,6 +74,7 @@ async function getSummary() {
                     }
                     break;
                 case TxType.CANCEL_INVESTMENT:
+                    key = record.to_wallet
                     amount = Number(record.amount)
                     usersInvestments = investmentsMap[key]
                     investmentsSum -= amount
