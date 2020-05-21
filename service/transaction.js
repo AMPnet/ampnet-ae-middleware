@@ -185,8 +185,12 @@ async function getInvestmentsInProject(call, callback) {
             })
             .map(tx => {
                 return {
+                    from_tx_hash: call.request.fromTxHash,
+                    to_tx_hash: call.request.projectTxHash,
                     amount: tx.amount,
-                    date: (new Date(tx.processed_at)).getTime()
+                    date: (new Date(tx.processed_at)).getTime(),
+                    type: enums.txTypeToGrpc(tx.type),
+                    state: tx.state
                 }
             })
         logger.debug(`Successfully fetched investments \n%o`, investments)
