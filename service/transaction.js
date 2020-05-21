@@ -185,8 +185,8 @@ async function getInvestmentsInProject(call, callback) {
             })
             .map(tx => {
                 return {
-                    from_tx_hash: call.request.fromTxHash,
-                    to_tx_hash: call.request.projectTxHash,
+                    fromTxHash: call.request.fromTxHash,
+                    toTxHash: call.request.projectTxHash,
                     amount: tx.amount,
                     date: (new Date(tx.processed_at)).getTime(),
                     type: enums.txTypeToGrpc(tx.type),
