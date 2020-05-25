@@ -31,13 +31,19 @@ function configureCors() {
 
 function addInvestmentCancelableRoute() {
     expr.get('/projects/:projectHash/investors/:investorHash/cancelable', async (req, res) => {
-        let result = await projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
-        let response = {
-            can_cancel: result
-        }
-        res.writeHead(200, { "Content-Type" : "application/json" })
-        res.write(JSON.stringify(response))
-        res.end()
+        projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
+            .then(result => {
+                let response = {
+                    can_cancel: result
+                }
+                res.writeHead(200, { "Content-Type" : "application/json" })
+                res.write(JSON.stringify(response))
+                res.end()
+            })
+            .catch(reason => {
+                console.log("Could not resolve canCancelInvestment", reason)
+                res.status(404).send(reason)
+            })
     })
 }
 
