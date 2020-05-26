@@ -2,7 +2,7 @@
 let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc-middleware')
-let uuid = require('uuid/v4')
+let { v4: uuid } = require('uuid')
 let interceptors = require('@hpidcock/node-grpc-interceptors')
 let ServiceEnv = require('../enums/enums').ServiceEnv
 
