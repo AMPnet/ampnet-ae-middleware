@@ -81,13 +81,14 @@ async function burnFrom(call, callback) {
 
 async function balance(call, callback) {
     logger.debug(`Received request to fetch balance of wallet with txHash ${call.request.walletTxHash}`)
-    try {
-        let resultInEur = getBalance(call.request.walletTxHash)
-        callback(null, { balance: resultInEur })
-    } catch (error) {
-        logger.error(`Error while fetching balance \n%o`, err.pretty(error))
-        err.handle(error, callback)
-    }
+    getBalance(call.request.walletTxHash)
+        .then((result) => {
+            callback(null, { balance: result })
+        })
+        .catch((error) => {
+            logger.error(`Error while fetching balance \n%o`, err.pretty(error))
+            err.handle(error, callback)
+        })
 }
 
 async function invest(call, callback) {
