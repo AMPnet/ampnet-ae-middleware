@@ -82,20 +82,7 @@ async function burnFrom(call, callback) {
 async function balance(call, callback) {
     logger.debug(`Received request to fetch balance of wallet with txHash ${call.request.walletTxHash}`)
     try {
-        let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
-        logger.debug(`Address represented by given hash: ${tx.wallet}`)
-        let result = await client.instance().contractCallStatic(
-            contracts.eurSource,
-            config.get().contracts.eur.address,
-            functions.eur.balanceOf,
-            [ tx.wallet ],
-            {
-                callerId: Crypto.generateKeyPair().publicKey
-            }
-        )
-        let resultDecoded = await result.decode()
-        let resultInEur = util.tokenToEur(resultDecoded)
-        logger.debug(`Successfully fetched balance: ${resultInEur}`)
+        let resultInEur = getBalance(call.request.walletTxHash)
         callback(null, { balance: resultInEur })
     } catch (error) {
         logger.error(`Error while fetching balance \n%o`, err.pretty(error))
@@ -169,6 +156,27 @@ async function transferOwnership(call, callback) {
     }
 }
 
+
+// HELPER FUNCTIONS
+
+async function getBalance(walletHash) {
+    let tx = await repo.findByHashOrThrow(walletHash)
+    logger.debug(`Address represented by given hash: ${tx.wallet}`)
+    let result = await client.instance().contractCallStatic(
+        contracts.eurSource,
+        config.get().contracts.eur.address,
+        functions.eur.balanceOf,
+        [ tx.wallet ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
+    )
+    let resultDecoded = await result.decode()
+    let resultInEur = util.tokenToEur(resultDecoded)
+    logger.debug(`Successfully fetched balance: ${resultInEur}`)
+    return resultInEur
+}
+
 async function allowance(owner) {
     let eurOwner = await config.get().contracts.eur.owner() 
     let result = await client.instance().contractCallStatic(
@@ -204,5 +212,6 @@ module.exports = {
     balance, 
     invest ,
     getTokenIssuer,
-    transferOwnership
+    transferOwnership,
+    getBalance
 }

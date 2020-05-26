@@ -5,6 +5,7 @@ let prometheus = require('prom-client')
 
 let projSvc = require('../service/project')
 let platformSvc = require('../service/platform')
+let eurSvc = require('../service/eur')
 let logger = require('../logger')(module)
 
 var expr;
@@ -17,6 +18,7 @@ async function start(config) {
     configureHealthAndMetrics()
     addInvestmentCancelableRoute()
     addPlatformSummaryRoute()
+    addGetBalanceRoute()
     
     await startServer(config)
 }
@@ -27,6 +29,22 @@ async function stop() {
 
 function configureCors() {
     expr.use(cors())
+}
+
+function addGetBalanceRoute() {
+    expr.get('/wallet/:walletHash/balance', async (req, res) => {
+        eurSvc.getBalance(req.params.walletHash)
+            .then((result) => {
+                res.json({
+                    wallet_hash: req.params.walletHash,
+                    balance: result
+                })
+            })
+            .catch((reason) => {
+                console.log("Could not resolve getBalance", reason)
+                res.status(404).json(reason)
+            })
+    })
 }
 
 function addInvestmentCancelableRoute() {

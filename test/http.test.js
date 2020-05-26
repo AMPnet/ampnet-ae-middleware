@@ -1,13 +1,9 @@
-let path = require('path')
 let chai = require('chai')
 let axios = require('axios')
 let assert = chai.assert;
 
-let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../supervisor')
-let aeUtil = require('../ae/util')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
@@ -34,7 +30,7 @@ describe('Investment cancelable test', function() {
         await supervisor.stop()
     })
 
-    it("should be possible to check if investment is cancelable", async () => {
+    it("should be possible to check if investment is cancelable and get wallet balance", async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
@@ -67,9 +63,19 @@ describe('Investment cancelable test', function() {
         let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
         await util.waitTxProcessed(addProjWalletTxHash)
 
-        let url = `http://0.0.0.0:${config.get().http.port}/projects/${addProjWalletTxHash}/investors/${addBobWalletTxHash}/cancelable`
+        let baseUrl = `http://0.0.0.0:${config.get().http.port}`
+        let url = `${baseUrl}/projects/${addProjWalletTxHash}/investors/${addBobWalletTxHash}/cancelable`
         let investmentCancelable = (await axios.get(url)).data
         assert.isFalse(investmentCancelable.can_cancel)
-    })
 
+        // test balance route
+        let balanceUrl = `${baseUrl}/wallet/${addBobWalletTxHash}/balance`
+        let balanceResponse = (await axios.get(balanceUrl)).data
+        assert.equal(balanceResponse.wallet_hash, addBobWalletTxHash)
+        assert.strictEqual(balanceResponse.balance, 0)
+        let notFoundBalanceUrl = `${baseUrl}/wallet/th_unknown/balance`
+        await axios.get(notFoundBalanceUrl).catch((err) => {
+            assert.strictEqual(err.response.status, 404)
+        })
+    })
 })
