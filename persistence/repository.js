@@ -21,6 +21,7 @@ async function findByHashOrThrow(txHash) {
             else {
                 let record = rows[0]
                 switch (record.type) {
+                    case TxType.SELL_OFFER_CREATE:
                     case TxType.WALLET_CREATE:
                         switch (record.state) {
                             case TxState.MINED:

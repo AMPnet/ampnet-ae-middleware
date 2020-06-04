@@ -228,7 +228,7 @@ service BlockchainService {
     rpc GetBalance(BalanceRequest) returns (BalanceResponse);
     rpc GetTokenIssuer(Empty) returns (TokenIssuerResponse);
     rpc GenerateTransferTokenIssuerOwnershipTx(GenerateTransferTokenIssuerOwnershipTxRequest) returns (RawTxResponse);
-
+    
     // Organization
 
 
@@ -245,7 +245,6 @@ service BlockchainService {
     rpc GenerateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
     rpc GenerateCreateProjectTx(GenerateCreateProjectTxRequest) returns (RawTxResponse);
 
-    
     // Transactions
 
     rpc PostTransaction(PostTxRequest) returns (PostTxResponse);

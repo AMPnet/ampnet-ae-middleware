@@ -116,13 +116,25 @@ async function updateTransactionState(info, poll, type) {
                 processed_at: new Date()
             })
         case enums.TxType.PROJ_CREATE:
+            toWallet = util.enforceAkPrefix(info.contractId)
+            return repo.update(poll.hash, {
+                from_wallet: info.callerId,
+                to_wallet: toWallet,
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.PROJ_CREATE,
+                wallet: toWallet,
+                processed_at: new Date()
+            })
+        case enums.TxType.SELL_OFFER_CREATE:
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
                 to_wallet: util.enforceAkPrefix(info.contractId),
                 input: poll.tx.callData,
                 state: enums.TxState.MINED,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
-                type: enums.TxType.PROJ_CREATE,
+                type: enums.TxType.SELL_OFFER_CREATE,
                 processed_at: new Date()
             })
         case enums.TxType.DEPOSIT:
@@ -142,8 +154,19 @@ async function updateTransactionState(info, poll, type) {
             spender = util.decodeAddress(event.topics[1])
             amount = util.tokenToEur(event.topics[2])
             eurOwner = await config.get().contracts.eur.owner()
-            type = (spender == eurOwner) ? enums.TxType.APPROVE_USER_WITHDRAW : enums.TxType.APPROVE_INVESTMENT
-            supervisorStatus = (spender == eurOwner) ? enums.SupervisorStatus.NOT_REQUIRED : enums.SupervisorStatus.REQUIRED
+            if (spender == eurOwner) {
+                type = enums.TxType.APPROVE_USER_WITHDRAW,
+                supervisorStatus = enums.SupervisorStatus.NOT_REQUIRED
+            } else {
+                r = await repo.findByWalletOrThrow(spender)
+                if (r.type == enums.TxType.SELL_OFFER_CREATE) {
+                    type = enums.TxType.APPROVE_COUNTER_OFFER,
+                    supervisorStatus = enums.SupervisorStatus.REQUIRED
+                } else {
+                    type = enums.TxType.APPROVE_INVESTMENT,
+                    supervisorStatus = enums.SupervisorStatus.REQUIRED
+                }
+            }
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
                 to_wallet: spender,
@@ -253,6 +276,47 @@ async function updateTransactionState(info, poll, type) {
                 type: enums.TxType.EUR_OWNERSHIP_TRANSFER,
                 processed_at: new Date()
             })
+        case enums.TxType.COUNTER_OFFER_PLACED:
+            buyerAddress = util.decodeAddress(event.topics[1])
+            counterOfferPrice = util.tokenToEur(event.topics[2])
+            return repo.update(poll.hash, {
+                from_wallet: buyerAddress,
+                to_wallet: util.enforceAkPrefix(info.contractId),
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.COUNTER_OFFER_PLACED,
+                amount: counterOfferPrice,
+                processed_at: new Date()
+            })
+        case enums.TxType.COUNTER_OFFER_REMOVED:
+            buyerAddress = util.decodeAddress(event.topics[1])
+            return repo.update(poll.hash, {
+                from_wallet: buyerAddress,
+                to_wallet: util.enforceAkPrefix(info.contractId),
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.COUNTER_OFFER_REMOVED,
+                processed_at: new Date()
+            })
+        case enums.TxType.SHARES_SOLD:
+            buyerAddress = util.decodeAddress(event.topics[1])
+            sellerAddress = util.decodeAddress(event.topics[2])
+            price = util.tokenToEur(event.topics[3])
+            offerInfo = await getSellOfferInfo()
+            projectShares = util.tokenToEur(offerInfo[0])
+            projectContract = offerInfo[2]
+            return repo.update(poll.hash, {
+                from_wallet: sellerAddress,
+                to_wallet: buyerAddress,
+                input: `${projectContract};${price}`,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.COUNTER_OFFER_REMOVED,
+                amount: projectShares,
+                processed_at: new Date()
+            })
         default:
             throw new Error(`Unknown transaction processed! Hash: ${poll.hash}`)
     }
@@ -327,10 +391,53 @@ async function callSpecialActions(tx) {
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
             repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+        } else if (tx.type == enums.TxType.APPROVE_COUNTER_OFFER) {
+            let buyerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
+            let sellOfferContract = util.enforceCtPrefix(tx.to_wallet)
+            let buyerWallet = buyerWalletCreationTx.wallet
+            let buyerWorkerKeyPair = {
+                publicKey: buyerWalletCreationTx.worker_public_key,
+                secretKey: buyerWalletCreationTx.worker_secret_key
+            }
+            logger.info(`Calling tryToSettle for user ${buyerWallet} and sell offer ${sellOfferContract}.`)
+            let client = await Universal({
+                nodes: [
+                    { name: "node", instance: clients.node() }
+                ],
+                compilerUrl: config.get().node.compilerUrl,
+                accounts: [
+                    MemoryAccount({ keypair: investorWorkerKeyPair })
+                ],
+                address: buyerWorkerKeyPair.publicKey,
+                networkId: config.get().node.networkId
+            })
+            let callResult = await client.contractCall(
+                contracts.sellOfferSource,
+                sellOfferContract,
+                enums.functions.sellOffer.tryToSettle,
+                [ buyerWallet ]
+            )
+            logger.info(`Call result %o`, callResult)
+            repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+            process(callResult.hash)
         } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
             supervisor.publishJobFromTx(tx)
         }
     }
+}
+
+async function getSellOfferInfo(sellOfferContract) {
+    let result = await client.instance().contractCallStatic(
+        contracts.sellOfferSource,
+        sellOfferContract,
+        functions.sellOffer.getOffer,
+        [ ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
+    )
+    let resultDecoded = await result.decode()
+    return resultDecoded
 }
 
 module.exports = {

@@ -25,6 +25,24 @@ async function encodeCreateProject(org, minInvestment, maxInvestment, investment
     )
 }
 
+async function encodeCreateSellOffer(proj, shares, price) {
+    return contracts.getSellOfferCompiled().encodeCall(
+        "init",
+        [
+            proj,
+            shares,
+            price
+        ]
+    )
+}
+
+async function encodeAcceptCounterOffer(buyer) {
+    return contracts.getSellOfferCompiled.encodeCall(
+        functions.sellOffer.acceptCounterOffer,
+        [ buyer ]
+    )
+}
+
 async function encodeGetProjectInfo() {
     return contracts.getProjCompiled().encodeCall(functions.proj.getInfo, [ ])
 }
@@ -64,6 +82,13 @@ async function encodeStartRevenueSharesPayout(revenue) {
     return contracts.getProjCompiled().encodeCall(
         functions.proj.startRevenueSharesPayout,
         [ revenue ]
+    )
+}
+
+async function encodeActivateSellOffer(sellOffer) {
+    return contracts.getProjCompiled().encodeCall(
+        functions.proj.activateSellOffer,
+        [ sellOffer ]
     )
 }
 
@@ -118,7 +143,12 @@ module.exports = {
         encodeStartRevenueSharesPayout,
         encodeApproveWithdrawProjectFunds,
         encodeCancelInvestment,
-        encodeIsInvestmentCancelable
+        encodeIsInvestmentCancelable,
+        encodeActivateSellOffer
+    },
+    sellOffer: {
+        encodeCreateSellOffer,
+        encodeAcceptCounterOffer
     },
     decodeDataBySource,
     decodeDataByBytecode

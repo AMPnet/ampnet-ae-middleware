@@ -245,6 +245,7 @@ async function checkTxCallee(calleeId) {
 async function checkContractData(tx) {
     let orgBytecode = contracts.getOrgCompiled().bytecode
     let projBytecode = contracts.getProjCompiled().bytecode
+    let sellOfferBytecode = contracts.getSellOfferCompiled().bytecode
     switch (tx.code) {
         case orgBytecode:
             callData = await codec.decodeDataByBytecode(orgBytecode, tx.callData)
@@ -260,6 +261,13 @@ async function checkContractData(tx) {
                 throw err.generate(ErrorType.PROJ_INVALID_GROUP_ARG)
             }
             break
+        case sellOfferBytecode:
+            callData = await codec.decodeDataByBytecode(sellOfferBytecode, tx.callData)
+            projAddress = callData.arguments[0].value
+            isProjActive = await isWalletActive(projAddress)
+            if (!isProjActive) {
+                throw err.generate(ErrorType.SELL_OFFER_INVALID_PROJ_ARG)
+            }
         default:
             throw err.generate(ErrorType.MALFORMED_CONTRACT_CODE)
     }

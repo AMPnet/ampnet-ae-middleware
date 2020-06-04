@@ -213,7 +213,30 @@ async function checkSharePayoutPreconditions(caller, project, revenue) {
         }
     )
     logger.debug(`Preconditions checklist result: %o`, result)
-}   
+}
+
+async function activateSellOffer(fromTxHash, sellOfferTxHash) {
+    logger.debug(`Received request to generate activateSellOffer transaction.\nCaller ${fromTxHash} wants to activate sell offer ${sellOfferTxHash}`)
+    let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
+    logger.debug(`Caller wallet: ${fromWallet}`)
+    let sellOfferCreateRecord = await repo.findByHashOrThrow(sellOfferTxHash)
+    let sellOfferContract = util.enforceCtPrefix(sellOfferCreateRecord.to_wallet)
+    logger.debug(`SellOffer contract: ${sellOfferContract}`)
+    let bytecode = contracts.getSellOfferCompiled().bytecode
+    let sellOfferCreateCallData = await codec.decodeDataByBytecode(bytecode, sellOfferCreateRecord.input)
+    let projectContract = util.enforceCtPrefix(sellOfferCreateCallData.arguments[0].value)
+    logger.debug(`Project contract: ${projectContract}`)
+    let callData = await codec.proj.encodeActivateSellOffer(sellOfferContract)
+    let tx = await client.instance().contractCallTx({
+        callerId: fromWallet,
+        contractId: projectContract,
+        amount: 0,
+        gas: config.get().contractCallGasAmount,
+        callData: callData
+    })
+    logger.debug(`Successfully generated activateSellOffer transaction: ${tx}`)
+    return tx
+}
 
 module.exports = { 
     createProject,
@@ -222,5 +245,6 @@ module.exports = {
     isInvestmentCancelable,
     canCancelInvestment,
     startRevenueSharesPayout, 
-    getInfo 
+    getInfo,
+    activateSellOffer
 }
