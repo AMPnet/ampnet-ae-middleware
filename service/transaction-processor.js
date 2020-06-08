@@ -124,10 +124,10 @@ async function updateTransactionState(info, poll, type) {
                 state: enums.TxState.MINED,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
                 type: enums.TxType.PROJ_CREATE,
-                wallet: toWallet,
                 processed_at: new Date()
             })
         case enums.TxType.SELL_OFFER_CREATE:
+            toWallet = util.enforceAkPrefix(info.contractId)
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
                 to_wallet: util.enforceAkPrefix(info.contractId),
@@ -135,6 +135,7 @@ async function updateTransactionState(info, poll, type) {
                 state: enums.TxState.MINED,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
                 type: enums.TxType.SELL_OFFER_CREATE,
+                wallet: toWallet,
                 processed_at: new Date()
             })
         case enums.TxType.DEPOSIT:
@@ -289,6 +290,18 @@ async function updateTransactionState(info, poll, type) {
                 amount: counterOfferPrice,
                 processed_at: new Date()
             })
+        case enums.TxType.SELL_OFFER_ACTIVATE:
+            sellerAddress = util.decodeAddress(event.topics[1])
+            offerAddress = util.decodeAddress(event.topics[2])
+            return repo.update(poll.hash, {
+                from_wallet: sellerAddress,
+                to_wallet: util.enforceAkPrefix(offerAddress),
+                input: poll.tx.callData,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.SELL_OFFER_ACTIVATE,
+                processed_at: new Date()
+            })
         case enums.TxType.COUNTER_OFFER_REMOVED:
             buyerAddress = util.decodeAddress(event.topics[1])
             return repo.update(poll.hash, {
@@ -304,7 +317,7 @@ async function updateTransactionState(info, poll, type) {
             buyerAddress = util.decodeAddress(event.topics[1])
             sellerAddress = util.decodeAddress(event.topics[2])
             price = util.tokenToEur(event.topics[3])
-            offerInfo = await getSellOfferInfo()
+            offerInfo = await getSellOfferInfo(info.contractId)
             projectShares = util.tokenToEur(offerInfo[0])
             projectContract = offerInfo[2]
             return repo.update(poll.hash, {
@@ -313,7 +326,21 @@ async function updateTransactionState(info, poll, type) {
                 input: `${projectContract};${price}`,
                 state: enums.TxState.MINED,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
-                type: enums.TxType.COUNTER_OFFER_REMOVED,
+                type: enums.TxType.SHARES_SOLD,
+                amount: projectShares,
+                processed_at: new Date()
+            })
+        case enums.TxType.SHARES_TRANSFERRED:
+            buyerAddress = util.decodeAddress(event.topics[1])
+            sellerAddress = util.decodeAddress(event.topics[2])
+            amount = util.tokenToEur(event.topics[3])
+            return repo.update(poll.hash, {
+                from_wallet: sellerAddress,
+                to_wallet: buyerAddress,
+                input: `${projectContract};${price}`,
+                state: enums.TxState.MINED,
+                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
+                type: enums.TxType.SHARES_SOLD,
                 amount: projectShares,
                 processed_at: new Date()
             })
@@ -406,7 +433,7 @@ async function callSpecialActions(tx) {
                 ],
                 compilerUrl: config.get().node.compilerUrl,
                 accounts: [
-                    MemoryAccount({ keypair: investorWorkerKeyPair })
+                    MemoryAccount({ keypair: buyerWorkerKeyPair })
                 ],
                 address: buyerWorkerKeyPair.publicKey,
                 networkId: config.get().node.networkId
@@ -427,10 +454,11 @@ async function callSpecialActions(tx) {
 }
 
 async function getSellOfferInfo(sellOfferContract) {
-    let result = await client.instance().contractCallStatic(
+    console.log("sellOfferContract", sellOfferContract)
+    let result = await clients.instance().contractCallStatic(
         contracts.sellOfferSource,
         sellOfferContract,
-        functions.sellOffer.getOffer,
+        enums.functions.sellOffer.getOffer,
         [ ],
         {
             callerId: Crypto.generateKeyPair().publicKey

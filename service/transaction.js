@@ -268,6 +268,7 @@ async function checkContractData(tx) {
             if (!isProjActive) {
                 throw err.generate(ErrorType.SELL_OFFER_INVALID_PROJ_ARG)
             }
+            break
         default:
             throw err.generate(ErrorType.MALFORMED_CONTRACT_CODE)
     }
@@ -326,7 +327,7 @@ async function dryRun(txData) {
         let status = result.result
         if (status === "ok") {
             if (result.callObj === 'undefined') {
-                logger.warn(`Warning: Expected <callObj> property missing in json result. Further analysis is required!`)
+                logger.warn(`Warning: <callObj> property missing in json result. Further analysis is required!`)
                 return
             } 
             let callObj = result.callObj

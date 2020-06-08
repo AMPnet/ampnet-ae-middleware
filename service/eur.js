@@ -125,7 +125,7 @@ async function acceptSellOffer(fromTxHash, sellOfferTxHash, counterOfferPrice) {
     let amount = util.eurToToken(counterOfferPrice)
     let callData = await codec.eur.encodeApprove(sellOffer, amount)
     let tx = await client.instance().contractCallTx({
-        callerId: investor,
+        callerId: buyer,
         contractId: config.get().contracts.eur.address,
         amount: 0,
         gas: config.get().contractCallGasAmount,

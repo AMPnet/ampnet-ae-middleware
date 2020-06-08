@@ -11,10 +11,10 @@ let { Crypto } = require('@aeternity/aepp-sdk')
 
 async function createSellOffer(fromTxHash, projectTxHash, shares, price) {
     logger.debug(`Received request to generate createSellOffer transaction.\n\tSeller: ${fromTxHash}\n\tProject: ${projectTxHash}\n\tShares: ${shares}\n\tPrice: ${price}`)
-    let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
+    let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
     logger.debug(`Seller wallet: ${fromWallet}`)
     let projectContract = util.enforceCtPrefix(
-        (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
+        (await repo.findByHashOrThrow(projectTxHash)).wallet
     )
     logger.debug(`Address of project contract: ${projectContract}`)
     let callData = await codec.sellOffer.encodeCreateSellOffer(
