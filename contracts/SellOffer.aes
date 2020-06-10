@@ -51,7 +51,7 @@ contract SellOffer =
           activated = false,
           settled = false }
 
-    entrypoint get_offer() : (int * int * address) = (state.shares, state.price, state.project.address)
+    entrypoint get_offer() : (address * address * int * int * map(address, int) * bool * bool) = (state.project.address, Contract.creator, state.shares, state.price, state.counterOffers, state.activated, state.settled)
 
     stateful entrypoint activate_offer() =
         require(

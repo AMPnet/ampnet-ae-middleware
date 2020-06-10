@@ -15,10 +15,15 @@ let ErrorType = err.type
 
 let { TxState, TxType, SupervisorStatus } = require('../enums/enums')
 
-async function postTransaction(call, callback) {
+async function postTransactionGrpc(call, callback) {
+    postTransaction(call.request.data, function(err, result) {
+        callback(err, result)
+    })
+}
+
+async function postTransaction(tx, callback) {
     logger.debug(`Received request to post transaction`)
     try {
-        let tx = call.request.data
         let txData = TxBuilder.unpackTx(tx)
 
         // Two layers of security. dryRun() is experimental and will fail silently if anything unexpected occurs.
@@ -49,21 +54,33 @@ async function getPortfolio(call, callback) {
     logger.debug(`Received request to fetch portfolio for user with wallet txHash ${call.request.txHash}`)
     try {
         let tx = await repo.findByHashOrThrow(call.request.txHash)
+        let userWallet = tx.wallet
         logger.debug(`Address represented by given hash: ${tx.wallet}`)
-        
-        let records = await repo.getUserUncanceledInvestments(tx.wallet)
-        let recordsLength = records.length
 
         let portfolioMap = new Map()
-
+        
+        let records = await repo.getUserUncanceledInvestments(userWallet)
+        let recordsLength = records.length
         for (var i = 0; i < recordsLength; i++) {
             tx = await repo.findByWalletOrThrow(records[i].to_wallet)
             project = tx.hash
             amount = records[i].amount
             if (portfolioMap.has(project)) { 
-                portfolioMap.set(project, Number(portfolioMap.get(project)) + Number(amount)).toString()
+                portfolioMap.set(project, Number(portfolioMap.get(project)) + Number(amount))
             } else {
                 portfolioMap.set(project, amount)
+            }
+        }
+
+        let marketRecords = await repo.getUserMarketTransactions(userWallet)
+        let marketRecordsLength = marketRecords.length
+        for (var i = 0; i < marketRecordsLength; i++) {
+            info = await getSellOfferData(marketRecords[i])
+            preOwnedShares = portfolioMap.has(info.project) ? Number(portfolioMap.get(info.project)) : 0
+            if (userWallet == info.buyer) {
+                portfolioMap.set(info.project, preOwnedShares + Number(info.shares))
+            } else if (userWallet == info.seller) {
+                portfolioMap.set(info.project, preOwnedShares - Number(info.shares))
             }
         }
 
@@ -360,8 +377,28 @@ async function dryRun(txData) {
     }
 }
 
+/**
+ * HELPER FUNCTIONS
+ */
+
+ async function getSellOfferData(sharesSoldTx) {
+    let seller = sharesSoldTx.from_wallet
+    let buyer = sharesSoldTx.to_wallet
+    let sharesAmount = sharesSoldTx.amount
+    let info = sharesSoldTx.input.split(";")
+    let projectContract = info[0]
+    let projectHash = (await repo.findByWalletOrThrow(projectContract)).hash
+    return {
+        buyer: buyer,
+        seller: seller,
+        shares: sharesAmount,
+        project: projectHash
+    }
+ }
+
 module.exports = { 
-    postTransaction, 
+    postTransaction,
+    postTransactionGrpc,
     getPortfolio, 
     getTransactions,
     getInvestmentsInProject,

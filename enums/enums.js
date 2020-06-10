@@ -39,8 +39,7 @@ let TxType = {
     APPROVE_COUNTER_OFFER: "APPROVE_COUNTER_OFFER",
     COUNTER_OFFER_PLACED: "COUNTER_OFFER_PLACED",
     COUNTER_OFFER_REMOVED: "COUNTER_OFFER_REMOVED",
-    SHARES_SOLD: "SHARES_SOLD",
-    SHARES_TRANSFERRED: "SHARES_TRANSFERRED"
+    SHARES_SOLD: "SHARES_SOLD"
 }
 
 let events = new Map([
@@ -62,7 +61,6 @@ let events = new Map([
     [util.blake2b('CounterOfferPlaced'), TxType.COUNTER_OFFER_PLACED],
     [util.blake2b('CounterOfferRemoved'), TxType.COUNTER_OFFER_REMOVED],
     [util.blake2b('SharesSold'), TxType.SHARES_SOLD],
-    [util.blake2b('SharesTransferred'), TxType.SHARES_TRANSFERRED]
 ])
 
 let TxState = {

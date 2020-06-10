@@ -38,10 +38,13 @@ describe('Happy path scenario', function() {
         let activateSellOfferUrl = `${baseUrl}/market/activate-offer`
         let acceptSellOfferUrl = `${baseUrl}/market/accept-sell-offer`
         let acceptCounterOfferUrl = `${baseUrl}/market/accept-counter-offer`
+        let postTransactionUrl = `${baseUrl}/transactions`
 
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        let addBobWalletTxHash = (await axios.post(postTransactionUrl, {
+            data: addBobWalletTxSigned
+        })).data.tx_hash
         await util.waitTxProcessed(addBobWalletTxHash)
 
         let addAliceWalletTx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey)
@@ -94,15 +97,14 @@ describe('Happy path scenario', function() {
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
         await util.waitTxProcessed(investTxHash)
         
-
         let sharesToSell = bobInvestmentAmount / 2
         let sharesPrice  = mintToBobAmount
         let createSellOfferTx = (await axios.get(createSellOfferUrl, {
             params: {
                 fromTxHash: addBobWalletTxHash,
                 projectTxHash: addProjWalletTxHash,
-                shares: bobInvestmentAmount / 2,
-                price: mintToBobAmount / 2
+                shares: sharesToSell,
+                price: sharesPrice
             }
         })).data.tx
         let createSellOfferTxSigned = await clients.bob().signTransaction(createSellOfferTx)
@@ -123,12 +125,35 @@ describe('Happy path scenario', function() {
             params: {
                 fromTxHash: addAliceWalletTxHash,
                 sellOfferTxHash: createSellOfferTxHash,
-                counterOfferPrice: sharesPrice
+                counterOfferPrice: sharesPrice / 2
             }
         })).data.tx
         let acceptSellOfferTxSigned = await clients.alice().signTransaction(acceptSellOfferTx)
         let acceptSellOfferTxHash = await grpcClient.postTransaction(acceptSellOfferTxSigned)
         await util.waitTxProcessed(acceptSellOfferTxHash)
+
+        let activeOffers = await grpcClient.getActiveSellOffers()
+        console.log("active offers", activeOffers)
+
+        // let acceptCounterOfferTx = (await axios.get(acceptCounterOfferUrl, {
+        //     params: {
+        //         fromTxHash: addBobWalletTxHash,
+        //         sellOfferTxHash: createSellOfferTxHash,
+        //         buyerWallet: 
+        //     }
+        // }))
+
+        // let allTransactions = await db.getAll()
+        // console.log("all transactions", allTransactions)
+
+        // let sellerPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
+        // console.log("sellerPortfolio", sellerPortfolio)
+
+        // let buyerPortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
+        // console.log("buyerPortfolio", buyerPortfolio)
+
+
+
     })
 
 })

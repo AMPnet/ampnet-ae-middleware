@@ -17,7 +17,7 @@ contract OrgInterface =
     entrypoint owner : () => address
 
 contract SellOfferInterface =
-    entrypoint get_offer: () => (int * int * address)
+    entrypoint get_offer: () => (address * address * int * int * map(address, int) * bool * bool)
     entrypoint activate_offer : () => unit
 
 contract Project =
@@ -150,7 +150,7 @@ contract Project =
         let info = offer.get_offer()
         let caller = Call.origin
         switch(info)
-            (shares, price, project) =>
+            (project, seller, shares, price, counterOffers, activated, settled) =>
                 _approve(offer.address, shares)
                 offer.activate_offer()
         Chain.event(SellOfferActivated(caller, offer.address))
@@ -352,4 +352,3 @@ contract Project =
             investments[to = 0] @ investment = investment + amount, 
             investments[from] @ investment = investment - amount,
             allowed[(from, caller)] @ approvedForTransfer = approvedForTransfer - amount })
-        Chain.event(SharesTransferred(from, to, amount))

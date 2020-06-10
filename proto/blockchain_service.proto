@@ -168,6 +168,21 @@ message TransactionsResponse {
     repeated Transaction transactions = 1;
 }
 
+message ActiveSellOffersResponse {
+    message CounterOffer {
+        string buyer_tx_hash = 1;
+        string price = 2;
+    }
+    message SellOffer {
+        string seller_tx_hash = 1;
+        string project_tx_hash = 2;
+        string shares = 3;
+        string price = 4;
+        repeated CounterOffer counter_offers = 5;
+    }
+    repeated SellOffer offers = 1;
+}
+
 message TransactionInfoRequest {
     string tx_hash = 1;
 }
@@ -252,4 +267,5 @@ service BlockchainService {
     rpc GetTransactions(TransactionsRequest) returns (TransactionsResponse);
     rpc GetInvestmentsInProject(InvestmentsInProjectRequest) returns (TransactionsResponse);
     rpc GetTransactionInfo(TransactionInfoRequest) returns (TransactionInfoResponse);
+    rpc GetActiveSellOffers(Empty) returns (ActiveSellOffersResponse);
 }

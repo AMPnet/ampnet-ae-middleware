@@ -7,6 +7,8 @@ let projSvc = require('../service/project')
 let platformSvc = require('../service/platform')
 let eurSvc = require('../service/eur')
 let sellOfferSvc = require('../service/selloffer')
+let txSvc = require('../service/transaction')
+
 let logger = require('../logger')(module)
 let err = require('../error/errors')
 
@@ -17,7 +19,9 @@ async function start(config) {
     expr = express()
 
     configureCors()
+    configureExpress()
     configureHealthAndMetrics()
+    
     addInvestmentCancelableRoute()
     addPlatformSummaryRoute()
     addGetBalanceRoute()
@@ -26,6 +30,9 @@ async function start(config) {
     addActivateSellOfferRoute()
     addAcceptSellOfferRoute()
     addAcceptCounterOfferRoute()
+    addGetActiveOffersRoute()
+    
+    addPostTransactionRoute()
     
     await startServer(config)
 }
@@ -36,6 +43,11 @@ async function stop() {
 
 function configureCors() {
     expr.use(cors())
+}
+
+function configureExpress() {
+    expr.use(express.urlencoded({ extended: true }))
+    expr.use(express.json())
 }
 
 function addGetBalanceRoute() {
@@ -81,7 +93,6 @@ function addPlatformSummaryRoute() {
 
 function addCreateSellOfferRoute() {
     expr.get('/market/create-offer', async (req, res) => {
-        console.log("req", req)
         sellOfferSvc.createSellOffer(
             req.query.fromTxHash,
             req.query.projectTxHash,
@@ -92,8 +103,8 @@ function addCreateSellOfferRoute() {
                 tx: tx
             })
         }).catch(error => {
-            console.log("error", error)
             err.handle(error, function(msg, result) {
+                console.log("msg", msg)
                 res.status(404).send(msg)
             })
         })
@@ -149,6 +160,34 @@ function addAcceptCounterOfferRoute() {
             err.handle(error, function(msg, result) {
                 res.status(404).send(msg)
             })
+        })
+    })
+}
+
+function addGetActiveOffersRoute() {
+    expr.get('/market/active-offers', async (req, res) => {
+        sellOfferSvc.getActiveSellOffers().then(result => {
+            res.status(200).send("ok")
+        }).catch(error => {
+            err.handle(error, function(msg, result) {
+                res.status(404).send(msg)
+            })
+        })
+    })
+}
+
+function addPostTransactionRoute() {
+    expr.post('/transactions', async (req, res) => {
+        console.log("req", req.body)
+        let tx = req.body.data
+        txSvc.postTransaction(tx, function(err, result) {
+            if (err != null) {
+                res.status(404).send(err)
+            } else {
+                res.json({
+                    tx_hash: result.txHash
+                })
+            }
         })
     })
 }

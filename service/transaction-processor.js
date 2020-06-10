@@ -318,22 +318,8 @@ async function updateTransactionState(info, poll, type) {
             sellerAddress = util.decodeAddress(event.topics[2])
             price = util.tokenToEur(event.topics[3])
             offerInfo = await getSellOfferInfo(info.contractId)
-            projectShares = util.tokenToEur(offerInfo[0])
-            projectContract = offerInfo[2]
-            return repo.update(poll.hash, {
-                from_wallet: sellerAddress,
-                to_wallet: buyerAddress,
-                input: `${projectContract};${price}`,
-                state: enums.TxState.MINED,
-                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
-                type: enums.TxType.SHARES_SOLD,
-                amount: projectShares,
-                processed_at: new Date()
-            })
-        case enums.TxType.SHARES_TRANSFERRED:
-            buyerAddress = util.decodeAddress(event.topics[1])
-            sellerAddress = util.decodeAddress(event.topics[2])
-            amount = util.tokenToEur(event.topics[3])
+            projectShares = util.tokenToEur(offerInfo[2])
+            projectContract = offerInfo[0]
             return repo.update(poll.hash, {
                 from_wallet: sellerAddress,
                 to_wallet: buyerAddress,
@@ -380,8 +366,9 @@ async function callSpecialActions(tx) {
                 [ investorWallet ]
             )
             logger.info(`Call result %o`, callResult)
-            repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
-            process(callResult.hash)
+            process(callResult.hash).then(_ => {
+                repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+            })
         } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
             let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
             let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
@@ -445,8 +432,9 @@ async function callSpecialActions(tx) {
                 [ buyerWallet ]
             )
             logger.info(`Call result %o`, callResult)
-            repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
-            process(callResult.hash)
+            process(callResult.hash).then(_ => {
+                repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+            })
         } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
             supervisor.publishJobFromTx(tx)
         }

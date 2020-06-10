@@ -157,6 +157,20 @@ async function getUserUncanceledInvestments(wallet) {
     })
 }
 
+async function getUserMarketTransactions(wallet) {
+    return new Promise(resolve => {
+        knex.raw(`
+            select * from transaction t
+            where
+                (t.from_wallet='${wallet}' or t.to_wallet='${wallet}') and
+                t.type='${enums.TxType.SHARES_SOLD}' and
+                t.state='${enums.TxState.MINED}'
+        `).then(result => {
+            resolve(result.rows)
+        })
+    })
+}
+
 async function getProjectTransactions(projectWallet) {
     return new Promise(resolve => {
         knex('transaction')
@@ -201,6 +215,7 @@ module.exports = {
     getUserTransactions,
     getProjectTransactions,
     getUserUncanceledInvestments,
+    getUserMarketTransactions,
     saveTransaction,
     update,
     saveHash,

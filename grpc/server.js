@@ -25,6 +25,7 @@ let coopSvc = require('../service/coop')
 let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
+let sellOfferSvc = require('../service/selloffer')
 let stateChecker = require('../service/state-checker')
 
 // repository
@@ -104,7 +105,7 @@ module.exports = {
             generateCreateProjectTx: projSvc.createProject,
             generateInvestTx: eurSvc.invest,
             generateStartRevenueSharesPayoutTx: projSvc.startRevenueSharesPayout,
-            postTransaction: txSvc.postTransaction,
+            postTransaction: txSvc.postTransactionGrpc,
             getTransactionInfo: txSvc.getTransactionInfo,
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
@@ -116,7 +117,8 @@ module.exports = {
             getPlatformManager: coopSvc.getPlatformManager,
             getTokenIssuer: eurSvc.getTokenIssuer,
             generateTransferPlatformManagerOwnershipTx: coopSvc.transferOwnership,
-            generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership
+            generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
+            getActiveSellOffers: sellOfferSvc.getActiveSellOffers
         });
 
         // Check state

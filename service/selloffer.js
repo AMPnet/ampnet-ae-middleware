@@ -3,6 +3,7 @@ let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
+let enums = require('../enums/enums')
 let err = require('../error/errors')
 let functions = require('../enums/enums').functions
 let config = require('../config')
@@ -53,7 +54,67 @@ async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerWallet) {
     return tx
 }
 
+async function getActiveSellOffers(call, callback) {
+    logger.debug(`Received request to fetch active sell offers.`)
+    try {
+        let sellOfferCreateTransactions = await repo.get({
+            type: enums.TxType.SELL_OFFER_CREATE,
+            state: enums.TxState.MINED
+        })
+        let sellOffers = await Promise.all(sellOfferCreateTransactions.map(tx => {
+            return new Promise((resolve, reject) => {
+                client.instance().contractCallStatic(
+                    contracts.sellOfferSource,
+                    util.enforceCtPrefix(tx.to_wallet),
+                    functions.sellOffer.getOffer,
+                    [ ],
+                    {
+                        callerId: Crypto.generateKeyPair().publicKey
+                    }
+                ).then(callResult => {
+                    callResult.decode().then(decoded => {
+                        console.log("decoded", decoded)
+                        resolve(decoded)
+                    }).catch(console.log)
+                }).catch(console.log)
+            })
+        }))
+        console.log("sell offers", sellOffers)
+    
+        let sellOffersFiltered = sellOffers.filter(o => (o[5] && !o[6]))
+        console.log("sell offers filtered", sellOffersFiltered)
+    
+        let sellOffersTransformed = await Promise.all(sellOffersFiltered.map(async (offer) => {
+            let projectTxHash = (await repo.findByWalletOrThrow(offer[0])).hash
+            let sellerTxHash = (await repo.findByWalletOrThrow(offer[1])).hash
+            let shares = util.tokenToEur(offer[2])
+            let price = util.tokenToEur(offer[3])
+            let counterOffers = offer[4].map(counterOffer => {
+                return {
+                    buyerTxHash: counterOffer[0],
+                    price: util.tokenToEur(counterOffer[1])
+                }
+            })
+            return {
+                projectTxHash,
+                sellerTxHash,
+                shares,
+                price,
+                counterOffers
+            }
+        }))
+        logger.debug(`Successfully fetched active sell offers: %o`, sellOffersTransformed)
+        callback(null, {
+            offers: sellOffersTransformed
+        })
+    } catch (error) {
+        logger.error(`Error while fetching active sell offers\n%o`, err.pretty(error))
+        err.handle(error, callback)
+    }
+}
+
 module.exports = {
     createSellOffer,
-    acceptCounterOffer
+    acceptCounterOffer,
+    getActiveSellOffers
 }
