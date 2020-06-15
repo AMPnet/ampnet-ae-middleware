@@ -44,7 +44,7 @@ async function postTransaction(tx, callback) {
         logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
     } catch(error) {
-        logger.error("Error while posting transaction \n%o", call.request.data)
+        logger.error("Error while posting transaction \n%o", error)
         logger.error("Error log \n%o", err.pretty(error))
         err.handle(error, callback)
     }
@@ -253,6 +253,14 @@ async function checkTxCaller(callerId) {
 async function checkTxCallee(calleeId) {
     if (calleeId == config.get().contracts.coop.address || calleeId == config.get().contracts.eur.address) { return }
     
+    /**
+     * Special case. Allow calling SellOffer without requiring for its
+     * wallet to be activated. (SellOffers do not require active wallets)
+     */
+    let record = await repo.findByWalletOrThrow(calleeId)
+    if (record.type == enums.TxType.SELL_OFFER_CREATE) { return }
+
+
     let walletActive = await isWalletActive(calleeId)
     if (walletActive) { return }
     

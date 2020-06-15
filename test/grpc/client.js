@@ -328,7 +328,7 @@ module.exports = {
                 if (err != null) {
                     resolve(err)
                 } else {
-                    resolve(result.wallet)
+                    resolve(result)
                 }
             })
         })

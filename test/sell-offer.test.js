@@ -135,25 +135,25 @@ describe('Happy path scenario', function() {
         let activeOffers = await grpcClient.getActiveSellOffers()
         console.log("active offers", activeOffers)
 
-        // let acceptCounterOfferTx = (await axios.get(acceptCounterOfferUrl, {
-        //     params: {
-        //         fromTxHash: addBobWalletTxHash,
-        //         sellOfferTxHash: createSellOfferTxHash,
-        //         buyerWallet: 
-        //     }
-        // }))
+        let acceptCounterOfferTx = (await axios.get(acceptCounterOfferUrl, {
+            params: {
+                fromTxHash: addBobWalletTxHash,
+                sellOfferTxHash: createSellOfferTxHash,
+                buyerTxHash: addAliceWalletTxHash 
+            }
+        })).data.tx
+        let acceptCounterOfferTxSigned = await clients.bob().signTransaction(acceptCounterOfferTx)
+        let acceptCounterOfferTxHash = await grpcClient.postTransaction(acceptCounterOfferTxSigned)
+        await util.waitTxProcessed(acceptCounterOfferTxHash)
 
-        // let allTransactions = await db.getAll()
-        // console.log("all transactions", allTransactions)
+        let allTransactions = await db.getAll()
+        console.log("all transactions", allTransactions)
 
-        // let sellerPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
-        // console.log("sellerPortfolio", sellerPortfolio)
+        let sellerPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
+        console.log("sellerPortfolio", sellerPortfolio)
 
-        // let buyerPortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
-        // console.log("buyerPortfolio", buyerPortfolio)
-
-
-
+        let buyerPortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
+        console.log("buyerPortfolio", buyerPortfolio)
     })
 
 })

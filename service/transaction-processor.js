@@ -442,7 +442,6 @@ async function callSpecialActions(tx) {
 }
 
 async function getSellOfferInfo(sellOfferContract) {
-    console.log("sellOfferContract", sellOfferContract)
     let result = await clients.instance().contractCallStatic(
         contracts.sellOfferSource,
         sellOfferContract,

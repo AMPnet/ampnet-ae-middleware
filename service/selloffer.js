@@ -36,10 +36,12 @@ async function createSellOffer(fromTxHash, projectTxHash, shares, price) {
     return result.tx
 }
 
-async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerWallet) {
-    logger.debug(`Received request to generate acceptCounterOffer transaction.\n\tSeller: ${fromTxHash}\n\tSell Offer: ${sellOfferTxHash}\n\tBuyer: ${buyerWallet}`)
+async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerTxHash) {
+    logger.debug(`Received request to generate acceptCounterOffer transaction.\n\tSeller: ${fromTxHash}\n\tSell Offer: ${sellOfferTxHash}\n\tBuyer: ${buyerTxHash}`)
     let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
     logger.debug(`Seller wallet: ${fromWallet}`)
+    let buyerWallet = ((await repo.findByHashOrThrow(buyerTxHash)).wallet)
+    logger.debug(`Buyer wallet: ${buyerWallet}`)
     let sellOffer = (await repo.findByHashOrThrow(sellOfferTxHash)).to_wallet
     logger.debug(`SellOffer address: ${sellOffer}`)
     let callData = await codec.sellOffer.encodeAcceptCounterOffer(buyerWallet)
@@ -73,34 +75,35 @@ async function getActiveSellOffers(call, callback) {
                     }
                 ).then(callResult => {
                     callResult.decode().then(decoded => {
-                        console.log("decoded", decoded)
                         resolve(decoded)
-                    }).catch(console.log)
-                }).catch(console.log)
+                    })
+                })
             })
         }))
-        console.log("sell offers", sellOffers)
-    
-        let sellOffersFiltered = sellOffers.filter(o => (o[5] && !o[6]))
-        console.log("sell offers filtered", sellOffersFiltered)
-    
+        let sellOffersFiltered = sellOffers.filter(o => (o[5] && !o[6]))    
         let sellOffersTransformed = await Promise.all(sellOffersFiltered.map(async (offer) => {
             let projectTxHash = (await repo.findByWalletOrThrow(offer[0])).hash
             let sellerTxHash = (await repo.findByWalletOrThrow(offer[1])).hash
             let shares = util.tokenToEur(offer[2])
             let price = util.tokenToEur(offer[3])
-            let counterOffers = offer[4].map(counterOffer => {
-                return {
-                    buyerTxHash: counterOffer[0],
-                    price: util.tokenToEur(counterOffer[1])
-                }
+            let counterOffersPromisifed = offer[4].map(counterOffer => {
+                return new Promise(resolve => {
+                    repo.findByWalletOrThrow(counterOffer[0]).then(r => {
+                        let buyerTxHash = r.hash
+                        resolve({
+                            buyerTxHash: buyerTxHash,
+                            price: util.tokenToEur(counterOffer[1])
+                        })
+                    })
+                })
             })
+            let counterOffers = await Promise.all(counterOffersPromisifed)
             return {
-                projectTxHash,
-                sellerTxHash,
-                shares,
-                price,
-                counterOffers
+                projectTxHash: projectTxHash,
+                sellerTxHash: sellerTxHash,
+                shares: shares,
+                price: price,
+                counterOffers: counterOffers
             }
         }))
         logger.debug(`Successfully fetched active sell offers: %o`, sellOffersTransformed)

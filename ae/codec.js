@@ -37,7 +37,7 @@ async function encodeCreateSellOffer(proj, shares, price) {
 }
 
 async function encodeAcceptCounterOffer(buyer) {
-    return contracts.getSellOfferCompiled.encodeCall(
+    return contracts.getSellOfferCompiled().encodeCall(
         functions.sellOffer.acceptCounterOffer,
         [ buyer ]
     )

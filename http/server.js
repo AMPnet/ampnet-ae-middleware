@@ -104,7 +104,6 @@ function addCreateSellOfferRoute() {
             })
         }).catch(error => {
             err.handle(error, function(msg, result) {
-                console.log("msg", msg)
                 res.status(404).send(msg)
             })
         })
@@ -151,7 +150,7 @@ function addAcceptCounterOfferRoute() {
         sellOfferSvc.acceptCounterOffer(
             req.query.fromTxHash,
             req.query.sellOfferTxHash,
-            req.query.buyerWallet
+            req.query.buyerTxHash
         ).then(tx => {
             res.json({
                 tx: tx
@@ -178,7 +177,6 @@ function addGetActiveOffersRoute() {
 
 function addPostTransactionRoute() {
     expr.post('/transactions', async (req, res) => {
-        console.log("req", req.body)
         let tx = req.body.data
         txSvc.postTransaction(tx, function(err, result) {
             if (err != null) {
