@@ -82,7 +82,10 @@ request:
 ```
 method: POST
 route: /transactions
-params: body=tx_x1y2z3...
+body: 
+        {
+            data: tx_x1y2z3...
+        }
 ```
 response:
 ```
