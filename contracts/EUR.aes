@@ -19,7 +19,7 @@ contract EUR =
     claimOwnershipEnabled : bool }
 
   stateful entrypoint init(coop : CoopInterface) : state =
-    { owner       = Call.origin,
+    { owner        = Call.origin,
       totalSupply = 0,
       balances    = {},
       allowed     = {},

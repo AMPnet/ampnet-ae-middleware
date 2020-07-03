@@ -154,6 +154,11 @@ contract Project =
                 _approve(offer.address, shares)
                 offer.activate_offer()
         Chain.event(SellOfferActivated(caller, offer.address))
+    
+    stateful entrypoint activate_sell_offer_beta(shares): bool =
+        let sellerAddress = Call.origin
+        let spenderAddress = Call.caller
+        _approve(sellerAddress, spenderAddress, shares)
 
     stateful entrypoint start_revenue_shares_payout(revenue: int) =
         check_share_payout_preconditions(Call.origin, revenue)
@@ -313,14 +318,13 @@ contract Project =
             investments[investor = 0] @ investment = investment + amount,
             totalFundsRaised @ raised = raised + amount })
     
-    stateful function _approve(spender: address, value: int) : bool = 
-        let caller = Call.origin
-        require(state.organization.coop().is_wallet_active(caller), "#Wallet not activated. Wallet has to be activated before making this action.#")
+    stateful function _approve(seller: address, spender: address, value: int) : bool = 
+        require(state.organization.coop().is_wallet_active(seller), "#Wallet not activated. Wallet has to be activated before making this action.#")
         require(value > 0, "#Amount of shares to be approved for transfer must be grater than 0.#")
-        require(value =< state.investments[caller = 0], "#Shares balance too low!#")
+        require(value =< state.investments[seller = 0], "#Shares balance too low!#")
 
-        put(state{ allowed[(caller, spender)] = value })
-        Chain.event(ApproveTransferProjectShares(caller, spender, value))
+        put(state{ allowed[(seller, spender)] = value })
+        Chain.event(ApproveTransferProjectShares(seller, spender, value))
         true    
     
     stateful function _transfer_shares(from: address, to: address, amount: int) =

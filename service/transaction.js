@@ -356,7 +356,7 @@ async function dryRun(txData) {
                 return
             } 
             let callObj = result.callObj
-            if (callObj.returnType === "revert") {
+            if (callObj.returnType === "revert" || callObj.returnType === "error") {
                 logger.debug(`Error detected while dryRunning transaction!`)
                 let errorMessage = await err.decode(callObj)
                 logger.debug(`Decoded error message: ${errorMessage}`)
