@@ -1,0 +1,119 @@
+contract TokenInterface =
+    entrypoint allowance : (address, address) => int
+    entrypoint balance_of : (address) => int
+    entrypoint transfer : (address, int) => bool
+    entrypoint transfer_from : (address, address, int) => bool
+
+contract ProjectInterface =
+    entrypoint is_completely_funded: () => bool
+    entrypoint get_investment: (address) => int
+    entrypoint get_token: () => TokenInterface
+    entrypoint transfer_shares: (address, address, int) => unit
+    entrypoint activate_sell_offer_beta: (int) => bool
+
+contract SellOffer = 
+
+    datatype event =
+        SharesSold(address, address, int)
+      | CounterOfferPlaced(address, int)
+      | CounterOfferRemoved(address)
+      | SellOfferCanceled
+      | RevenueSharesReturned(address, int)
+      | SellOfferCreated
+
+    record state = {
+        project         : ProjectInterface,
+        token           : TokenInterface,
+        shares          : int,
+        price           : int,
+        counterOffers   : map(address, int),
+        settled         : bool }
+
+    stateful entrypoint init(
+        project: ProjectInterface,
+        shares: int,
+        price: int) : state =
+
+        require(
+            project.is_completely_funded(),
+            "#Can not place sell offer. Associated project not funded completely.#")
+        require(
+            project.get_investment(Call.origin) >= shares,
+            "#Can not place sell offer. Not enough shares to sell.#")
+        
+        project.activate_sell_offer_beta(shares)
+        Chain.event(SellOfferCreated)
+        
+        { project = project,
+          token = project.get_token(),
+          shares = shares,
+          price = price,
+          counterOffers = {},
+          settled = false }
+
+    entrypoint get_offer() : (address * address * int * int * map(address, int) * bool) = (state.project.address, Contract.creator, state.shares, state.price, state.counterOffers, state.settled)
+
+    stateful entrypoint try_to_settle(buyer: address)  =
+        let counterOfferPrice = state.token.allowance(buyer, Contract.address)
+        let buyerBalance = state.token.balance_of(buyer)
+        let seller = Contract.creator
+        require(
+            !state.settled,
+            "#Error: sell offer already settled.#")
+        require(
+            counterOfferPrice =< buyerBalance,
+            "#Error: insufficient funds.#")
+        if (counterOfferPrice >= state.price)
+            state.token.transfer_from(buyer, seller, state.price)
+            state.project.transfer_shares(seller, buyer, state.shares)
+            put(state{ settled = true })
+            Chain.event(SharesSold(buyer, seller, state.price))
+        else
+            if (counterOfferPrice == 0)
+                put(state{ counterOffers = Map.delete(buyer, state.counterOffers) })
+                Chain.event(CounterOfferRemoved(buyer))
+            else
+                put(state{ counterOffers[buyer] = counterOfferPrice })
+                Chain.event(CounterOfferPlaced(buyer, counterOfferPrice))
+
+    stateful entrypoint accept_counter_offer(buyer: address) =
+        require(
+            Call.origin == Contract.creator,
+            "#Error: only seller can accept counter offer.#")
+        require(
+            !state.settled,
+            "#Error: sell offer already settled.#")
+        require(
+            Map.member(buyer, state.counterOffers),
+            "#Error: tried to accept non-existing counter offer.#")
+        let price = state.counterOffers[buyer]
+        let seller = Contract.creator
+        state.token.transfer_from(buyer, seller, price)
+        state.project.transfer_shares(seller, buyer, state.shares)
+        put(state{ settled = true })
+        Chain.event(SharesSold(buyer, seller, price))
+
+    stateful entrypoint cancel_offer() =
+        require(
+            Call.origin == Contract.creator,
+            "#Error: only seller can cancel offer.#")
+        require(
+            !state.settled,
+            "#Error: can not cancel offer. Offer already settled.#")
+        put(state{ settled = true })
+        Chain.event(SellOfferCanceled)
+
+        
+        
+
+        
+        
+    
+
+            
+
+
+            
+        
+
+    

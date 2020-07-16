@@ -6,7 +6,11 @@ let prometheus = require('prom-client')
 let projSvc = require('../service/project')
 let platformSvc = require('../service/platform')
 let eurSvc = require('../service/eur')
+let sellOfferSvc = require('../service/selloffer')
+let txSvc = require('../service/transaction')
+
 let logger = require('../logger')(module)
+let err = require('../error/errors')
 
 var expr;
 var httpServer;
@@ -15,10 +19,20 @@ async function start(config) {
     expr = express()
 
     configureCors()
+    configureExpress()
     configureHealthAndMetrics()
+    
     addInvestmentCancelableRoute()
     addPlatformSummaryRoute()
     addGetBalanceRoute()
+
+    addCreateSellOfferRoute()
+    addActivateSellOfferRoute()
+    addAcceptSellOfferRoute()
+    addAcceptCounterOfferRoute()
+    addGetActiveOffersRoute()
+    
+    addPostTransactionRoute()
     
     await startServer(config)
 }
@@ -29,6 +43,11 @@ async function stop() {
 
 function configureCors() {
     expr.use(cors())
+}
+
+function configureExpress() {
+    expr.use(express.urlencoded({ extended: true }))
+    expr.use(express.json())
 }
 
 function addGetBalanceRoute() {
@@ -69,6 +88,105 @@ function addPlatformSummaryRoute() {
     expr.get('/summary', async (req, res) => {
         let result = await platformSvc.getSummary()
         res.json(result)
+    })
+}
+
+function addCreateSellOfferRoute() {
+    expr.get('/market/create-offer', async (req, res) => {
+        sellOfferSvc.createSellOffer(
+            req.query.fromTxHash,
+            req.query.projectTxHash,
+            req.query.shares,
+            req.query.price
+        ).then(tx => {
+            res.json({
+                tx: tx
+            })
+        }).catch(error => {
+            err.handle(error, function(msg, result) {
+                res.status(404).send(msg)
+            })
+        })
+    })
+}
+
+function addActivateSellOfferRoute() {
+    expr.get('/market/activate-offer', async (req, res) => {
+        projSvc.activateSellOffer(
+            req.query.fromTxHash,
+            req.query.sellOfferTxHash
+        ).then(tx => {
+            res.json({
+                tx: tx
+            })
+        }).catch(error => {
+            err.handle(error, function(msg, result) {
+                res.status(404).send(msg)
+            })
+        })
+    })
+}
+
+function addAcceptSellOfferRoute() {
+    expr.get('/market/accept-sell-offer', async (req, res) => {
+        eurSvc.acceptSellOffer(
+            req.query.fromTxHash,
+            req.query.sellOfferTxHash,
+            req.query.counterOfferPrice
+        ).then(tx => {
+            res.json({
+                tx: tx
+            })
+        }).catch(error => {
+            err.handle(error, function(msg, result) {
+                res.status(404).send(msg)
+            })
+        })
+    })  
+}
+
+function addAcceptCounterOfferRoute() {
+    expr.get('/market/accept-counter-offer', async (req, res) => {
+        sellOfferSvc.acceptCounterOffer(
+            req.query.fromTxHash,
+            req.query.sellOfferTxHash,
+            req.query.buyerTxHash
+        ).then(tx => {
+            res.json({
+                tx: tx
+            })
+        }).catch(error => {
+            err.handle(error, function(msg, result) {
+                res.status(404).send(msg)
+            })
+        })
+    })
+}
+
+function addGetActiveOffersRoute() {
+    expr.get('/market/active-offers', async (req, res) => {
+        sellOfferSvc.getActiveSellOffers().then(result => {
+            res.status(200).send("ok")
+        }).catch(error => {
+            err.handle(error, function(msg, result) {
+                res.status(404).send(msg)
+            })
+        })
+    })
+}
+
+function addPostTransactionRoute() {
+    expr.post('/transactions', async (req, res) => {
+        let tx = req.body.data
+        txSvc.postTransaction(tx, function(err, result) {
+            if (err != null) {
+                res.status(404).send(err)
+            } else {
+                res.json({
+                    tx_hash: result.txHash
+                })
+            }
+        })
     })
 }
 
