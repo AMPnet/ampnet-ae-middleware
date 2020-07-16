@@ -41,7 +41,7 @@ describe('Error handling tests', function() {
         assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
     }) 
 
-    it.only('Should fail with correct error message if invalid contract is called', async () => {
+    it('Should fail with correct error message if invalid contract is called', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
