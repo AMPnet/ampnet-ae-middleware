@@ -2,7 +2,7 @@
 
 Request and response examples.
 
-NOTE: <i>sellOfferTxHash</i> in all requests represents SellOffer creation transaction (not to be confused with activation transaction). 
+NOTE: <i>sellOfferTxHash</i> in all requests represents SellOffer creation transaction. 
 
 ## Create sell offer
 
@@ -14,22 +14,6 @@ query:  fromTxHash=th_x1y2z3...
         projectTxHash=th_x1y2z3...
         shares=10000
         price=300
-```
-response:
-```
-{
-    tx: "tx_x1y2z3..."
-}
-```
-
-## Activate sell offer
-
-request:
-```
-method: GET
-route:  /market/activate-offer
-query:  fromTxHash=th_x1y2z3...
-        sellOfferTxHash=th_x1y2z3...
 ```
 response:
 ```

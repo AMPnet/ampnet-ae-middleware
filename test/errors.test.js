@@ -41,7 +41,7 @@ describe('Error handling tests', function() {
         assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
     }) 
 
-    it('Should fail with correct error message if invalid contract is called', async () => {
+    it.only('Should fail with correct error message if invalid contract is called', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
@@ -55,7 +55,7 @@ describe('Error handling tests', function() {
             abiVersion: 1,
             amount: 0,
             gas: 10000,
-            callData:  randomCallData
+            callData: randomCallData
         })
         let randomContractCallTxSigned = await clients.bob().signTransaction(randomContractCallTx)
     

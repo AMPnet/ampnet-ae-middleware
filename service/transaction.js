@@ -89,7 +89,7 @@ async function getPortfolio(call, callback) {
                 projectTxHash: entry[0],
                 amount: entry[1]
             }
-        })
+        }).filter(entry => { return entry.amount > 0 })
         logger.debug("Successfully fetched portfolio \n%o", portfolio)
         callback(null, { portfolio: portfolio })
     } catch (error) {
@@ -257,9 +257,8 @@ async function checkTxCallee(calleeId) {
      * Special case. Allow calling SellOffer without requiring for its
      * wallet to be activated. (SellOffers do not require active wallets)
      */
-    let record = await repo.findByWalletOrThrow(calleeId)
-    if (record.type == enums.TxType.SELL_OFFER_CREATE) { return }
-
+    let record = await repo.findFirstByWallet(calleeId)
+    if (typeof record !== 'undefined' && record.type == enums.TxType.SELL_OFFER_CREATE) { return }
 
     let walletActive = await isWalletActive(calleeId)
     if (walletActive) { return }

@@ -9,7 +9,7 @@ contract ProjectInterface =
     entrypoint get_investment: (address) => int
     entrypoint get_token: () => TokenInterface
     entrypoint transfer_shares: (address, address, int) => unit
-    entrypoint activate_sell_offer_beta: (int, int) => bool
+    entrypoint activate_sell_offer_beta: (int) => bool
 
 contract SellOffer = 
 
@@ -27,7 +27,6 @@ contract SellOffer =
         shares          : int,
         price           : int,
         counterOffers   : map(address, int),
-        activated       : bool,
         settled         : bool }
 
     stateful entrypoint init(
@@ -50,33 +49,14 @@ contract SellOffer =
           shares = shares,
           price = price,
           counterOffers = {},
-          activated = false,
           settled = false }
 
-    entrypoint get_offer() : (address * address * int * int * map(address, int) * bool * bool) = (state.project.address, Contract.creator, state.shares, state.price, state.counterOffers, state.activated, state.settled)
-
-    stateful entrypoint activate_offer() =
-        require(
-            !state.settled,
-            "#Error: offer already settled.#")
-        require(
-            !state.activated,
-            "#Error: offer already activated.#")
-        require(
-            Call.caller == state.project.address,
-            "#Sell offer can only be activated by associated project, after shares have been placed for public offering by their owner.#")
-        require(
-            Call.origin == Contract.creator,
-            "#Sell offer can only be activated by associated project, after shares have been placed for public offering by their owner.#")
-        put(state{ activated = true })
+    entrypoint get_offer() : (address * address * int * int * map(address, int) * bool) = (state.project.address, Contract.creator, state.shares, state.price, state.counterOffers, state.settled)
 
     stateful entrypoint try_to_settle(buyer: address)  =
         let counterOfferPrice = state.token.allowance(buyer, Contract.address)
         let buyerBalance = state.token.balance_of(buyer)
         let seller = Contract.creator
-        require(
-            state.activated,
-            "#Error: sell offer not activated.#")
         require(
             !state.settled,
             "#Error: sell offer already settled.#")
@@ -101,9 +81,6 @@ contract SellOffer =
             Call.origin == Contract.creator,
             "#Error: only seller can accept counter offer.#")
         require(
-            state.activated,
-            "#Error: sell offer not activated.#")
-        require(
             !state.settled,
             "#Error: sell offer already settled.#")
         require(
@@ -120,9 +97,6 @@ contract SellOffer =
         require(
             Call.origin == Contract.creator,
             "#Error: only seller can cancel offer.#")
-        require(
-            state.activated,
-            "#Error: can not cancel unactivated offer.#")
         require(
             !state.settled,
             "#Error: can not cancel offer. Offer already settled.#")

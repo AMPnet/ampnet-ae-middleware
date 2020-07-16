@@ -290,18 +290,6 @@ async function updateTransactionState(info, poll, type) {
                 amount: counterOfferPrice,
                 processed_at: new Date()
             })
-        case enums.TxType.SELL_OFFER_ACTIVATE:
-            sellerAddress = util.decodeAddress(event.topics[1])
-            offerAddress = util.decodeAddress(event.topics[2])
-            return repo.update(poll.hash, {
-                from_wallet: sellerAddress,
-                to_wallet: util.enforceAkPrefix(offerAddress),
-                input: poll.tx.callData,
-                state: enums.TxState.MINED,
-                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
-                type: enums.TxType.SELL_OFFER_ACTIVATE,
-                processed_at: new Date()
-            })
         case enums.TxType.COUNTER_OFFER_REMOVED:
             buyerAddress = util.decodeAddress(event.topics[1])
             return repo.update(poll.hash, {

@@ -35,7 +35,6 @@ let TxType = {
     COOP_OWNERSHIP_TRANSFER: "COOP_OWNERSHIP_TRANSFER",
     EUR_OWNERSHIP_TRANSFER: "EUR_OWNERSHIP_TRANSFER",
     SELL_OFFER_CREATE: "SELL_OFFER_CREATE",
-    SELL_OFFER_ACTIVATE: "SELL_OFFER_ACTIVATE",
     APPROVE_COUNTER_OFFER: "APPROVE_COUNTER_OFFER",
     COUNTER_OFFER_PLACED: "COUNTER_OFFER_PLACED",
     COUNTER_OFFER_REMOVED: "COUNTER_OFFER_REMOVED",
@@ -57,10 +56,9 @@ let events = new Map([
     [util.blake2b('CoopOwnershipChanged'), TxType.COOP_OWNERSHIP_TRANSFER],
     [util.blake2b('EurOwnershipChanged'), TxType.EUR_OWNERSHIP_TRANSFER],
     [util.blake2b('SellOfferCreated'), TxType.SELL_OFFER_CREATE],
-    [util.blake2b('SellOfferActivated'), TxType.SELL_OFFER_ACTIVATE],
     [util.blake2b('CounterOfferPlaced'), TxType.COUNTER_OFFER_PLACED],
     [util.blake2b('CounterOfferRemoved'), TxType.COUNTER_OFFER_REMOVED],
-    [util.blake2b('SharesSold'), TxType.SHARES_SOLD],
+    [util.blake2b('SharesSold'), TxType.SHARES_SOLD]
 ])
 
 let TxState = {
@@ -113,7 +111,6 @@ let functions = {
         isInvestmentCancelable: "can_cancel_investment",
         checkInvestmentPreconditions: "check_investment_preconditions",
         checkSharePayoutPreconditions: "check_share_payout_preconditions",
-        activateSellOffer: "activate_sell_offer"
     },
     sellOffer: {
         tryToSettle: "try_to_settle",

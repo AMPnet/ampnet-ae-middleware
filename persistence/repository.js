@@ -43,6 +43,15 @@ async function findByHashOrThrow(txHash) {
     })
 }
 
+async function findFirstByWallet(wallet) {
+    let akWallet = util.enforceAkPrefix(wallet)
+    return new Promise( (resolve, reject) => {
+        knex('transaction')
+        .where({ wallet: akWallet })
+        .then((rows) => { resolve(rows[0]) })
+    })
+}
+
 async function findByWalletOrThrow(wallet) {
     let akWallet = util.enforceAkPrefix(wallet)
     return new Promise( (resolve, reject) => {
@@ -210,6 +219,7 @@ async function runMigrations() {
 module.exports = {
     findByHashOrThrow,
     findByWalletOrThrow,
+    findFirstByWallet,
     getWalletTypeOrThrow,
     get,
     getUserTransactions,

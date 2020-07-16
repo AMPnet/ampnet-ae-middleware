@@ -17,7 +17,7 @@ let db = require('./util/db')
 
 let config = require('../config')
 
-describe('Happy path scenario', function() {
+describe('Sell offers test', function() {
 
     beforeEach(async() => {
         await grpcServer.start()
@@ -35,7 +35,6 @@ describe('Happy path scenario', function() {
     it('Should be possible to owned shares of fully funded project to another cooperative member', async () => {
         let baseUrl = `http://0.0.0.0:${config.get().http.port}`
         let createSellOfferUrl = `${baseUrl}/market/create-offer`
-        let activateSellOfferUrl = `${baseUrl}/market/activate-offer`
         let acceptSellOfferUrl = `${baseUrl}/market/accept-sell-offer`
         let acceptCounterOfferUrl = `${baseUrl}/market/accept-counter-offer`
         let postTransactionUrl = `${baseUrl}/transactions`
@@ -111,49 +110,39 @@ describe('Happy path scenario', function() {
         let createSellOfferTxHash = await grpcClient.postTransaction(createSellOfferTxSigned)
         await util.waitTxProcessed(createSellOfferTxHash)
 
-        // let activateSellOfferTx = (await axios.get(activateSellOfferUrl, {
-        //     params: {
-        //         fromTxHash: addBobWalletTxHash,
-        //         sellOfferTxHash: createSellOfferTxHash
-        //     }
-        // })).data.tx
-        // let activateSellOfferSigned = await clients.bob().signTransaction(activateSellOfferTx)
-        // let activateSellOfferSignedTxHash = await grpcClient.postTransaction(activateSellOfferSigned)
-        // await util.waitTxProcessed(activateSellOfferSignedTxHash)
+        let acceptSellOfferTx = (await axios.get(acceptSellOfferUrl, {
+            params: {
+                fromTxHash: addAliceWalletTxHash,
+                sellOfferTxHash: createSellOfferTxHash,
+                counterOfferPrice: sharesPrice / 2
+            }
+        })).data.tx
+        let acceptSellOfferTxSigned = await clients.alice().signTransaction(acceptSellOfferTx)
+        let acceptSellOfferTxHash = await grpcClient.postTransaction(acceptSellOfferTxSigned)
+        await util.waitTxProcessed(acceptSellOfferTxHash)
 
-        // let acceptSellOfferTx = (await axios.get(acceptSellOfferUrl, {
-        //     params: {
-        //         fromTxHash: addAliceWalletTxHash,
-        //         sellOfferTxHash: createSellOfferTxHash,
-        //         counterOfferPrice: sharesPrice / 2
-        //     }
-        // })).data.tx
-        // let acceptSellOfferTxSigned = await clients.alice().signTransaction(acceptSellOfferTx)
-        // let acceptSellOfferTxHash = await grpcClient.postTransaction(acceptSellOfferTxSigned)
-        // await util.waitTxProcessed(acceptSellOfferTxHash)
+        let activeOffers = await grpcClient.getActiveSellOffers()
+        console.log("active offers", activeOffers)
 
-        // let activeOffers = await grpcClient.getActiveSellOffers()
-        // console.log("active offers", activeOffers)
+        let acceptCounterOfferTx = (await axios.get(acceptCounterOfferUrl, {
+            params: {
+                fromTxHash: addBobWalletTxHash,
+                sellOfferTxHash: createSellOfferTxHash,
+                buyerTxHash: addAliceWalletTxHash 
+            }
+        })).data.tx
+        let acceptCounterOfferTxSigned = await clients.bob().signTransaction(acceptCounterOfferTx)
+        let acceptCounterOfferTxHash = await grpcClient.postTransaction(acceptCounterOfferTxSigned)
+        await util.waitTxProcessed(acceptCounterOfferTxHash)
 
-        // let acceptCounterOfferTx = (await axios.get(acceptCounterOfferUrl, {
-        //     params: {
-        //         fromTxHash: addBobWalletTxHash,
-        //         sellOfferTxHash: createSellOfferTxHash,
-        //         buyerTxHash: addAliceWalletTxHash 
-        //     }
-        // })).data.tx
-        // let acceptCounterOfferTxSigned = await clients.bob().signTransaction(acceptCounterOfferTx)
-        // let acceptCounterOfferTxHash = await grpcClient.postTransaction(acceptCounterOfferTxSigned)
-        // await util.waitTxProcessed(acceptCounterOfferTxHash)
+        let allTransactions = await db.getAll()
+        console.log("all transactions", allTransactions)
 
-        // let allTransactions = await db.getAll()
-        // console.log("all transactions", allTransactions)
+        let sellerPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
+        console.log("sellerPortfolio", sellerPortfolio)
 
-        // let sellerPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
-        // console.log("sellerPortfolio", sellerPortfolio)
-
-        // let buyerPortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
-        // console.log("buyerPortfolio", buyerPortfolio)
+        let buyerPortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
+        console.log("buyerPortfolio", buyerPortfolio)
     })
 
 })

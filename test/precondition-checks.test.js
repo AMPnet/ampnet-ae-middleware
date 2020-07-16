@@ -16,7 +16,7 @@ let db = require('./util/db')
 
 let config = require('../config')
 
-describe('Auto funding test', function() {
+describe('Precondition checks test', function() {
 
     beforeEach(async() => {
         process.env['GIFT_AMOUNT'] = 0
