@@ -80,7 +80,7 @@ async function getActiveSellOffers(call, callback) {
                 })
             })
         }))
-        let sellOffersFiltered = sellOffers.filter(o => (o[5] && !o[6]))    
+        let sellOffersFiltered = sellOffers.filter(offer => !offer[5])    
         let sellOffersTransformed = await Promise.all(sellOffersFiltered.map(async (offer) => {
             let projectTxHash = (await repo.findByWalletOrThrow(offer[0])).hash
             let sellerTxHash = (await repo.findByWalletOrThrow(offer[1])).hash
