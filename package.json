@@ -29,7 +29,7 @@
     "test": "COOP_OWNER=ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk EUR_OWNER=ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk ./node_modules/mocha/bin/mocha --timeout 2000000"
   },
   "devDependencies": {
-    "@aeternity/aepp-sdk": "^7.0.0",
+    "@aeternity/aepp-sdk": "^7.6.0",
     "axios": "^0.19.2",
     "chai": "^4.2.0",
     "mocha": "^7.0.1",
