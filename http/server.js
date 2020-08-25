@@ -31,6 +31,7 @@ async function start(config) {
     addAcceptSellOfferRoute()
     addAcceptCounterOfferRoute()
     addGetActiveOffersRoute()
+    addGetProjectInfoRoute()
     
     addPostTransactionRoute()
     
@@ -171,6 +172,16 @@ function addGetActiveOffersRoute() {
             err.handle(error, function(msg, result) {
                 res.status(404).send(msg)
             })
+        })
+    })
+}
+
+function addGetProjectInfoRoute() {
+    expr.get('/projects/:projectHash', async (req, res) => {
+        let info = await projSvc.getProjectInfo(req.params.projectHash)
+        res.json({
+            projectHash: req.params.projectHash,
+            ...info
         })
     })
 }

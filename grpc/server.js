@@ -109,7 +109,7 @@ module.exports = {
             getTransactionInfo: txSvc.getTransactionInfo,
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
-            getProjectsInfo: projSvc.getInfo,
+            getProjectsInfo: projSvc.getProjectsInfo,
             getInvestmentsInProject: txSvc.getInvestmentsInProject,
             generateCancelInvestmentTx: projSvc.cancelInvestment,
             generateApproveProjectWithdrawTx: projSvc.approveWithdraw,

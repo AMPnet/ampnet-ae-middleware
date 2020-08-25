@@ -104,6 +104,7 @@ message GetProjectsInfoResponse {
         string max_per_user_investment = 5;
         string ends_at = 6;
         bool payout_in_process = 7;
+        string balance = 8;
     }
     repeated ProjectInfo projects = 1;
 }

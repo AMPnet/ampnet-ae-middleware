@@ -192,7 +192,7 @@ contract Project =
         recursive_revenue_batch_payout(fromIndex, toIndex, revenue)
         state.payoutInProcess
 
-    entrypoint get_project_info() : (int * int * int * int * int * bool) = (state.minInvestmentPerUser, state.maxInvestmentPerUser, state.investmentCap, state.endsAt, state.totalFundsRaised, state.payoutInProcess)
+    entrypoint get_project_info() : (int * int * int * int * int * bool * int) = (state.minInvestmentPerUser, state.maxInvestmentPerUser, state.investmentCap, state.endsAt, state.totalFundsRaised, state.payoutInProcess, _balance())
 
     entrypoint get_token() : TokenInterface = state.organization.coop().token()
 
@@ -293,7 +293,7 @@ contract Project =
             "#Revenue is zero. Aborting.#")
 
         require(
-            state.organization.coop().token().balance_of(Contract.address) >= revenue,
+            _balance() >= revenue,
             "#Can not start revenue share payout. Project balance too low. Mint revenue to project wallet and try again.#")
         
         require(
@@ -346,3 +346,5 @@ contract Project =
             investments[to = 0] @ investment = investment + amount, 
             investments[from] @ investment = investment - amount,
             allowed[(from, caller)] @ approvedForTransfer = approvedForTransfer - amount })
+
+    function _balance() = state.organization.coop().token().balance_of(Contract.address)
