@@ -128,7 +128,7 @@ async function startRevenueSharesPayout(call, callback) {
     }
 }
 
-async function getInfo(call, callback) {
+async function getProjectsInfo(call, callback) {
     try {
         logger.debug(`Received request to fetch statuses for projects: ${call.request.projectTxHashes}`)
         let walletToHashMap = new Map()
@@ -149,29 +149,14 @@ async function getInfo(call, callback) {
         let projectInfoResults = await Promise.all(
             projectWallets.map(wallet => {
                 return new Promise((resolve, reject) => {
-                    client.instance().contractCallStatic(
-                        contracts.projSource,
-                        util.enforceCtPrefix(wallet),
-                        functions.proj.getInfo,
-                        [ ],
-                        {
-                            callerId: Crypto.generateKeyPair().publicKey
-                        }
-                    ).then(result => {
-                        result.decode().then(decoded => {
-                            resolve({
-                                projectTxHash: walletToHashMap.get(wallet),
-                                minPerUserInvestment: util.tokenToEur(decoded[0]),
-                                maxPerUserInvestment: util.tokenToEur(decoded[1]),
-                                investmentCap: util.tokenToEur(decoded[2]),
-                                endsAt: decoded[3],
-                                totalFundsRaised: util.tokenToEur(decoded[4]),
-                                payoutInProcess: decoded[5],
-                            })
+                    getProjectInfo(wallet).then(info => {
+                        resolve({
+                            projectTxHash: walletToHashMap.get(wallet),
+                            ...info
                         })
-                    }).catch(error => {
-                        reject(error)
-                    })
+                    }).catch(err =>
+                        reject(err)
+                    )
                 })
             })
         )
@@ -213,7 +198,56 @@ async function checkSharePayoutPreconditions(caller, project, revenue) {
         }
     )
     logger.debug(`Preconditions checklist result: %o`, result)
-}   
+}
+
+async function activateSellOffer(fromTxHash, sellOfferTxHash) {
+    logger.debug(`Received request to generate activateSellOffer transaction.\nCaller ${fromTxHash} wants to activate sell offer ${sellOfferTxHash}`)
+    let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
+    logger.debug(`Caller wallet: ${fromWallet}`)
+    let sellOfferCreateRecord = await repo.findByHashOrThrow(sellOfferTxHash)
+    let sellOfferContract = util.enforceCtPrefix(sellOfferCreateRecord.to_wallet)
+    logger.debug(`SellOffer contract: ${sellOfferContract}`)
+    let bytecode = contracts.getSellOfferCompiled().bytecode
+    let sellOfferCreateCallData = await codec.decodeDataByBytecode(bytecode, sellOfferCreateRecord.input)
+    let projectContract = util.enforceCtPrefix(sellOfferCreateCallData.arguments[0].value)
+    logger.debug(`Project contract: ${projectContract}`)
+    let callData = await codec.proj.encodeActivateSellOffer(sellOfferContract)
+    let tx = await client.instance().contractCallTx({
+        callerId: fromWallet,
+        contractId: projectContract,
+        amount: 0,
+        gas: config.get().contractCallGasAmount,
+        callData: callData
+    })
+    logger.debug(`Successfully generated activateSellOffer transaction: ${tx}`)
+    return tx
+}
+
+async function getProjectInfo(wallet) {
+    var contract = wallet
+    if (wallet.startsWith("th_")) {
+        contract = (await repo.findByHashOrThrow(wallet)).wallet
+    }
+    let result = await client.instance().contractCallStatic(
+        contracts.projSource,
+        util.enforceCtPrefix(contract),
+        functions.proj.getInfo,
+        [ ],
+        {
+            callerId: Crypto.generateKeyPair().publicKey
+        }
+    )
+    let decoded = await result.decode()
+    return {
+        minPerUserInvestment: util.tokenToEur(decoded[0]),
+        maxPerUserInvestment: util.tokenToEur(decoded[1]),
+        investmentCap: util.tokenToEur(decoded[2]),
+        endsAt: decoded[3],
+        totalFundsRaised: util.tokenToEur(decoded[4]),
+        payoutInProcess: decoded[5],
+        balance: util.tokenToEur(decoded[6])
+    }
+}
 
 module.exports = { 
     createProject,
@@ -222,5 +256,7 @@ module.exports = {
     isInvestmentCancelable,
     canCancelInvestment,
     startRevenueSharesPayout, 
-    getInfo 
+    getProjectsInfo,
+    activateSellOffer,
+    getProjectInfo
 }

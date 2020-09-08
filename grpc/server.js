@@ -2,7 +2,11 @@
 let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc-middleware')
+<<<<<<< HEAD
 let { uuid } = require('uuidv4')
+=======
+let uuid = require('uuidv4').uuid
+>>>>>>> origin/dependabot/npm_and_yarn/mocha-8.1.3
 let interceptors = require('@hpidcock/node-grpc-interceptors')
 let ServiceEnv = require('../enums/enums').ServiceEnv
 
@@ -25,6 +29,7 @@ let coopSvc = require('../service/coop')
 let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
+let sellOfferSvc = require('../service/selloffer')
 let stateChecker = require('../service/state-checker')
 
 // repository
@@ -104,11 +109,11 @@ module.exports = {
             generateCreateProjectTx: projSvc.createProject,
             generateInvestTx: eurSvc.invest,
             generateStartRevenueSharesPayoutTx: projSvc.startRevenueSharesPayout,
-            postTransaction: txSvc.postTransaction,
+            postTransaction: txSvc.postTransactionGrpc,
             getTransactionInfo: txSvc.getTransactionInfo,
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
-            getProjectsInfo: projSvc.getInfo,
+            getProjectsInfo: projSvc.getProjectsInfo,
             getInvestmentsInProject: txSvc.getInvestmentsInProject,
             generateCancelInvestmentTx: projSvc.cancelInvestment,
             generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
@@ -116,7 +121,8 @@ module.exports = {
             getPlatformManager: coopSvc.getPlatformManager,
             getTokenIssuer: eurSvc.getTokenIssuer,
             generateTransferPlatformManagerOwnershipTx: coopSvc.transferOwnership,
-            generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership
+            generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
+            getActiveSellOffers: sellOfferSvc.getActiveSellOffers
         });
 
         // Check state

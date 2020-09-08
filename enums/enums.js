@@ -33,7 +33,12 @@ let TxType = {
     WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT",
     CANCEL_INVESTMENT: "CANCEL_INVESTMENT",
     COOP_OWNERSHIP_TRANSFER: "COOP_OWNERSHIP_TRANSFER",
-    EUR_OWNERSHIP_TRANSFER: "EUR_OWNERSHIP_TRANSFER"
+    EUR_OWNERSHIP_TRANSFER: "EUR_OWNERSHIP_TRANSFER",
+    SELL_OFFER_CREATE: "SELL_OFFER_CREATE",
+    APPROVE_COUNTER_OFFER: "APPROVE_COUNTER_OFFER",
+    COUNTER_OFFER_PLACED: "COUNTER_OFFER_PLACED",
+    COUNTER_OFFER_REMOVED: "COUNTER_OFFER_REMOVED",
+    SHARES_SOLD: "SHARES_SOLD"
 }
 
 let events = new Map([
@@ -49,7 +54,11 @@ let events = new Map([
     [util.blake2b('ApproveWithdrawProjectFunds'), TxType.PENDING_PROJ_WITHDRAW],
     [util.blake2b('InvestmentCanceled'), TxType.CANCEL_INVESTMENT],
     [util.blake2b('CoopOwnershipChanged'), TxType.COOP_OWNERSHIP_TRANSFER],
-    [util.blake2b('EurOwnershipChanged'), TxType.EUR_OWNERSHIP_TRANSFER]
+    [util.blake2b('EurOwnershipChanged'), TxType.EUR_OWNERSHIP_TRANSFER],
+    [util.blake2b('SellOfferCreated'), TxType.SELL_OFFER_CREATE],
+    [util.blake2b('CounterOfferPlaced'), TxType.COUNTER_OFFER_PLACED],
+    [util.blake2b('CounterOfferRemoved'), TxType.COUNTER_OFFER_REMOVED],
+    [util.blake2b('SharesSold'), TxType.SHARES_SOLD]
 ])
 
 let TxState = {
@@ -101,7 +110,13 @@ let functions = {
         cancelInvestment: "cancel_investment",
         isInvestmentCancelable: "can_cancel_investment",
         checkInvestmentPreconditions: "check_investment_preconditions",
-        checkSharePayoutPreconditions: "check_share_payout_preconditions"
+        checkSharePayoutPreconditions: "check_share_payout_preconditions",
+    },
+    sellOffer: {
+        tryToSettle: "try_to_settle",
+        acceptCounterOffer: "accept_counter_offer",
+        cancelOffer: "cancel_offer",
+        getOffer: "get_offer"
     }
 }
 

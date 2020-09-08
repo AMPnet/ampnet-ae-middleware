@@ -37,7 +37,19 @@ describe('Portfolio fetch tests', function() {
             created_at: new Date()
         })
 
+        sellerWallet = "ak_seller_wallet"
+        sellerWalletHash = "th_seller_wallet_hash"
+        await db.insert({
+            hash: sellerWalletHash,
+            state: TxState.MINED,
+            type: TxType.WALLET_CREATE,
+            wallet: sellerWallet,
+            wallet_type: WalletType.USER,
+            created_at: new Date()
+        })
+
         projectWallet = "ak_project_wallet"
+        projectContract = "ct_project_wallet"
         projectWalletHash = "th_project_hash"
         await db.insert({
             hash: projectWalletHash,
@@ -175,6 +187,36 @@ describe('Portfolio fetch tests', function() {
         let p7secondProject = p7.filter(t => { return t.projectTxHash == secondProjectHash })[0]
         assert.strictEqual(p7secondProject.projectTxHash, secondProjectHash)
         assert.equal(p7secondProject.amount, secondProjectInvestment)
+
+        sellerWalletInvestment = 200
+        sellerWalletInvestmentPrice = 100
+        await db.insert({
+            hash: "random-hash-9",
+            state: TxState.MINED,
+            type: TxType.INVEST,
+            from_wallet: sellerWallet,
+            to_wallet: projectWallet,
+            amount: sellerWalletInvestment,
+            created_at: new Date()
+        })
+        await db.insert({
+            hash: "random-hash-10",
+            state: TxState.MINED,
+            type: TxType.SHARES_SOLD,
+            from_wallet: sellerWallet,
+            to_wallet: userWallet,
+            input: `${projectContract};${sellerWalletInvestmentPrice}`,
+            amount: sellerWalletInvestment,
+            created_at: new Date()
+        })
+
+        let p8 = await grpcClient.getPortfolio(userWalletHash)
+        let p8firstProject = p8.filter(t => { return t.projectTxHash == projectWalletHash })[0]
+        assert.strictEqual(p8firstProject.projectTxHash, projectWalletHash)
+        assert.equal(p8firstProject.amount, firstInvestmentAmount + sellerWalletInvestment)
+        
+        let p9 = await grpcClient.getPortfolio(sellerWalletHash)
+        assert.isUndefined(p9)
     })
 
 })

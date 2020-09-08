@@ -17,7 +17,7 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
-describe('Auto funding test', function() {
+describe('DB records recovery test', function() {
 
     beforeEach(async() => {
         await grpcServer.start()

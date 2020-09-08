@@ -21,6 +21,7 @@ async function findByHashOrThrow(txHash) {
             else {
                 let record = rows[0]
                 switch (record.type) {
+                    case TxType.SELL_OFFER_CREATE:
                     case TxType.WALLET_CREATE:
                         switch (record.state) {
                             case TxState.MINED:
@@ -39,6 +40,15 @@ async function findByHashOrThrow(txHash) {
             }
 
         })
+    })
+}
+
+async function findFirstByWallet(wallet) {
+    let akWallet = util.enforceAkPrefix(wallet)
+    return new Promise( (resolve, reject) => {
+        knex('transaction')
+        .where({ wallet: akWallet })
+        .then((rows) => { resolve(rows[0]) })
     })
 }
 
@@ -156,6 +166,20 @@ async function getUserUncanceledInvestments(wallet) {
     })
 }
 
+async function getUserMarketTransactions(wallet) {
+    return new Promise(resolve => {
+        knex.raw(`
+            select * from transaction t
+            where
+                (t.from_wallet='${wallet}' or t.to_wallet='${wallet}') and
+                t.type='${enums.TxType.SHARES_SOLD}' and
+                t.state='${enums.TxState.MINED}'
+        `).then(result => {
+            resolve(result.rows)
+        })
+    })
+}
+
 async function getProjectTransactions(projectWallet) {
     return new Promise(resolve => {
         knex('transaction')
@@ -195,11 +219,13 @@ async function runMigrations() {
 module.exports = {
     findByHashOrThrow,
     findByWalletOrThrow,
+    findFirstByWallet,
     getWalletTypeOrThrow,
     get,
     getUserTransactions,
     getProjectTransactions,
     getUserUncanceledInvestments,
+    getUserMarketTransactions,
     saveTransaction,
     update,
     saveHash,

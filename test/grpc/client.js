@@ -321,5 +321,16 @@ module.exports = {
                 }
             })
         })
+    },
+    getActiveSellOffers: async function() {
+        return new Promise(resolve => {
+            client.getActiveSellOffers({}, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result)
+                }
+            })
+        })
     }
 }

@@ -55,7 +55,7 @@ describe('Error handling tests', function() {
             abiVersion: 1,
             amount: 0,
             gas: 10000,
-            callData:  randomCallData
+            callData: randomCallData
         })
         let randomContractCallTxSigned = await clients.bob().signTransaction(randomContractCallTx)
     

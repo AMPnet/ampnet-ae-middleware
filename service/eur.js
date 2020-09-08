@@ -116,6 +116,25 @@ async function invest(call, callback) {
     }
 }
 
+async function acceptSellOffer(fromTxHash, sellOfferTxHash, counterOfferPrice) {
+    logger.debug(`Received request to generate acceptSellOffer transaction. CallerHash: ${fromTxHash}; SellOfferHash: ${sellOfferTxHash}; CounterOfferPrice: ${counterOfferPrice}`)
+    let buyer = (await repo.findByHashOrThrow(fromTxHash)).wallet
+    logger.debug(`Buyer wallet: ${buyer}`)
+    let sellOffer = (await repo.findByHashOrThrow(sellOfferTxHash)).to_wallet
+    logger.debug(`SellOffer address: ${sellOffer}`)
+    let amount = util.eurToToken(counterOfferPrice)
+    let callData = await codec.eur.encodeApprove(sellOffer, amount)
+    let tx = await client.instance().contractCallTx({
+        callerId: buyer,
+        contractId: config.get().contracts.eur.address,
+        amount: 0,
+        gas: config.get().contractCallGasAmount,
+        callData: callData
+    })
+    logger.debug(`Successfully generated acceptSellOffer tx: ${tx}`)
+    return tx
+}
+
 async function getTokenIssuer(call, callback) {
     logger.debug(`Received request to fetch token issuer wallet.`)
     try {
@@ -211,7 +230,8 @@ module.exports = {
     approveWithdraw, 
     burnFrom, 
     balance, 
-    invest ,
+    invest,
+    acceptSellOffer,
     getTokenIssuer,
     transferOwnership,
     getBalance

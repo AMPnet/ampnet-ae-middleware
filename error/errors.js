@@ -12,6 +12,7 @@ let type = {
     WALLET_CREATION_PENDING: "12",
     GROUP_INVALID_COOP_ARG: "20",
     PROJ_INVALID_GROUP_ARG: "30",
+    SELL_OFFER_INVALID_PROJ_ARG: "31",
     AEPP_SDK_ERROR: "40",
     DRY_RUN_ERROR: "50",
     PRECONDITION_FAILED_ERROR: "60",
@@ -24,6 +25,7 @@ let DefaultMessages = new Map([
     [type.TX_INVALID_CONTRACT_CALLED, "Invalid contract called! Contract not part of Cooperative contracts collection."],
     [type.GROUP_INVALID_COOP_ARG, "Error while creating Group. Invalid Coop contract provided as argument!"],
     [type.PROJ_INVALID_GROUP_ARG, "Error while creating Project. Invalid Group contract provided as argument!"],
+    [type.SELL_OFFER_INVALID_PROJ_ARG, "Error while creating Sell Offer. Invalid Project contract provided as argument!"],
     [type.MALFORMED_CONTRACT_CODE, "Error while deploying Contract. Malformed code. Can only deploy official AMPnet Contracts."],
     [type.GENERIC_ERROR, "Unknown error occured."],
     [type.WALLET_NOT_FOUND, "Wallet not found!"],
@@ -48,7 +50,8 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
         
         case type.TX_INVALID_CONTRACT_CALLED:
         case type.GROUP_INVALID_COOP_ARG:
-        case type.PROJ_INVALID_GROUP_ARG: return new grpcErrors.InvalidArgumentError(errorData)
+        case type.PROJ_INVALID_GROUP_ARG: 
+        case type.SELL_OFFER_INVALID_PROJ_ARG: return new grpcErrors.InvalidArgumentError(errorData)
         
         case type.AEPP_SDK_ERROR:
         case type.GENERIC_ERROR: return new grpcErrors.AbortedError(errorData)
