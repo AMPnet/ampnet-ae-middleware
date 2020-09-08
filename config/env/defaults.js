@@ -297,7 +297,7 @@ function getQueueDb() {
         password: password,
         port: port,
         database: database,
-        poolSize: process.env.QUEUE_DB_MAX_POOL_SIZE || 1,
+        max: process.env.QUEUE_DB_MAX_POOL_SIZE || 1,
         ssl: ssl
     }
 }

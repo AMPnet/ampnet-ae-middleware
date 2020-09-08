@@ -9,7 +9,7 @@ services:
       - 5432:5432
 
   ae-node:
-    image: aeternity/aeternity:v5.0.0-rc.4
+    image: aeternity/aeternity:v5.5.4
     environment:
       AETERNITY_CONFIG: /home/aeternity/aeternity.yaml
     volumes:
@@ -22,6 +22,6 @@ services:
      - "3014:3014"
 
   sophia-compiler:
-    image: aeternity/aesophia_http:v4.0.0
+    image: aeternity/aesophia_http:v4.3.2
     ports:
        - "3080:3080"

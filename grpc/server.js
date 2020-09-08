@@ -2,11 +2,7 @@
 let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc-middleware')
-<<<<<<< HEAD
 let { uuid } = require('uuidv4')
-=======
-let uuid = require('uuidv4').uuid
->>>>>>> origin/dependabot/npm_and_yarn/mocha-8.1.3
 let interceptors = require('@hpidcock/node-grpc-interceptors')
 let ServiceEnv = require('../enums/enums').ServiceEnv
 
