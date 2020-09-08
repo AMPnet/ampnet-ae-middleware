@@ -204,7 +204,7 @@ function addPostTransactionRoute() {
 function configureHealthAndMetrics() {
     expr.use(actuator())
     logger.info(`Health info and basic metrics available at /info and /metrics`)
-    
+    prometheus.register.clear()
     prometheus.collectDefaultMetrics()
     expr.get('/prometheus', (req, res) => {
         res.set('Content-Type', prometheus.register.contentType)
