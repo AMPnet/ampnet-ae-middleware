@@ -59,7 +59,9 @@ async function publishJobFromTx(tx) {
                     type: jobType,
                     amount: util.toToken(giftAmountAe),
                     wallet: tx.wallet,
-                    originTxHash: tx.hash
+                    originTxHash: tx.hash,
+                    originTxFromWallet: tx.from_wallet,
+                    originTxToWallet: tx.to_wallet
                 }, options).then(
                     result => {
                         logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
@@ -72,7 +74,9 @@ async function publishJobFromTx(tx) {
                     type: jobType,
                     amount: util.toToken(giftAmountAe),
                     wallet: tx.worker_public_key,
-                    originTxHash: tx.hash
+                    originTxHash: tx.hash,
+                    originTxFromWallet: tx.from_wallet,
+                    originTxToWallet: tx.to_wallet
                 }, options).then(
                     result => {
                         logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
@@ -82,7 +86,14 @@ async function publishJobFromTx(tx) {
                     }
                 )
             } else {
-                repo.update(tx.hash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+                repo.update(
+                    {
+                        hash: tx.hash,
+                        from_wallet: tx.from_wallet,
+                        to_wallet: tx.to_wallet
+                    },
+                    { supervisor_status: enums.SupervisorStatus.PROCESSED }
+                )
                 logger.info(`QUEUE-PUBLISHER: Send funds job originated from transaction ${tx.hash} not published! (welcome gift amount in config set to 0)`)
             }
             break
@@ -110,7 +121,14 @@ async function jobCompleteHandler(job) {
         if (typeof originHash === "undefined") {
             logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} completed!`)
         } else {
-            repo.update(job.data.request.data.originTxHash, { supervisor_status: enums.SupervisorStatus.PROCESSED })
+            repo.update(
+                {
+                    hash: job.data.request.data.originTxHash,
+                    from_wallet: job.data.request.data.originTxFromWallet,
+                    to_wallet: job.data.request.data.originTxToWallet
+                },
+                { supervisor_status: enums.SupervisorStatus.PROCESSED }
+            )
             logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} originated from transaction ${originHash} completed! Updated origin tx supervisor state to PROCESSED.`)
         }
     }

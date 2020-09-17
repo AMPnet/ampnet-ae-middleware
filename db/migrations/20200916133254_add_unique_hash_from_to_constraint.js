@@ -1,13 +1,11 @@
 exports.up = function(knex) {
     return knex.schema.alterTable('transaction', function(table) {
-        table.string('worker_public_key');
-        table.string('worker_secret_key');
+        table.unique(['hash', 'from_wallet', 'to_wallet']);
     })
 };
 
 exports.down = function(knex) {
     return knex.schema.alterTable('transaction', function(table) {
-        table.dropColumn('worker_public_key');
-        table.dropColumn('worker_secret_key');
+        table.dropUnique(['hash', 'from_wallet', 'to_wallet']);
     })
 };

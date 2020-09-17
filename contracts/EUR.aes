@@ -5,7 +5,7 @@ contract EUR =
 
   datatype event =
       TokensMinted(address, int)
-    | ApproveSpender(address, int)
+    | ApproveSpender(address, address, int)
     | TokensBurned(address, int)
     | EurOwnershipChanged(address)
 
@@ -61,7 +61,7 @@ contract EUR =
     // require(spender != #0, "Invalid spender address")
 
     put(state{ allowed[(caller, spender)] = value })
-    Chain.event(ApproveSpender(spender, value))
+    Chain.event(ApproveSpender(caller, spender, value))
     true
 
   stateful function _transfer(from: address, to: address, value: int) : bool =

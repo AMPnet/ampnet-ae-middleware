@@ -111,7 +111,7 @@ describe('Happy path scenario', function() {
         assert.equal(aliceBalanceBeforeCancelInvestment, 0)
 
         let isAliceInvestmentCancelable = await grpcClient.isInvestmentCancelable(addAliceWalletTxHash, addProjWalletTxHash)
-        assert.isTrue(isAliceInvestmentCancelable)
+        assert.isTrue(isAliceInvestmentCancelable) //12
 
         let aliceCancelInvestmentTx = await grpcClient.generateCancelInvestmentTx(addAliceWalletTxHash, addProjWalletTxHash)
         let aliceCancelInvestmentTxSigned = await clients.alice().signTransaction(aliceCancelInvestmentTx)
@@ -125,7 +125,7 @@ describe('Happy path scenario', function() {
         let investTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
         let investTxSigned = await clients.bob().signTransaction(investTx)
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
-        await util.waitTxProcessed(investTxHash)
+        await util.waitTxProcessed(investTxHash) //15
 
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
@@ -145,7 +145,7 @@ describe('Happy path scenario', function() {
         await util.waitTxProcessed(burnFromProjectTxHash)
 
         let projectBalanceAfterWithdraw = await grpcClient.getBalance(addProjWalletTxHash)
-        assert.equal(projectBalanceAfterWithdraw, 0)
+        assert.equal(projectBalanceAfterWithdraw, 0) // 17
 
         let revenueToPayout = 1000
         let mintRevenueToProjectTx = await grpcClient.generateMintTx(addProjWalletTxHash, revenueToPayout)
@@ -224,6 +224,8 @@ describe('Happy path scenario', function() {
 
         let expectedRecordCount = 20
         let allRecords = await db.getAll()
+        console.log("allRecords", allRecords)
+
         let recordsCount = allRecords.length
         assert.strictEqual(recordsCount, expectedRecordCount, `Expected ${expectedRecordCount} transactions but found ${recordsCount} in database.`)
 

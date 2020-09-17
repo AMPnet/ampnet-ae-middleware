@@ -10,10 +10,9 @@ let codec = require('../ae/codec')
 let util = require('../ae/util')
 let err = require('../error/errors')
 let txProcessor = require('./transaction-processor')
-let supervisor = require('../supervisor')
 let ErrorType = err.type
 
-let { TxState, TxType, SupervisorStatus } = require('../enums/enums')
+let { TxState, TxType } = require('../enums/enums')
 
 async function postTransactionGrpc(call, callback) {
     postTransaction(call.request.data, function(err, result) {
@@ -25,11 +24,14 @@ async function postTransaction(tx, callback) {
     logger.debug(`Received request to post transaction`)
     try {
         let txData = TxBuilder.unpackTx(tx)
+        let txHash = TxBuilder.buildTxHash(tx)
+        logger.debug(`Precalculated tx hash: ${txHash}`)
 
         // Two layers of security. dryRun() is experimental and will fail silently if anything unexpected occurs.
         await performSecurityChecks(txData)
-        await dryRun(txData)
-        
+        let dryRunResult = await dryRun(txData)
+        await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
+
         let result = await client.instance().sendTransaction(tx, { waitMined: false })
         
         txProcessor.process(result.hash).then(
@@ -126,7 +128,7 @@ async function getTransactions(call, callback) {
         logger.debug(`Address represented by given hash: ${tx.wallet}`)
         let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.INVEST, TxType.SHARE_PAYOUT, TxType.CANCEL_INVESTMENT])
         let transactionsPromisified = (await repo.getUserTransactions(tx.wallet))
-            .filter(r => { return types.has(r.type) && (r.state == TxState.MINED || r.state == TxState.FAILED) }) 
+            .filter(r => types.has(r.type))
             .map(r => {
                 switch (r.type) {
                     case TxType.DEPOSIT:
@@ -321,7 +323,7 @@ async function isWalletActive(wallet) {
 
 /**
  * Adds another layer of security and is used as a first filter when broadcasting transactions.
- * If some error occurs while dry running transaction this function fails silently (return statements).
+ * If some error occurs while dry running transaction this function will throw.
  */
 async function dryRun(txData) {
     logger.debug(`Dry running transaction.`)
@@ -331,28 +333,29 @@ async function dryRun(txData) {
     logger.debug(`Caller id: ${callerId}`)
     
     let response = await client.chainNode().txDryRun([unsignedTx], [{ pubKey: callerId, amount: 0 }])
-    if (response.results === 'undefined') {
+    if (typeof response.results === 'undefined') {
         logger.warn(`Error while dry running tx. Expected json with <results> field but got: %o`, response)
-        return
+        throw err.generate(ErrorType.DRY_RUN_ERROR)
     }
     let results = response.results
     if (results.length == 0) {
         logger.warn(`Error while dry running tx. <results> field in response empty! Full response: %o`, response)
-        return
+        throw err.generate(ErrorType.DRY_RUN_ERROR)
     }
     if (results.length > 1) {
-        logger.warn(`Warning: Dry run resulted in more than one result. Further analysis is required! Moving on and taking first result in array as relevant one. Full response: %o`, response)
+        logger.warn(`Warning: Dry run resulted in more than one result. Further analysis is required! Full response: %o`, response)
+        throw err.generate(ErrorType.DRY_RUN_ERROR)
     }
 
     let result = results[0]
     logger.debug(`Received result:\n%o`, result)
     
-    if (result.result !== 'undefined') {
+    if (typeof result.result !== 'undefined') {
         let status = result.result
         if (status === "ok") {
-            if (result.callObj === 'undefined') {
+            if (typeof result.callObj === 'undefined') {
                 logger.warn(`Warning: <callObj> property missing in json result. Further analysis is required!`)
-                return
+                throw err.generate(ErrorType.DRY_RUN_ERROR) 
             } 
             let callObj = result.callObj
             if (callObj.returnType === "revert" || callObj.returnType === "error") {
@@ -362,14 +365,14 @@ async function dryRun(txData) {
                 throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
             } else if (callObj.returnType === "ok") {
                 logger.debug(`No errors detected while dryRunning transaction! Transaction is safe for broadcasting.`)
-                return
+                return callObj
             } else {
                 logger.warn(`Unknown <returnType> field value detected in callObj response. Further analysis is requried!`)
-                return
+                throw err.generate(ErrorType.DRY_RUN_ERROR)
             }
         } else if (status === "error") {
             logger.debug(`Error detected while dryRunning transaction!`)
-            if (result.reason === 'undefined') {
+            if (typeof result.reason === 'undefined') {
                 logger.warn(`Error while parsing dry run result. <reason> field not found.`)
                 throw err.generate(ErrorType.DRY_RUN_ERROR)
             }
@@ -378,9 +381,11 @@ async function dryRun(txData) {
             throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
         } else {
             logger.warn(`Error while parsing dry run result. Unexpected <result> field value.`)
+            throw err.generate(ErrorType.DRY_RUN_ERROR)
         }
     } else {
         logger.warn(`Error while parsing dry run result. Missing <result> field.`)
+        throw err.generate(ErrorType.DRY_RUN_ERROR)
     }
 }
 

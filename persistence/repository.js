@@ -200,14 +200,14 @@ async function getProjectTransactions(projectWallet) {
     })
 }
 
-async function update(hash, data) {
+async function update(filter, data) {
     return new Promise(resolve => {
         knex('transaction')
             .returning('*')
-            .where({ hash: hash })
+            .where(filter)
             .update(data)
             .then(rows => {
-                resolve(rows[0])
+                resolve(rows)
             })
     })
 }

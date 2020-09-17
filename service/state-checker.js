@@ -12,7 +12,7 @@ async function processAllRecords() {
         let r = records[i]
         if (r.state == TxState.PENDING) {
             logger.info(`Detected inconsistent record with hash ${r.hash}`)
-            let updatedRecords = await txProcessor.process(r.hash, false)
+            let updatedRecords = await txProcessor.process(r.hash)
             logger.info(`Successfully processed record with hash ${r.hash}`)
             logger.info(`Updated records: %o`, updatedRecords)
         }
