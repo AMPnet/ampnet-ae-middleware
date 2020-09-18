@@ -370,15 +370,20 @@ async function callSpecialActions(tx) {
                 address: investorWorkerKeyPair.publicKey,
                 networkId: config.get().node.networkId
             })
-            let callResult = await client.contractCall(
+            let dryRunResult = await client.contractCallStatic(
                 contracts.projSource,
                 projectContractAddress,
                 enums.functions.proj.invest,
                 [ investorWallet ]
             )
-            logger.info(`Call result %o`, callResult)
-
-            await storeTransactionData(callResult.hash, callResult.txData.tx, callResult.result)
+            let callResult = await client.contractCall(
+                contracts.projSource,
+                projectContractAddress,
+                enums.functions.proj.invest,
+                [ investorWallet ],
+                { waitMined: false }
+            )
+            await storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result)
             process(callResult.hash).then(_ => {
                 repo.update(
                     {
@@ -411,17 +416,26 @@ async function callSpecialActions(tx) {
             logger.info(`Calling revenue share payout for project ${projectContractAddress}.`)
             var batchCount = 0
             do {
-                batchPayout = await client.contractCall(
+                dryRunResult = await client.contractCallStatic(
                     contracts.projSource,
                     projectContractAddress,
                     enums.functions.proj.payoutRevenueSharesBatch,
                     [ ]
                 )
+                batchPayout = await client.contractCall(
+                    contracts.projSource,
+                    projectContractAddress,
+                    enums.functions.proj.payoutRevenueSharesBatch,
+                    [ ],
+                    { waitMined: false }
+                )
                 logger.info(`Call result %o`, batchPayout)
-                shouldPayoutAnotherBatch = await batchPayout.decode()
+                await storeTransactionData(batchPayout.hash, dryRunResult.tx.params, dryRunResult.result)
+                await client.poll(batchPayout.hash)
+                info = await client.getTxInfo(batchPayout.hash)
+                shouldPayoutAnotherBatch = await client.contractDecodeData(contracts.projSource, enums.functions.proj.payoutRevenueSharesBatch, info.returnValue, info.returnType)
                 batchCount++
                 logger.info(`Payed out batch #${batchCount}.`)
-                await storeTransactionData(batchPayout.hash, batchPayout.txData.tx, batchPayout.result)
                 process(batchPayout.hash)
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
@@ -453,15 +467,21 @@ async function callSpecialActions(tx) {
                 address: buyerWorkerKeyPair.publicKey,
                 networkId: config.get().node.networkId
             })
+            let dryRunResult = await client.contractCallStatic(
+                contracts.projSource,
+                projectContractAddress,
+                enums.functions.proj.invest,
+                [ investorWallet ]
+            )
             let callResult = await client.contractCall(
                 contracts.sellOfferSource,
                 sellOfferContract,
                 enums.functions.sellOffer.tryToSettle,
-                [ buyerWallet ]
+                [ buyerWallet ],
+                { waitMined: false }
             )
             logger.info(`Call result %o`, callResult)
-
-            await storeTransactionData(callResult.hash, callResult.txData.tx, callResult.result)
+            await storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result)
             process(callResult.hash).then(_ => {
                 repo.update(
                     {
