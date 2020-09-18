@@ -137,7 +137,7 @@ async function getTransactions(call, callback) {
                             resolve({
                                 amount: r.amount,
                                 type: enums.txTypeToGrpc(r.type),
-                                date: (new Date(r.processed_at)).getTime(),
+                                date: r.date,
                                 state: r.state
                             })
                         })
@@ -149,7 +149,7 @@ async function getTransactions(call, callback) {
                                     toTxHash: project.hash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
-                                    date: (new Date(r.processed_at)).getTime(),
+                                    date: r.date,
                                     state: r.state
                                 })
                             })
@@ -162,7 +162,7 @@ async function getTransactions(call, callback) {
                                     toTxHash: call.request.txHash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
-                                    date: (new Date(r.processed_at)).getTime(),
+                                    date: r.date,
                                     state: r.state
                                 })
                             })                            
@@ -175,7 +175,7 @@ async function getTransactions(call, callback) {
                                     toTxHash: call.request.txHash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
-                                    date: (new Date(r.processed_at)).getTime(),
+                                    date: r.date,
                                     state: r.state
                                 })
                             })

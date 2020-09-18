@@ -45,7 +45,7 @@ let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.c
 let grpcServer
 
 module.exports = {
-    start: async function(envOverrides) {
+    start: async function(envOverrides, checkDbConsistency = true) {
         // Initialize namespace
         namespace.create()
         logger.info('Namespace initialized.')
@@ -122,7 +122,9 @@ module.exports = {
         });
 
         // Check state
-        await stateChecker.processAllRecords()
+        if (checkDbConsistency) {
+            await stateChecker.processAllRecords()
+        }
 
         // Bind GRPC server
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());

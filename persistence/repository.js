@@ -1,5 +1,6 @@
 let config = require('../config')
-let util = require('../ae/util')
+let aeUtil = require('../ae/util')
+let util = require('../util/util')
 let err = require('../error/errors')
 let enums = require('../enums/enums')
 let ErrorType = err.type
@@ -44,7 +45,7 @@ async function findByHashOrThrow(txHash) {
 }
 
 async function findFirstByWallet(wallet) {
-    let akWallet = util.enforceAkPrefix(wallet)
+    let akWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise( (resolve, reject) => {
         knex('transaction')
         .where({ wallet: akWallet })
@@ -53,7 +54,7 @@ async function findFirstByWallet(wallet) {
 }
 
 async function findByWalletOrThrow(wallet) {
-    let akWallet = util.enforceAkPrefix(wallet)
+    let akWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise( (resolve, reject) => {
         knex('transaction')
         .where({ wallet: akWallet })
@@ -136,7 +137,17 @@ async function getUserTransactions(wallet) {
             .where({ from_wallet: wallet })
             .orWhere({ to_wallet: wallet })
             .then(records => {
-                resolve(records)
+                let processedRecords = records.map(r => {
+                    return {
+                        from_wallet: r.from_wallet,
+                        to_wallet: r.to_wallet,
+                        amount: r.amount,
+                        type: r.type,
+                        date: (r.state == enums.TxState.PENDING) ? util.dateToUnixEpoch(r.created_at) : util.dateToUnixEpoch(r.processed_at),
+                        state: r.state
+                    }
+                })
+                resolve(processedRecords)
             })
     })
 }
