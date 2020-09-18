@@ -158,6 +158,7 @@ message TransactionsResponse {
             INVEST = 2;
             SHARE_PAYOUT = 3;
             CANCEL_INVESTMENT = 4;
+            APPROVE_INVESTMENT = 5;
         }
         string from_tx_hash = 1;
         string to_tx_hash = 2;

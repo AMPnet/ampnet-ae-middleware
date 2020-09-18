@@ -126,7 +126,7 @@ async function getTransactions(call, callback) {
     try {
         let tx = await repo.findByHashOrThrow(call.request.txHash)
         logger.debug(`Address represented by given hash: ${tx.wallet}`)
-        let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.INVEST, TxType.SHARE_PAYOUT, TxType.CANCEL_INVESTMENT])
+        let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.APPROVE_INVESTMENT, TxType.INVEST, TxType.SHARE_PAYOUT, TxType.CANCEL_INVESTMENT])
         let transactionsPromisified = (await repo.getUserTransactions(tx.wallet))
             .filter(r => types.has(r.type))
             .map(r => {
@@ -141,6 +141,7 @@ async function getTransactions(call, callback) {
                                 state: r.state
                             })
                         })
+                    case TxType.APPROVE_INVESTMENT:
                     case TxType.INVEST:
                         return new Promise(async (resolve) => {
                             repo.findByWalletOrThrow(r.to_wallet).then(project => {

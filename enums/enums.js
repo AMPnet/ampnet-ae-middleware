@@ -141,6 +141,7 @@ function txTypeToGrpc(type) {
         case TxType.INVEST:             return 2
         case TxType.SHARE_PAYOUT:       return 3
         case TxType.CANCEL_INVESTMENT:  return 4
+        case TxType.APPROVE_INVESTMENT: return 5
         default: throw new Error(`Cannot convert ${type} to GRPC type!`)
     }
 }

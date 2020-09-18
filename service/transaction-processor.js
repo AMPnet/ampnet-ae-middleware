@@ -171,7 +171,7 @@ async function generateTxRecord(info, hash, event, txData) {
             return {
                 hash: hash,
                 from_wallet: info.callerId,
-                to_wallet: spender,
+                to_wallet: util.enforceAkPrefix(spender),
                 input: txData.callData,
                 supervisor_status: supervisorStatus,
                 type: type,

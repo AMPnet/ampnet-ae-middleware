@@ -167,7 +167,7 @@ describe('Happy path scenario', function() {
         assert.equal(bobPortfolio[0].amount, bobInvestmentAmount)
         
         let bobTransactions = await grpcClient.getTransactions(addBobWalletTxHash)
-        assert.strictEqual(bobTransactions.length, 4)
+        assert.strictEqual(bobTransactions.length, 5)
         
         let bobTransactionsDeposit = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
         assert.equal(bobTransactionsDeposit.amount, mintToBobAmount)
@@ -177,6 +177,12 @@ describe('Happy path scenario', function() {
         assert.equal(bobTransactionsWithdraw.amount, withdrawFromBobAmount)
         assert.exists(bobTransactionsWithdraw.date)
         assert.equal(bobTransactionsWithdraw.state, enums.TxState.MINED)
+        let bobTransactionsApproveInvest = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.APPROVE_INVESTMENT) })[0]
+        assert.strictEqual(bobTransactionsApproveInvest.fromTxHash, addBobWalletTxHash)
+        assert.strictEqual(bobTransactionsApproveInvest.toTxHash, addProjWalletTxHash)
+        assert.equal(bobTransactionsApproveInvest.amount, bobInvestmentAmount)
+        assert.exists(bobTransactionsApproveInvest.date)
+        assert.equal(bobTransactionsApproveInvest.state, enums.TxState.MINED)
         let bobTransactionsInvest = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.INVEST) })[0]
         assert.strictEqual(bobTransactionsInvest.fromTxHash, addBobWalletTxHash)
         assert.strictEqual(bobTransactionsInvest.toTxHash, addProjWalletTxHash)
@@ -203,12 +209,18 @@ describe('Happy path scenario', function() {
         assert.isUndefined(aliceInvestmentsInProject)
 
         let aliceTransactions = await grpcClient.getTransactions(addAliceWalletTxHash)
-        assert.strictEqual(aliceTransactions.length, 3)
+        assert.strictEqual(aliceTransactions.length, 4)
 
         let aliceTransactionsDeposit = aliceTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
         assert.equal(aliceTransactionsDeposit.amount, mintToAliceAmount)
         assert.exists(aliceTransactionsDeposit.date)
         assert.equal(aliceTransactionsDeposit.state, enums.TxState.MINED)
+        let aliceTransactionsApproveInvest = aliceTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.APPROVE_INVESTMENT) })[0]
+        assert.strictEqual(aliceTransactionsApproveInvest.fromTxHash, addAliceWalletTxHash)
+        assert.strictEqual(aliceTransactionsApproveInvest.toTxHash, addProjWalletTxHash)
+        assert.equal(aliceTransactionsApproveInvest.amount, mintToAliceAmount)
+        assert.exists(aliceTransactionsApproveInvest.date)
+        assert.equal(aliceTransactionsApproveInvest.state, enums.TxState.MINED)
         let aliceTransactionsInvest = aliceTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.INVEST) })[0]
         assert.strictEqual(aliceTransactionsInvest.fromTxHash, addAliceWalletTxHash)
         assert.strictEqual(aliceTransactionsInvest.toTxHash, addProjWalletTxHash)
