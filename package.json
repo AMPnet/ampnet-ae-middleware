@@ -3,7 +3,7 @@
   "version": "0.0.33",
   "dependencies": {
     "@grpc/proto-loader": "^0.5.5",
-    "@hpidcock/node-grpc-interceptors": "0.0.9", 
+    "@hpidcock/node-grpc-interceptors": "0.0.9",
     "bignumber.js": "^9.0.0",
     "cls-hooked": "^4.2.2",
     "cors": "^2.8.5",
@@ -22,7 +22,8 @@
     "prom-client": "^12.0.0",
     "uuidv4": "^6.2.3",
     "winston": "^3.2.1",
-    "winston-daily-rotate-file": "^4.4.2"
+    "winston-daily-rotate-file": "^4.4.2",
+    "ws": "^7.3.1"
   },
   "scripts": {
     "start": "node index.js",

@@ -36,6 +36,7 @@ async function start(config) {
     addPostTransactionRoute()
     
     await startServer(config)
+    return httpServer
 }
 
 async function stop() {

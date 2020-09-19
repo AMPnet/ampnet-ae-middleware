@@ -7,6 +7,7 @@ const util = require('../ae/util')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
 const supervisor = require('../supervisor')
+const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 /**
@@ -74,6 +75,8 @@ async function storeTransactionData(txHash, txData, txInfo) {
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData)
         await repo.saveTransaction(record)
+        ws.notifiySubscribers(record.from_wallet)
+        ws.notifiySubscribers(record.to_wallet)
         logger.debug(`Stored new record:\n%o`, record)
     }
     logger.debug(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)

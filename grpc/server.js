@@ -16,6 +16,9 @@ let logger = require('../logger')(module)
 // http server
 let httpServer = require('../http/server')
 
+// ws server
+let wsServer = require('../ws/server')
+
 // supervisor job queue
 let supervisorQueue = require('../supervisor')
 
@@ -132,7 +135,10 @@ module.exports = {
         logger.info(`GRPC server started at ${config.get().grpc.url}`)
 
         // Bind HTTP server
-        await httpServer.start(config.get())
+        let server = await httpServer.start(config.get())
+
+        // Bind WS server
+        wsServer.start(server)
     },
     stop: async function() {
         await httpServer.stop()
