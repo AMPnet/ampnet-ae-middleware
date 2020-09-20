@@ -1,6 +1,7 @@
 let path = require('path')
-let chai = require('chai');
-let assert = chai.assert;
+let chai = require('chai')
+let WebSocket = require('ws')
+let assert = chai.assert
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
@@ -32,6 +33,20 @@ describe('Happy path scenario', function() {
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
+        let socket = new WebSocket("ws://localhost:8124")
+        let bobWalletUpdates = 0
+        socket.onopen = function(event) {
+            socket.send(JSON.stringify({
+                wallet: accounts.bob.publicKey
+            }))
+        }
+        socket.on('message', (data) => {
+            let parsedJson = JSON.parse(data)
+            if (parsedJson.wallet === accounts.bob.publicKey) {
+                bobWalletUpdates++ 
+            }
+        })
+
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
@@ -111,7 +126,7 @@ describe('Happy path scenario', function() {
         assert.equal(aliceBalanceBeforeCancelInvestment, 0)
 
         let isAliceInvestmentCancelable = await grpcClient.isInvestmentCancelable(addAliceWalletTxHash, addProjWalletTxHash)
-        assert.isTrue(isAliceInvestmentCancelable) //12
+        assert.isTrue(isAliceInvestmentCancelable)
 
         let aliceCancelInvestmentTx = await grpcClient.generateCancelInvestmentTx(addAliceWalletTxHash, addProjWalletTxHash)
         let aliceCancelInvestmentTxSigned = await clients.alice().signTransaction(aliceCancelInvestmentTx)
@@ -120,12 +135,12 @@ describe('Happy path scenario', function() {
 
         let aliceBalanceAfterCancelInvestment = await grpcClient.getBalance(addAliceWalletTxHash)
         assert.equal(aliceBalanceAfterCancelInvestment, mintToAliceAmount)
-
+        
         let bobInvestmentAmount = 100000
         let investTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
         let investTxSigned = await clients.bob().signTransaction(investTx)
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
-        await util.waitTxProcessed(investTxHash) //15
+        await util.waitTxProcessed(investTxHash)
 
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
@@ -145,7 +160,7 @@ describe('Happy path scenario', function() {
         await util.waitTxProcessed(burnFromProjectTxHash)
 
         let projectBalanceAfterWithdraw = await grpcClient.getBalance(addProjWalletTxHash)
-        assert.equal(projectBalanceAfterWithdraw, 0) // 17
+        assert.equal(projectBalanceAfterWithdraw, 0)
 
         let revenueToPayout = 1000
         let mintRevenueToProjectTx = await grpcClient.generateMintTx(addProjWalletTxHash, revenueToPayout)
@@ -392,6 +407,9 @@ describe('Happy path scenario', function() {
         assert.strictEqual(revenueSharePayoutTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(revenueSharePayoutTxRecord.type, TxType.SHARE_PAYOUT)
         assert.equal(revenueSharePayoutTxRecord.amount, revenueToPayout)
+
+        assert.strictEqual(bobWalletUpdates, 22)
+        socket.terminate()
     })
 
 })

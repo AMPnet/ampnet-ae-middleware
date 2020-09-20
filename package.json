@@ -20,7 +20,7 @@
     "pg": "^8.0.3",
     "pg-boss": "^5.0.8",
     "prom-client": "^12.0.0",
-    "uuidv4": "^6.2.3",
+    "uuid": "^8.3.0",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.4.2",
     "ws": "^7.3.1"

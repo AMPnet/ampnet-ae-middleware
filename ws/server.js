@@ -1,6 +1,8 @@
 let WebSocket = require('ws')
-let logger = require('../logger')(module)
 let { Crypto } = require('@aeternity/aepp-sdk')
+let { v4: uuid } = require('uuid')
+
+let logger = require('../logger')(module)
 let util = require('../ae/util')
 
 let ws
@@ -10,7 +12,7 @@ async function start(server) {
     ws = new WebSocket.Server({ server })
 
     ws.on('connection', (socket) => {
-
+        socket.id = uuid()
         socket.on('message', (data) => {
             let json
             
@@ -42,7 +44,19 @@ async function start(server) {
 
 function addNewSubscriber(connection, wallet) {
     subscriptions[wallet] = subscriptions[wallet] || []
+    for (subscription of subscriptions[wallet]) {
+        if (subscription.id === connection.id) {
+            logger.info(`WS: Connection already subscribed to changes for wallet ${wallet}. Ignoring request.`)
+            return
+        }
+    }
     subscriptions[wallet].push(connection)
+    logger.info(`WS: Added new subscriber for transaction changes on wallet ${wallet}`)
+}
+
+function notifySubscribersForTransaction(tx) {
+    notifiySubscribers(tx.from_wallet)
+    notifiySubscribers(tx.to_wallet)
 }
 
 function notifiySubscribers(wallet) {
@@ -50,17 +64,21 @@ function notifiySubscribers(wallet) {
     let count = subscribers.length
     if (count > 0) {
         let i = count
+        logger.info(`WS: Notifiyng total of ${count} subscriber(s) for a change on wallet ${wallet}`)
         while (i--) {
             let connection = subscribers[i]
             if (connection.readyState === WebSocket.CLOSED) {
+                logger.info(`WS: Removing subscriber listening on changes for wallet ${wallet}`)
                 subscribers.splice(i, 1)
             } else {
+                logger.info(`WS: Notifying subscriber for change on wallet ${wallet}`)
                 connection.send(JSON.stringify({
                     wallet: wallet
                 }))
             }
+            logger.info(`WS: Total of ${(subscriptions[wallet] || []).length} still listening on changes for wallet ${wallet}`)
         }
     }
 }
 
-module.exports = { start, notifiySubscribers }
+module.exports = { start, notifySubscribersForTransaction }

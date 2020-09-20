@@ -49,6 +49,7 @@ async function handleTransactionMined(hash) {
     )
     logger.info(`Updated total of ${transactions.length} transaction record(s) with hash ${hash}. State: ${enums.TxState.MINED}`)
     for (tx of transactions) {
+        ws.notifySubscribersForTransaction(tx)
         callSpecialActions(tx)
     }
     return transactions
@@ -67,6 +68,9 @@ async function handleTransactionFailed(hash, info) {
         }
     )
     logger.warn(`Updated total of ${transactions.length} transaction record(s) with hash ${hash}. State: ${enums.TxState.FAILED}`)
+    for (tx of transactions) {
+        ws.notifySubscribersForTransaction(tx)
+    }
     return transactions
 }
 
@@ -75,9 +79,8 @@ async function storeTransactionData(txHash, txData, txInfo) {
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData)
         await repo.saveTransaction(record)
-        ws.notifiySubscribers(record.from_wallet)
-        ws.notifiySubscribers(record.to_wallet)
         logger.debug(`Stored new record:\n%o`, record)
+        ws.notifySubscribersForTransaction(record)
     }
     logger.debug(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
 }
