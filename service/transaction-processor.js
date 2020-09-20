@@ -474,10 +474,10 @@ async function callSpecialActions(tx) {
                 networkId: config.get().node.networkId
             })
             let dryRunResult = await client.contractCallStatic(
-                contracts.projSource,
-                projectContractAddress,
-                enums.functions.proj.invest,
-                [ investorWallet ]
+                contracts.sellOfferSource,
+                sellOfferContract,
+                enums.functions.sellOffer.tryToSettle,
+                [ buyerWallet ]
             )
             let callResult = await client.contractCall(
                 contracts.sellOfferSource,
