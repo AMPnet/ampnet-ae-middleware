@@ -4,15 +4,19 @@ let { v4: uuid } = require('uuid')
 
 let logger = require('../logger')(module)
 let util = require('../ae/util')
+let config = require('../config')
 
 let ws
 let subscriptions = {}
 
 async function start(server) {
+    let port = config.get().ws.port 
     ws = new WebSocket.Server({
         server: server,
-        path: "/ws"
+        path: "/ws",
+        port: port
     })
+    logger.info(`WS server started at port ${port}`)
 
     ws.on('connection', (socket) => {
         socket.id = uuid()

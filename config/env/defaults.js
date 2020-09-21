@@ -19,6 +19,7 @@ async function get() {
     let contracts = await getContracts(node, supervisorKeypair)
     let grpc = getGrpc()
     let http = getHttp()
+    let ws = getWs()
     let db = getDb()
     let queueDb = getQueueDb()
     return {
@@ -29,6 +30,7 @@ async function get() {
         contracts: contracts,
         grpc: grpc,
         http: http,
+        ws: ws,
         db: db,
         queueDb: queueDb,
         giftAmount: process.env.GIFT_AMOUNT || 0.3,
@@ -200,6 +202,12 @@ function getGrpc() {
 function getHttp() {
     return {
         port: process.env.HTTP_PORT || 8124
+    }
+}
+
+function getWs() {
+    return {
+        port: process.env.WS_PORT || 8125
     }
 }
 
