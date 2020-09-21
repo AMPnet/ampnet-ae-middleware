@@ -146,6 +146,15 @@ function txTypeToGrpc(type) {
     }
 }
 
+function txStateToGrpc(state) {
+    switch(state) {
+        case TxState.MINED:     return 0
+        case TxState.PENDING:   return 1
+        case TxState.FAILED:    return 2
+        default: throw new Error(`Cannot convert ${state} to GRPC type!`)
+    }
+}
+
 module.exports = {
     Environment,
     ServiceEnv,
@@ -161,5 +170,6 @@ module.exports = {
     walletTypeValues,
     functions,
     fromEvent,
-    txTypeToGrpc
+    txTypeToGrpc,
+    txStateToGrpc
 }

@@ -160,12 +160,17 @@ message TransactionsResponse {
             CANCEL_INVESTMENT = 4;
             APPROVE_INVESTMENT = 5;
         }
+        enum State {
+            MINED = 0;
+            PENDING = 1;
+            FAILED = 2;
+        }
         string from_tx_hash = 1;
         string to_tx_hash = 2;
         string amount = 3;
         string date = 4;
         Type type = 5;
-        string state = 6;
+        State state = 6;
     }
     repeated Transaction transactions = 1;
 }

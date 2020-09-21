@@ -138,7 +138,7 @@ async function getTransactions(call, callback) {
                                 amount: r.amount,
                                 type: enums.txTypeToGrpc(r.type),
                                 date: r.date,
-                                state: r.state
+                                state: enums.txStateToGrpc(r.state)
                             })
                         })
                     case TxType.APPROVE_INVESTMENT:
@@ -151,7 +151,7 @@ async function getTransactions(call, callback) {
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
-                                    state: r.state
+                                    state: enums.txStateToGrpc(r.state)
                                 })
                             })
                         })
@@ -164,7 +164,7 @@ async function getTransactions(call, callback) {
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
-                                    state: r.state
+                                    state: enums.txStateToGrpc(r.state)
                                 })
                             })                            
                         })
@@ -177,7 +177,7 @@ async function getTransactions(call, callback) {
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
-                                    state: r.state
+                                    state: enums.txStateToGrpc(r.state)
                                 })
                             })
                         })
@@ -210,7 +210,7 @@ async function getInvestmentsInProject(call, callback) {
                     amount: tx.amount,
                     date: (new Date(tx.processed_at)).getTime(),
                     type: enums.txTypeToGrpc(tx.type),
-                    state: tx.state
+                    state: enums.txStateToGrpc(tx.state)
                 }
             })
         logger.debug(`Successfully fetched investments \n%o`, investments)
