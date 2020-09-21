@@ -33,7 +33,7 @@ describe('Happy path scenario', function() {
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
-        let socket = new WebSocket("ws://localhost:8124")
+        let socket = new WebSocket("ws://localhost:8124/ws")
         let bobWalletUpdates = 0
         socket.onopen = function(event) {
             socket.send(JSON.stringify({

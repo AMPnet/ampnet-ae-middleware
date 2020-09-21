@@ -9,7 +9,10 @@ let ws
 let subscriptions = {}
 
 async function start(server) {
-    ws = new WebSocket.Server({ server })
+    ws = new WebSocket.Server({
+        server: server,
+        path: "/ws"
+    })
 
     ws.on('connection', (socket) => {
         socket.id = uuid()
