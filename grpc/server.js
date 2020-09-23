@@ -49,8 +49,6 @@ let grpcServer
 
 module.exports = {
     start: async function(envOverrides, checkDbConsistency = true) {
-        console.log("x", packageDefinition.TransactionsResponse.type.nestedType[0].enumType[0])
-
         // Initialize namespace
         namespace.create()
         logger.info('Namespace initialized.')

@@ -136,12 +136,25 @@ function fromEvent(event) {
 
 function txTypeToGrpc(type) {
     switch (type) {
-        case TxType.DEPOSIT:            return 0
-        case TxType.WITHDRAW:           return 1
-        case TxType.INVEST:             return 2
-        case TxType.SHARE_PAYOUT:       return 3
-        case TxType.CANCEL_INVESTMENT:  return 4
-        case TxType.APPROVE_INVESTMENT: return 5
+        case TxType.DEPOSIT:                    return 0
+        case TxType.WITHDRAW:                   return 1
+        case TxType.INVEST:                     return 2
+        case TxType.SHARE_PAYOUT:               return 3
+        case TxType.CANCEL_INVESTMENT:          return 4
+        case TxType.APPROVE_INVESTMENT:         return 5
+        case TxType.WALLET_CREATE:              return 6
+        case TxType.ORG_CREATE:                 return 7
+        case TxType.PROJ_CREATE:                return 8
+        case TxType.SELL_OFFER_CREATE:          return 9
+        case TxType.APPROVE_USER_WITHDRAW:      return 10
+        case TxType.PENDING_PROJ_WITHDRAW:      return 11
+        case TxType.APPROVE_COUNTER_OFFER:      return 12
+        case TxType.START_REVENUE_PAYOUT:       return 13
+        case TxType.COOP_OWNERSHIP_TRANSFER:    return 14
+        case TxType.EUR_OWNERSHIP_TRANSFER:     return 15
+        case TxType.COUNTER_OFFER_PLACED:       return 16
+        case TxType.COUNTER_OFFER_REMOVED:      return 17
+        case TxType.SHARES_SOLD:                return 18
         default: throw new Error(`Cannot convert ${type} to GRPC type!`)
     }
 }
