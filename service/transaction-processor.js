@@ -20,7 +20,9 @@ async function process(hash) {
     try {
         logger.info(`Processing transaction ${hash}`)
 
-        await clients.instance().poll(hash)
+        await clients.instance().poll(hash, {
+            blocks: 3
+        })
         let info = await clients.instance().getTxInfo(hash)
         logger.info(`Fetched tx info \n%o`, info)
         
