@@ -227,20 +227,6 @@ async function generateTxRecord(info, hash, event, txData) {
                 state: enums.TxState.PENDING,
                 created_at: new Date()
             }
-        case enums.TxType.PENDING_PROJ_WITHDRAW:
-            spender = util.decodeAddress(event.topics[1])
-            amount = util.tokenToEur(event.topics[2])
-            return {
-                hash: hash,
-                from_wallet: util.enforceAkPrefix(info.contractId),
-                to_wallet: spender,
-                input: txData.callData,
-                supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
-                type: type,
-                amount: amount,
-                state: enums.TxState.PENDING,
-                created_at: new Date()
-            }
         case enums.TxType.START_REVENUE_PAYOUT:
             amount = util.tokenToEur(event.topics[1])
             return {

@@ -212,10 +212,12 @@ module.exports = {
             })
         })
     },
-    getTransactionInfo: async function(txHash) {
+    getTransactionInfo: async function(txHash, from, to) {
         return new Promise(resolve => {
             client.getTransactionInfo({
-                txHash
+                txHash,
+                from,
+                to
             }, (err, result) => {
                 if (err != null) {
                     resolve(err)

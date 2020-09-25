@@ -30,24 +30,24 @@ async function waitMined(txHash) {
     })
 }
 
-function waitTxProcessed(txHash) {
+function waitTxProcessed(txHash, from, to) {
     return new Promise(async (resolve) => {
         let interval = 1000 //ms
         let maxChecks = 20
         var attempts = 0
-        var txState = enums.TxState.PENDING
+        var txState = enums.txStateToGrpc(enums.TxState.PENDING)
         var supervisorState = enums.SupervisorStatus.REQUIRED
         while(attempts < maxChecks) {
             await sleep(interval)
-            info = await grpc.getTransactionInfo(txHash)
-            if (info.state != enums.TxState.PENDING && info.supervisorStatus != enums.SupervisorStatus.REQUIRED) { 
+            info = await grpc.getTransactionInfo(txHash, from, to)
+            if (info.state != enums.txStateToGrpc(enums.TxState.PENDING) && info.supervisorStatus != enums.SupervisorStatus.REQUIRED) { 
                 txState = info.state
                 supervisorState = info.supervisorStatus
                 break
             }
             attempts++
         }
-        if (txState == enums.TxState.PENDING) {
+        if (txState == enums.txStateToGrpc(enums.TxState.PENDING)) {
             throw new Error(`Waiting for transaction ${txHash} to be mined timed out.`)
         } else if (supervisorState == enums.SupervisorStatus.REQUIRED) {
             throw new Error(`Waiting for supervisor to process transaction ${txHash} timed out.`)

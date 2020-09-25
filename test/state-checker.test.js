@@ -9,7 +9,7 @@ let supervisor = require('../supervisor')
 let config = require('../config')
 let codec = require('../ae/codec')
 let stateChecker = require('../service/state-checker')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
+let { TxType, TxState, SupervisorStatus, WalletType, txStateToGrpc } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
@@ -47,6 +47,7 @@ describe('DB records recovery test', function() {
 
         await db.insert({
             hash: addWalletTxHash,
+            type: TxType.WALLET_CREATE,
             state: TxState.PENDING,
             created_at: new Date()
         })
@@ -54,6 +55,6 @@ describe('DB records recovery test', function() {
         await util.waitTxProcessed(addWalletTxHash)
 
         let txInfo = await grpcClient.getTransactionInfo(addWalletTxHash)
-        assert.strictEqual(txInfo.state, TxState.MINED)
+        assert.strictEqual(txInfo.state, txStateToGrpc(TxState.MINED))
     })
 })

@@ -101,15 +101,41 @@ async function getPortfolio(call, callback) {
 }
 
 async function getTransactionInfo(call, callback) {
-    logger.debug(`Received request to fetch info for transaction with hash ${call.request.txHash} `)
     try {
-        let records = await repo.get({ hash: call.request.txHash })
+        let hash = call.request.txHash
+        let from = call.request.from
+        let to = call.request.to
+
+        let records
+        if (from === undefined || to === undefined || from === "" || to === "") {
+            logger.debug(`Received request to fetch info for transaction with hash ${hash}.`)
+            records = await repo.get({ 
+                hash: hash
+            })
+        } else {
+            logger.debug(`Received request to fetch info for transaction with hash ${hash}. From: ${from} To: ${to}`)
+            let fromWallet = (from.startsWith("th_")) ? ((await repo.findByHashOrThrow(from)).wallet) : from
+            let toWallet = (to.startsWith("th_")) ? ((await repo.findByHashOrThrow(to)).wallet) : to
+            records = await repo.get({ 
+                hash: hash,
+                from_wallet: fromWallet,
+                to_wallet: toWallet
+            })
+        }
+
+        if (records.length == 0) {
+            let error = err.generate(ErrorType.TX_NOT_FOUND)
+            logger.error(`Error while fetching transaction info: \n%o`, error)
+            err.handle(error, callback)
+            return
+        }
+
         let info = {
             hash: records[0].hash,
             fromWallet: records[0].from_wallet,
             toWallet: records[0].to_wallet,
-            state: records[0].state,
-            type: records[0].type,
+            state: enums.txStateToGrpc(records[0].state),
+            type: enums.txTypeToGrpc(records[0].type),
             amount: records[0].amount,
             supervisorStatus: records[0].supervisor_status
         }
@@ -138,7 +164,7 @@ async function getTransactions(call, callback) {
                                 amount: r.amount,
                                 type: enums.txTypeToGrpc(r.type),
                                 date: r.date,
-                                state: r.state
+                                state: enums.txStateToGrpc(r.state)
                             })
                         })
                     case TxType.APPROVE_INVESTMENT:
@@ -151,7 +177,7 @@ async function getTransactions(call, callback) {
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
-                                    state: r.state
+                                    state: enums.txStateToGrpc(r.state)
                                 })
                             })
                         })
@@ -164,7 +190,7 @@ async function getTransactions(call, callback) {
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
-                                    state: r.state
+                                    state: enums.txStateToGrpc(r.state)
                                 })
                             })                            
                         })
@@ -177,7 +203,7 @@ async function getTransactions(call, callback) {
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
-                                    state: r.state
+                                    state: enums.txStateToGrpc(r.state)
                                 })
                             })
                         })
@@ -210,7 +236,7 @@ async function getInvestmentsInProject(call, callback) {
                     amount: tx.amount,
                     date: (new Date(tx.processed_at)).getTime(),
                     type: enums.txTypeToGrpc(tx.type),
-                    state: tx.state
+                    state: enums.txStateToGrpc(tx.state)
                 }
             })
         logger.debug(`Successfully fetched investments \n%o`, investments)
