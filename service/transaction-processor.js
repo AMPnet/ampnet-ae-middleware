@@ -6,7 +6,7 @@ const config = require('../config')
 const util = require('../ae/util')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
-const supervisor = require('../supervisor')
+const queue = require('../queue/queue')
 const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
@@ -16,31 +16,43 @@ const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk'
  * @param {string} hash Transaction hash 
  * @returns {Array.<Object>} Returns list of records updated in db
  */
-async function process(hash) {
-    try {
-        logger.info(`Processing transaction ${hash}`)
+async function process(hash, shouldUpdateOriginTx) {
+    logger.info(`Processing transaction ${hash}`)
 
-        await clients.instance().poll(hash, {
-            blocks: 3
-        })
-        let info = await clients.instance().getTxInfo(hash)
-        logger.info(`Fetched tx info \n%o`, info)
-        
-        sendFundsIfRequired(info)
-        
-        if (info.returnType == 'ok') {
-            logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
-            return await handleTransactionMined(hash)
-        } else {
-            logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
-            return await handleTransactionFailed(hash, info)
-        }
-    } catch(error) {
-        logger.error(`Error while processing transaction \n%o`, error)
+    let confirmations = 3
+    await clients.instance().waitForTxConfirm(hash, {
+        confirm: confirmations
+    })
+    let info = await clients.instance().getTxInfo(hash)
+    logger.info(`Fetched tx info \n%o`, info)
+    
+    sendFundsIfRequired(info)
+    
+    let transactions
+    if (info.returnType == 'ok') {
+        logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
+        transactions = handleTransactionMined(hash, shouldUpdateOriginTx)
+    } else {
+        logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
+        transactions = handleTransactionFailed(hash, info, shouldUpdateOriginTx)
     }
+
+    if (shouldUpdateOriginTx && transactions.length > 0) {
+        let originHash = transactions[0].originated_from
+        repo.update(
+            { hash: originHash },
+            {
+                supervisor_status: enums.SupervisorStatus.PROCESSED
+            }
+        ).then(_ => {
+            logger.info(`Updated origin transaction (${origin}) supervisor state to processed.`)
+        })
+    }
+    
+    return transactions
 }
 
-async function handleTransactionMined(hash) {
+async function handleTransactionMined(hash, shouldUpdateOriginTx) {
     logger.info(`Handling mined tx success case.`)
     let transactions = await repo.update(
         { hash: hash }, 
@@ -50,6 +62,8 @@ async function handleTransactionMined(hash) {
         }
     )
     logger.info(`Updated total of ${transactions.length} transaction record(s) with hash ${hash}. State: ${enums.TxState.MINED}`)
+    
+
     for (tx of transactions) {
         ws.notifySubscribersForTransaction(tx)
         callSpecialActions(tx)
@@ -57,7 +71,7 @@ async function handleTransactionMined(hash) {
     return transactions
 }
 
-async function handleTransactionFailed(hash, info) {
+async function handleTransactionFailed(hash, info, shouldUpdateOriginTx) {
     logger.warn(`Handling mined tx failed case.`)
     let decodedError = await err.decode(info)
     logger.warn(`Decoded error: ${decodedError}`)
@@ -76,11 +90,14 @@ async function handleTransactionFailed(hash, info) {
     return transactions
 }
 
-async function storeTransactionData(txHash, txData, txInfo) {
+async function storeTransactionData(txHash, txData, txInfo, originatedFrom = null) {
     logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData)
-        await repo.saveTransaction(record)
+        await repo.saveTransaction({
+            ...record,
+            originated_from: originatedFrom
+        })
         logger.debug(`Stored new record:\n%o`, record)
         ws.notifySubscribersForTransaction(record)
     }
@@ -332,9 +349,10 @@ async function generateTxRecord(info, hash, event, txData) {
 async function sendFundsIfRequired(info) {
     let callerBalance = await clients.instance().getBalance(info.callerId)
     let giftAmount = config.get().giftAmount
-    if (callerBalance < util.toToken(giftAmount)) {
-        logger.info("Sending funds to caller wallet. Balance fell below threshold after processing last transaction.")
-        supervisor.publishSendFundsJob(info.callerId, giftAmount)
+    let threshold = config.get().refundThreshold
+    if (callerBalance < util.toToken(threshold)) {
+        logger.info(`Sending funds to caller wallet. Balance fell below ${threshold} AE threshold after processing last transaction.`)
+        queue.publishSendFundsJob(info.callerId, giftAmount)
     } else {
         logger.info("Not sending funds to caller wallet. Wallet has enough funds after processing last transaction.")
     }
@@ -377,16 +395,8 @@ async function callSpecialActions(tx) {
                 [ investorWallet ],
                 { waitMined: false }
             )
-            await storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result)
-            process(callResult.hash).then(_ => {
-                repo.update(
-                    {
-                        hash: tx.hash,
-                        from_wallet: tx.from_wallet,
-                        to_wallet: tx.to_wallet
-                    },
-                    { supervisor_status: enums.SupervisorStatus.PROCESSED }
-                )
+            storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result, tx.hash).then(() => {
+                queue.publishTxProcessJob(callResult.hash, true)
             })
         } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
             let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
@@ -424,23 +434,15 @@ async function callSpecialActions(tx) {
                     { waitMined: false }
                 )
                 logger.info(`Call result %o`, batchPayout)
-                await storeTransactionData(batchPayout.hash, dryRunResult.tx.params, dryRunResult.result)
+                await storeTransactionData(batchPayout.hash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
                 await client.poll(batchPayout.hash)
                 info = await client.getTxInfo(batchPayout.hash)
                 shouldPayoutAnotherBatch = await client.contractDecodeData(contracts.projSource, enums.functions.proj.payoutRevenueSharesBatch, info.returnValue, info.returnType)
                 batchCount++
                 logger.info(`Payed out batch #${batchCount}.`)
-                process(batchPayout.hash)
+                queue.publishTxProcessJob(batchPayout.hash, !shouldPayoutAnotherBatch)
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
-            repo.update(
-                {
-                    hash: tx.hash,
-                    from_wallet: tx.from_wallet,
-                    to_wallet: tx.to_wallet
-                },
-                { supervisor_status: enums.SupervisorStatus.PROCESSED }
-            )
         } else if (tx.type == enums.TxType.APPROVE_COUNTER_OFFER) {
             let buyerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
             let sellOfferContract = util.enforceCtPrefix(tx.to_wallet)
@@ -475,19 +477,11 @@ async function callSpecialActions(tx) {
                 { waitMined: false }
             )
             logger.info(`Call result %o`, callResult)
-            await storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result)
-            process(callResult.hash).then(_ => {
-                repo.update(
-                    {
-                        hash: tx.hash,
-                        from_wallet: tx.from_wallet,
-                        to_wallet: tx.to_wallet
-                    },
-                    { supervisor_status: enums.SupervisorStatus.PROCESSED }
-                )
+            storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result, tx.hash).then(() => {
+                queue.publishTxProcessJob(callResult.hash, true)
             })
         } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
-            supervisor.publishJobFromTx(tx)
+            queue.publishJobFromTx(tx)
         }
     }
 }

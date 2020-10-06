@@ -10,6 +10,7 @@ let codec = require('../ae/codec')
 let util = require('../ae/util')
 let err = require('../error/errors')
 let txProcessor = require('./transaction-processor')
+let queue = require('../queue/queue')
 let ErrorType = err.type
 
 let { TxState, TxType } = require('../enums/enums')
@@ -33,15 +34,7 @@ async function postTransaction(tx, callback) {
         await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
 
         let result = await client.instance().sendTransaction(tx, { waitMined: false })
-        
-        txProcessor.process(result.hash).then(
-            records => {
-                logger.info(`Processing of transaction ${result.hash} completed successfully. ${records.length} record(s) updated.`)
-            },
-            error => {
-                logger.error(`Processing of transaction ${result.hash} failed with error: \n%o`, error)
-            }
-        )
+        queue.publishTxProcessJob(result.hash)
         
         logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })

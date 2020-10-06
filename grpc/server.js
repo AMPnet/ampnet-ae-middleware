@@ -20,7 +20,7 @@ let httpServer = require('../http/server')
 let wsServer = require('../ws/server')
 
 // supervisor job queue
-let supervisorQueue = require('../supervisor')
+let supervisorQueue = require('../queue/queue')
 
 // services
 let txSvc = require('../service/transaction')
