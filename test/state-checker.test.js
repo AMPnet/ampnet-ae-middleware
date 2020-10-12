@@ -5,7 +5,7 @@ let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let config = require('../config')
 let codec = require('../ae/codec')
 let stateChecker = require('../service/state-checker')

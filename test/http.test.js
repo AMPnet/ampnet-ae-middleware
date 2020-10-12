@@ -3,7 +3,7 @@ let axios = require('axios')
 let assert = chai.assert;
 
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')

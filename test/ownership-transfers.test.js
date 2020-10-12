@@ -3,7 +3,7 @@ let assert = chai.assert;
 
 let config = require('../config')
 let client = require('../ae/client')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
 let codec = require('../ae/codec')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')

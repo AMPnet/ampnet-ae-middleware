@@ -3,7 +3,7 @@ let assert = chai.assert;
 
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')

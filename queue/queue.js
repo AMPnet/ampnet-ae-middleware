@@ -1,13 +1,14 @@
 const PgBoss = require('pg-boss')
 const { TxBuilder } = require('@aeternity/aepp-sdk')
 
+const queueClient = require('./queueClient')
 const config = require('../config')
 const logger = require('../logger')(module)
 const ae = require('../ae/client')
 const util = require('../ae/util')
 const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
-const processor = require('../service/transaction-processor')
+const txProcessor = require('../service/transaction-processor')
 const { JobType, TxType, WalletType } = require('../enums/enums')
 
 const autoFunderQueue = "ampnet-ae-middleware-supervisor-queue"
@@ -61,7 +62,10 @@ async function initAndStart(dbConfig) {
         txProcessorJobCompleteHandler
     )
     
-    logger.info("QUEUE-PUBLISHER: Queue initialized successfully!")
+    logger.info("Queue initialized successfully!")
+
+    queueClient.init(queue, autoFunderQueue, txProcessorQueue)
+    logger.info("Queue Client initialized successfully!")
 }
 
 async function autoFunderJobHandler(job) {
@@ -159,12 +163,11 @@ async function autoFunderJobCompleteHandler(job) {
 
 async function txProcessorJobHandler(job) {
     logger.info(`PROCESSOR-QUEUE: Processing job with queue id ${job.id}`)
-    console.log("job", job)
     switch (job.data.type) {
         case JobType.PROCESS_TX:
             let hash = job.data.hash
             let shouldUpdateOriginTx = job.data.shouldUpdateOriginTx
-            return processor.process(hash, shouldUpdateOriginTx)
+            return txProcessor.process(hash, shouldUpdateOriginTx)
         default:
             logger.error(`PROCESSOR-QUEUE: Processing job with queue id ${job.id} failed. Unknown job type.`)
             job.done(new Error(`Processing job with queue id ${job.id} failed. Unknown job type.`))
@@ -172,78 +175,7 @@ async function txProcessorJobHandler(job) {
 }
 
 async function txProcessorJobCompleteHandler(job) {
-    
-}
-
-function publishTxProcessJob(hash, shouldUpdateOriginTx = false) {
-    queue.publish(txProcessorQueue, {
-        type: JobType.PROCESS_TX,
-        hash: hash,
-        shouldUpdateOriginTx: shouldUpdateOriginTx
-    }, {
-        retryLimit: 1,
-        retryDelay: 3
-    }).then(
-        result => {
-            logger.info(`QUEUE-PUBLISHER: Process transaction ${hash} job published successfully. Job id: ${result}`)
-        },
-        err => {
-            logger.error(`QUEUE-PUBLISHER: Process transaction ${hash} job failed to get published. Error: %o`, err)
-        }
-    )
-}
-
-function publishSendFundsJob(wallet, amountAe) {
-    queue.publish(autoFunderQueue, {
-        type: JobType.SEND_FUNDS,
-        amount: util.toToken(amountAe),
-        wallets: [wallet]
-    }).then(
-        result => {
-            logger.info(`QUEUE-PUBLISHER: Send funds to ${wallet} job published successfully. Job id: ${result}`)
-        },
-        err => {
-            logger.error(`QUEUE-PUBLISHER: Send funds to ${wallet} job failed to get published. Error: %o`, err)
-        }
-    )
-}
-
-async function publishJobFromTx(tx) {
-    switch (tx.type) {
-        case TxType.WALLET_CREATE:
-            giftAmountAe = config.get().giftAmount
-            jobType = JobType.SEND_FUNDS
-            if (giftAmountAe > 0) {
-                queue.publish(autoFunderQueue, {
-                    type: jobType,
-                    amount: util.toToken(giftAmountAe),
-                    wallets: [tx.wallet, tx.worker_public_key],
-                    originTxHash: tx.hash,
-                    originTxFromWallet: tx.from_wallet,
-                    originTxToWallet: tx.to_wallet
-                }).then(
-                    result => {
-                        logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
-                    },
-                    err => {
-                        logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
-                    }
-                )
-            } else {
-                repo.update(
-                    {
-                        hash: tx.hash,
-                        from_wallet: tx.from_wallet,
-                        to_wallet: tx.to_wallet
-                    },
-                    { supervisor_status: enums.SupervisorStatus.PROCESSED }
-                )
-                logger.info(`QUEUE-PUBLISHER: Send funds job originated from transaction ${tx.hash} not published! (welcome gift amount in config set to 0)`)
-            }
-            break
-        default:
-            logger.error(`QUEUE-PUBLISHER: Supervisor cannot create job from transaction ${tx.hash} with type ${tx.type}!`)
-    }
+    console.log("PROCESSOR-QUEUE: job done", job)
 }
 
 async function stop() {
@@ -256,9 +188,6 @@ async function clearStorage() {
 
 module.exports = {
     initAndStart,
-    publishSendFundsJob,
-    publishJobFromTx,
-    publishTxProcessJob,
     stop,
     clearStorage
 }
