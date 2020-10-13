@@ -30,48 +30,6 @@ describe('Fetch transaction info tests', function() {
         await supervisor.stop()
     })
 
-    it.only('x', async () => {
-        let firstTxNonce = await clients.bob().getAccountNonce(accounts.bob.publicKey)
-        console.log("first nonce", firstTxNonce)
-        let firstSpendTx = await clients.bob().spendTx({
-            senderId: accounts.bob.publicKey,
-            recipientId: accounts.alice.publicKey,
-            amount: 10000000000000000,
-            nonce: firstTxNonce
-        })
-        let firstSpendTxSigned = await clients.bob().signTransaction(firstSpendTx)
-        let firstSpendTxHash = await clients.bob().sendTransaction(firstSpendTxSigned, { waitMined: false, verify: false })
-        let pool = await clients.bob().mempool()
-        console.log("pool", pool.transactions[0].tx)
-        console.log("firstSpendTxHash", firstSpendTxHash)
-        clients.bob().poll(firstSpendTxHash.hash).then(pollResult => {
-            console.log("first spend poll result", pollResult)
-            clients.bob().getAccountNonce(accounts.bob.publicKey).then(n => { console.log("nonce", n) })
-        }).catch(err => {
-            console.log("err", err)
-        })
-
-        let secondSpendTx = await clients.bob().spendTx({
-            senderId: accounts.bob.publicKey,
-            recipientId: accounts.jane.publicKey,
-            amount: 100000000000000000,
-            nonce: firstTxNonce + 1
-        })
-        let secondSpendTxSigned = await clients.bob().signTransaction(secondSpendTx)
-        let secondSpendTxHash = await clients.bob().sendTransaction(secondSpendTxSigned, { waitMined: false, verify: false })
-        console.log("secondSpoendTxHash", secondSpendTxHash)
-        clients.bob().poll(secondSpendTxHash.hash).then(pollResult => {
-            console.log("second spend poll result", pollResult)
-            clients.bob().getAccountNonce(accounts.bob.publicKey).then(n => { console.log("nonce", n) })
-        }).catch(err => {
-            console.log("err", err)
-        })
-        let nonce = await clients.bob().getAccountNonce(accounts.bob.publicKey)
-        console.log("nonce", nonce)
-        let mempool = await clients.bob().mempool()
-        console.log("mempool", mempool.transactions[0].tx)
-    })
-
     it('Should be able to fetch transaction info for some tx hash', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
