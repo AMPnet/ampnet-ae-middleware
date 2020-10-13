@@ -2,6 +2,7 @@ const { TxType, JobType, SupervisorStatus } = require('../enums/enums')
 const util = require('../ae/util')
 const logger = require('../logger')(module)
 const config = require('../config')
+const repo = require('../persistence/repository')
 
 let queue
 let txProcessorQueue
