@@ -142,6 +142,7 @@ module.exports = {
     },
     stop: async function() {
         await httpServer.stop()
+        await wsServer.stop()
         return grpcServer.forceShutdown()
     }
 }
