@@ -36,7 +36,9 @@ async function get() {
         giftAmount: process.env.GIFT_AMOUNT || 0.3,
         refundThreshold: process.env.REFUND_THRESHOLD || 0.1,
         contractCreateGasAmount: process.env.CONTRACT_CREATE_GAS_AMOUNT || 50000,
-        contractCallGasAmount: process.env.CONTRACT_CALL_GAS_AMOUNT || 10000
+        contractCallGasAmount: process.env.CONTRACT_CALL_GAS_AMOUNT || 10000,
+        dbScanPeriod: process.env.DB_SCAN_PERIOD || 2,
+        dbScanOlderThan: process.env.DB_SCAN_OLDER_THAN || 2
     }
 }
 

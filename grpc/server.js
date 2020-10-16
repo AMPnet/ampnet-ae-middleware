@@ -21,6 +21,7 @@ let wsServer = require('../ws/server')
 
 // supervisor job queue
 let supervisorQueue = require('../queue/queue')
+let cron = require('../supervisor')
 
 // services
 let txSvc = require('../service/transaction')
@@ -139,6 +140,9 @@ module.exports = {
 
         // Bind WS server
         wsServer.start(server)
+
+        // Start db consistency cronjob
+        // cron.start()
     },
     stop: async function() {
         await httpServer.stop()

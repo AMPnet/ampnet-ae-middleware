@@ -1,3 +1,5 @@
+const CronJob = require('cron').CronJob
+
 const PgBoss = require('pg-boss')
 
 const config = require('../config')
@@ -5,147 +7,107 @@ const logger = require('../logger')(module)
 const ae = require('../ae/client')
 const util = require('../ae/util')
 const repo = require('../persistence/repository')
+const queueClient = require('../queue/queueClient')
 const enums = require('../enums/enums')
-const { SupervisorJob: JobType, TxType, WalletType } = require('../enums/enums')
+const { SupervisorJob: JobType, TxType, WalletType, TxState } = require('../enums/enums')
 
-const queueName = "ampnet-ae-middleware-supervisor-queue"
+var job
 
-let queue
-
-async function initAndStart(dbConfig) {
-    queue = new PgBoss({
-        host: dbConfig.host,
-        port: dbConfig.port,
-        database: dbConfig.database,
-        user: dbConfig.user,
-        password: dbConfig.password,
-        archiveCompletedJobsEvery: '1 day',
-        deleteArchivedJobsEvery: '7 days',
-        max: dbConfig.max,
-        ssl: dbConfig.ssl
-    })
-    await queue.start()
-    await queue.subscribe(queueName, jobHandler)
-    await queue.onComplete(queueName, jobCompleteHandler)
-    logger.info("QUEUE-PUBLISHER: Queue initialized successfully!")
-}
-
-async function publishSendFundsJob(wallet, amountAe) {
-    queue.publish(queueName, {
-        type: JobType.SEND_FUNDS,
-        amount: util.toToken(amountAe),
-        wallet: wallet
-    }).then(
-        result => {
-            logger.info(`QUEUE-PUBLISHER: Send funds to ${wallet} job published successfully. Job id: ${result}`)
-        },
-        err => {
-            logger.error(`QUEUE-PUBLISHER: Send funds to ${wallet} job failed to get published. Error: %o`, err)
-        }
+function start() {
+    let interval = config.get().dbScanPeriod
+    let cronString = `0 */${interval} * * * *`
+    job = new CronJob(
+        cronString,
+        scanAndProcess
     )
+    job.start()
+    logger.info(`DB-SCANNER: Started cron job!`)
 }
 
-async function publishJobFromTx(tx) {
-    switch (tx.type) {
-        case TxType.WALLET_CREATE:
-            giftAmountAe = config.get().giftAmount
-            jobType = JobType.SEND_FUNDS
-            if (giftAmountAe > 0) {
-                let options = {
-                    retryLimit: 1,
-                    retryDelay: 5
-                }
-                queue.publish(queueName, {
-                    type: jobType,
-                    amount: util.toToken(giftAmountAe),
-                    wallet: tx.wallet,
-                    originTxHash: tx.hash,
-                    originTxFromWallet: tx.from_wallet,
-                    originTxToWallet: tx.to_wallet
-                }, options).then(
-                    result => {
-                        logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
-                    },
-                    err => {
-                        logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
-                    }
-                )
-                queue.publish(queueName, {
-                    type: jobType,
-                    amount: util.toToken(giftAmountAe),
-                    wallet: tx.worker_public_key,
-                    originTxHash: tx.hash,
-                    originTxFromWallet: tx.from_wallet,
-                    originTxToWallet: tx.to_wallet
-                }, options).then(
-                    result => {
-                        logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)
-                    },
-                    err => {
-                        logger.error(`QUEUE-PUBLISHER: Send funds to ${tx.worker_public_key} (worker user wallet) job originated from transaction ${tx.hash} failed to get published. Error: %o`, err)
-                    }
-                )
-            } else {
-                repo.update(
-                    {
-                        hash: tx.hash,
-                        from_wallet: tx.from_wallet,
-                        to_wallet: tx.to_wallet
-                    },
-                    { supervisor_status: enums.SupervisorStatus.PROCESSED }
-                )
-                logger.info(`QUEUE-PUBLISHER: Send funds job originated from transaction ${tx.hash} not published! (welcome gift amount in config set to 0)`)
-            }
-            break
-        default:
-            logger.error(`QUEUE-PUBLISHER: Supervisor cannot create job from transaction ${tx.hash} with type ${tx.type}!`)
-    }
+async function scanAndProcess() {
+    let interval = config.get().dbScanPeriod
+    logger.info(`DB-SCANNER: ${interval} minute(s) passed. Starting database consistency check...`)
+    handlePendingRecords()
+    handleSupervisorRequiredRecords()
 }
 
-async function jobHandler(job) {
-    logger.info(`QUEUE-SUBSCRIBER: Processing job with queue id ${job.id}`)
-    switch (job.data.type) {
-        case JobType.SEND_FUNDS:
-            return ae.sender().spend(job.data.amount, job.data.wallet).catch(console.log)
-        default:
-            logger.error(`QUEUE-SUBSCRIBER: Processing job with queue id ${job.id} failed. Unknown job type.`)
-            job.done(new Error(`Processing job with queue id ${job.id} failed. Unknown job type.`))
-    }
-}
-
-async function jobCompleteHandler(job) {
-    if (job.data.failed) {
-        logger.error(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} failed. Full output: %o`, job)
+async function handlePendingRecords() {
+    let interval = config.get().dbScanPeriod
+    let scanOlderThanMinutes = config.get().dbScanOlderThan
+    let pendingRecords = await repo.getPendingOlderThan(scanOlderThanMinutes)
+    if (pendingRecords.length === 0) {
+        logger.info(`DB-SCANNER: Found 0 records older than ${scanOlderThanMinutes} minute(s) with PENDING transaction state.`)
     } else {
-        let originHash = job.data.request.data.originTxHash
-        if (typeof originHash === "undefined") {
-            logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} completed!`)
-        } else {
-            repo.update(
-                {
-                    hash: job.data.request.data.originTxHash,
-                    from_wallet: job.data.request.data.originTxFromWallet,
-                    to_wallet: job.data.request.data.originTxToWallet
-                },
-                { supervisor_status: enums.SupervisorStatus.PROCESSED }
-            )
-            logger.info(`QUEUE-RESULT-HANDLER: Job ${job.data.request.id} originated from transaction ${originHash} completed! Updated origin tx supervisor state to PROCESSED.`)
+        logger.warn(`DB-SCANNER: Found ${pendingRecords.length} record(s) older than ${scanOlderThanMinutes} minute(s) with PENDING transaction state. Starting recovery...`)
+        for (tx of pendingRecords) {
+            let hash = tx.hash
+            let type = tx.type
+            logger.warn(`DB-SCANNER: Processing transaction ${hash} of type ${type}.`)
+            util.transactionExists(hash).then(exists => {
+                if (exists) {
+                    logger.warn(`DB-SCANNER: Transaction ${hash} was broadcasted to chain but remained in PENDING state for atleast ${interval} minute(s). Further investigation may be required. Sending transaction to tx processor queue...`)
+                    queueClient.publishTxProcessJob()
+                } else {
+                    logger.warn(`DB-SCANNER: Transaction ${hash} was never broadcasted to chain. Updating state to failed with error description.`)
+                    repo.update(
+                        {
+                            hash: tx.hash,
+                            from_wallet: tx.from_wallet,
+                            to_wallet: tx.to_wallet
+                        },
+                        {
+                            state: TxState.FAILED,
+                            error_message: "Transaction was cached but never broadcasted to chain."
+                        }
+                    ).then(_ => {
+                        logger.warn(`DB-SCANNER: Updated state of transaction ${hash} to FAILED. Transaction was never broadcasted to chain.`)
+                    })
+                }
+            }).catch(err => {
+                logger.warn(`DB-SCANNER: Error while fetching info for transaction ${hash}. Hash may be invalid, further investigation required.`)
+            })
         }
     }
 }
 
-async function stop() {
-    return queue.stop()
+async function handleSupervisorRequiredRecords() {
+    let interval = config.get().dbScanPeriod
+    let scanOlderThanMinutes = config.get().dbScanOlderThan
+    let records = await repo.getSupervisorRequiredOlderThan(scanOlderThanMinutes)
+    if (records.length === 0) {
+        logger.info(`DB-SCANNER: Found 0 records older than ${scanOlderThanMinutes} minute(s) with supervisor status REQUIRED.`)
+    } else {
+        logger.warn(`DB-SCANNER: Found ${records.length} record(s) older than ${scanOlderThanMinutes} minute(s) with supervisor status REQUIRED. Starting recovery...`)
+        for (tx of records) {
+            let hash = tx.hash
+            let type = tx.type
+            logger.warn(`DB-SCANNER: Processing transaction ${hash} of type ${type}.`)
+            repo.get({
+                originated_from: hash
+            }).then(chainedTransactions => {
+                if (chainedTransactions.length === 0) {
+                    logger.warn(`DB-SCANNER: Found 0 transactions originated from transaction ${hash}. Calling special actions...`)
+                    // TODO: call special actions
+                } else {
+                    logger.warn(`DB-SCANNER: Found ${chainedTransactions.length} transaction(s) originated from transaction ${hash}`)
+                    if (chainedTransactions[0].type === TxType.SHARE_PAYOUT) {
+                    // TODO: handle
+                    } else {
+                    // TODO: handle
+                    }
+                }
+            }).catch(err => {
+            // TODO: handle
+            })
+        }
+    }
 }
 
-async function clearStorage() {
-    return queue.deleteAllQueues()
+function stop() {
+    job.stop()
 }
 
 module.exports = {
-    initAndStart,
-    publishSendFundsJob,
-    publishJobFromTx,
-    stop,
-    clearStorage
+    start,
+    stop
 }

@@ -43,7 +43,7 @@ async function postTransaction(tx, callback) {
             callback(null, { txHash: result.hash })
         } else {
             let tx = existingRecords[0]
-            let txExistsOnBlockchain = await transactionExists(txHash)
+            let txExistsOnBlockchain = await util.transactionExists(txHash)
             if (txExistsOnBlockchain) {
                 logger.debug(`Transaction ${txHash} exists in database and was broadcasted to blockchain!`)
                 queueClient.publishTxProcessJob(txHash)
@@ -443,17 +443,6 @@ async function dryRun(txData) {
         shares: sharesAmount,
         project: projectHash
     }
- }
-
- function transactionExists(hash) {
-     return new Promise((resolve, reject) => {
-        client.instance().getTxInfo(hash).then(_ => {
-            resolve(true)
-        }).catch(err => {
-            if (err.response !== undefined && err.response.status === 404) { resolve(false) }
-            reject(err)
-        })
-     })
  }
 
 module.exports = { 

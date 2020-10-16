@@ -131,6 +131,34 @@ async function get(filter) {
     })
 }
 
+async function getPendingOlderThan(minutes) {
+    let MS_PER_MINUTE = 60000
+    let now = new Date()
+    let threshold = (new Date(now - minutes * MS_PER_MINUTE)).toISOString()
+    return new Promise(resolve => {
+        knex.raw(`
+            select * from transaction t
+            where t.created_at < '${threshold}' and t.state = '${enums.TxState.PENDING}'
+        `).then(result => {
+            resolve(result.rows)
+        })
+    })
+}
+
+async function getSupervisorRequiredOlderThan(minutes) {
+    let MS_PER_MINUTE = 60000
+    let now = new Date()
+    let threshold = (new Date(now - minutes * MS_PER_MINUTE)).toISOString()
+    return new Promise(resolve => {
+        knex.raw(`
+            select * from transaction t
+            where t.created_at < '${threshold}' and t.state = '${enums.TxState.MINED}' and t.supervisor_status = '${enums.SupervisorStatus.REQUIRED}'
+        `).then(result => {
+            resolve(result.rows)
+        })
+    })
+}
+
 async function getUserTransactions(wallet) {
     return new Promise(resolve => {
         knex('transaction')
@@ -233,6 +261,8 @@ module.exports = {
     findFirstByWallet,
     getWalletTypeOrThrow,
     get,
+    getPendingOlderThan,
+    getSupervisorRequiredOlderThan,
     getUserTransactions,
     getProjectTransactions,
     getUserUncanceledInvestments,

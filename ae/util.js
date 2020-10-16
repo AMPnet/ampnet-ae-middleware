@@ -2,7 +2,20 @@ let { Crypto } = require('@aeternity/aepp-sdk')
 let { BigNumber } = require('bignumber.js')
 let fromExponential = require('from-exponential')
 
+let client = require('./client')
+
 const tokenFactor = 1000000000000000000 // 10e18 (1 eur = 100 * 10^18 tokens)
+
+function transactionExists(hash) {
+    return new Promise((resolve, reject) => {
+       client.instance().getTxInfo(hash).then(_ => {
+           resolve(true)
+       }).catch(err => {
+           if (err.response !== undefined && err.response.status === 404) { resolve(false) }
+           reject(err)
+       })
+    })
+}
 
 function enforceAkPrefix(address) {
     if (address.startsWith("ct_")) { return address.replace("ct_", "ak_") }
@@ -46,7 +59,8 @@ function toAe(amount) {
     return amount / tokenFactor
 }
 
-module.exports = { 
+module.exports = {
+    transactionExists,
     enforceAkPrefix,
     enforceCtPrefix,
     eurToToken,

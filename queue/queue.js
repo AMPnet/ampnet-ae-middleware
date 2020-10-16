@@ -166,8 +166,7 @@ async function txProcessorJobHandler(job) {
     switch (job.data.type) {
         case JobType.PROCESS_TX:
             let hash = job.data.hash
-            let shouldUpdateOriginTx = job.data.shouldUpdateOriginTx
-            return txProcessor.process(hash, shouldUpdateOriginTx)
+            return txProcessor.process(hash)
         default:
             logger.error(`PROCESSOR-QUEUE: Processing job with queue id ${job.id} failed. Unknown job type.`)
             job.done(new Error(`Processing job with queue id ${job.id} failed. Unknown job type.`))

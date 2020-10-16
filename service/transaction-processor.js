@@ -8,7 +8,7 @@ const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
 const queueClient = require('../queue/queueClient')
 const ws = require('../ws/server')
-const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
+const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
 
 /**
  * Updates record states for given transaction hash, after transaction has been mined or failed.
@@ -16,7 +16,7 @@ const { Universal, Crypto, Node, MemoryAccount } = require('@aeternity/aepp-sdk'
  * @param {string} hash Transaction hash 
  * @returns {Array.<Object>} Returns list of records updated in db
  */
-async function process(hash, shouldUpdateOriginTx) {
+async function process(hash) {
     logger.info(`Processing transaction ${hash}`)
 
     let confirmations = 3
@@ -32,23 +32,22 @@ async function process(hash, shouldUpdateOriginTx) {
     if (info.returnType == 'ok') {
         logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
         transactions = await handleTransactionMined(hash)
+        if (transactions.length > 0 && transactions[0].originated_from !== null) {
+            let originHash = transactions[0].originated_from
+            repo.update(
+                { hash: originHash },
+                {
+                    supervisor_status: enums.SupervisorStatus.PROCESSED
+                }
+            ).then(_ => {
+                logger.info(`Updated origin transaction (${originHash}) supervisor state to processed.`)
+            })
+        }
     } else {
         logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
         transactions = await handleTransactionFailed(hash, info)
     }
 
-    if (shouldUpdateOriginTx && transactions.length > 0) {
-        let originHash = transactions[0].originated_from
-        repo.update(
-            { hash: originHash },
-            {
-                supervisor_status: enums.SupervisorStatus.PROCESSED
-            }
-        ).then(_ => {
-            logger.info(`Updated origin transaction (${originHash}) supervisor state to processed.`)
-        })
-    }
-    
     return transactions
 }
 
@@ -468,6 +467,7 @@ async function callSpecialActions(tx) {
                 enums.functions.sellOffer.tryToSettle,
                 [ buyerWallet ]
             )
+            logger.info(`dry run result %o`, dryRunResult)
             let callResult = await client.contractCall(
                 contracts.sellOfferSource,
                 sellOfferContract,

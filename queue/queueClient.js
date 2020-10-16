@@ -14,11 +14,10 @@ function init(pgBoss, funderQueue, processorQueue) {
     autoFunderQueue = funderQueue
 }
 
-function publishTxProcessJob(hash, shouldUpdateOriginTx = false) {
+function publishTxProcessJob(hash) {
     queue.publish(txProcessorQueue, {
         type: JobType.PROCESS_TX,
-        hash: hash,
-        shouldUpdateOriginTx: shouldUpdateOriginTx
+        hash: hash
     }, {
         retryLimit: 1,
         retryDelay: 3
