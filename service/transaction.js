@@ -36,7 +36,7 @@ async function postTransaction(tx, callback) {
             let dryRunResult = await dryRun(txData)
             await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
 
-            let result = await client.instance().sendTransaction(tx, { waitMined: false })
+            let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
             queueClient.publishTxProcessJob(result.hash)
         
             logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)

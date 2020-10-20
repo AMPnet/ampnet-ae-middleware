@@ -386,16 +386,18 @@ async function callSpecialActions(tx) {
                 enums.functions.proj.invest,
                 [ investorWallet ]
             )
-            let callResult = await client.contractCall(
-                contracts.projSource,
-                projectContractAddress,
-                enums.functions.proj.invest,
-                [ investorWallet ],
-                { waitMined: false }
-            )
-            storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result, tx.hash).then(() => {
-                queueClient.publishTxProcessJob(callResult.hash, true)
+            logger.info(`Approve investment dry run result: %o`, dryRunResult)
+            let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
+            let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
+            logger.info(`Approve investment precalculated hash: ${precalculatedHash}. Caching transaction data...`)
+            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
+            logger.info(`Approve investment transaction cached. Posting transaction to blockchain.`)
+            let result = await client.sendTransaction(signedTx, {
+                verify: true,
+                waitMined: false
             })
+            logger.info(`Approve investment transaction posted to blockchain and will be added to tx processor queue.`)
+            queueClient.publishTxProcessJob(result.hash)
         } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
             let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
             let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
@@ -424,21 +426,22 @@ async function callSpecialActions(tx) {
                     enums.functions.proj.payoutRevenueSharesBatch,
                     [ ]
                 )
-                batchPayout = await client.contractCall(
-                    contracts.projSource,
-                    projectContractAddress,
-                    enums.functions.proj.payoutRevenueSharesBatch,
-                    [ ],
-                    { waitMined: false }
-                )
-                logger.info(`Call result %o`, batchPayout)
-                await storeTransactionData(batchPayout.hash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
-                await client.poll(batchPayout.hash)
-                info = await client.getTxInfo(batchPayout.hash)
+                logger.info(`Revenue batch payout dry run result: %o`, dryRunResult)
+                let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
+                let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
+                logger.info(`Revenue batch payout precalculated hash: ${precalculatedHash}. Caching transaction data...`)
+                await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
+                logger.info(`Revenue batch payout transaction cached. Posting transaction to blockchain.`)
+                let result = await client.sendTransaction(signedTx, {
+                    waitMined: true,
+                    verify: true
+                })
+                logger.info(`Revenue batch payout transaction posted to blockchain and mined. It will be posted to tx processor queue...`)
+                info = await client.getTxInfo(result.hash)
                 shouldPayoutAnotherBatch = await client.contractDecodeData(contracts.projSource, enums.functions.proj.payoutRevenueSharesBatch, info.returnValue, info.returnType)
                 batchCount++
                 logger.info(`Payed out batch #${batchCount}.`)
-                queueClient.publishTxProcessJob(batchPayout.hash, !shouldPayoutAnotherBatch)
+                queueClient.publishTxProcessJob(result.hash, !shouldPayoutAnotherBatch)
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
         } else if (tx.type == enums.TxType.APPROVE_COUNTER_OFFER) {
@@ -467,18 +470,18 @@ async function callSpecialActions(tx) {
                 enums.functions.sellOffer.tryToSettle,
                 [ buyerWallet ]
             )
-            logger.info(`dry run result %o`, dryRunResult)
-            let callResult = await client.contractCall(
-                contracts.sellOfferSource,
-                sellOfferContract,
-                enums.functions.sellOffer.tryToSettle,
-                [ buyerWallet ],
-                { waitMined: false }
-            )
-            logger.info(`Call result %o`, callResult)
-            storeTransactionData(callResult.hash, dryRunResult.tx.params, dryRunResult.result, tx.hash).then(() => {
-                queueClient.publishTxProcessJob(callResult.hash, true)
+            logger.info(`Market tryToSettle dry run result %o`, dryRunResult)
+            let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
+            let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
+            logger.info(`Market tryToSettle precalculated hash: ${precalculatedHash}. Caching transaction data...`)
+            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
+            logger.info(`Market tryToSettletransaction cached. Posting transaction to blockchain.`)
+            let result = await client.sendTransaction(signedTx, {
+                waitMined: false,
+                verify: true
             })
+            logger.info(`Market tryToSettle transaction posted to blockchain and will be added to tx processor queue.`)
+            queueClient.publishTxProcessJob(result.hash, true)
         } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
             queueClient.publishJobFromTx(tx)
         }

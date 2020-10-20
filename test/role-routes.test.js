@@ -34,7 +34,7 @@ describe('Test role routes', function() {
         assert.equal(tokenIssuer, accounts.owner.publicKey)
     })
 
-    it('Should be able to fetch token issuer wallet', async () => {
+    it('Should be able to fetch platform manager wallet', async () => {
         let platformManager = await grpcClient.getPlatformManager()
         assert.equal(platformManager, accounts.owner.publicKey)
     })

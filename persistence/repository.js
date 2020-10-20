@@ -131,6 +131,17 @@ async function get(filter) {
     })
 }
 
+async function getAsc(filter) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where(filter)
+            .orderBy('created_at')
+            .then(records => {
+                resolve(records)
+            })
+    }) 
+}
+
 async function getPendingOlderThan(minutes) {
     let MS_PER_MINUTE = 60000
     let now = new Date()
@@ -261,6 +272,7 @@ module.exports = {
     findFirstByWallet,
     getWalletTypeOrThrow,
     get,
+    getAsc,
     getPendingOlderThan,
     getSupervisorRequiredOlderThan,
     getUserTransactions,
