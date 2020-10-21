@@ -50,7 +50,7 @@ async function postTransaction(tx, callback) {
                 callback(null, { txHash: txHash })
             } else {
                 logger.debug(`Transaction ${txHash} exists in database but was never broadcasted to blockchain!`)
-                let result = await client.instance().sendTransaction(tx, { waitMined: false })
+                let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
                 queueClient.publishTxProcessJob(result.hash)
                 callback(null, { txHash: result.txHash })
             }

@@ -142,7 +142,7 @@ module.exports = {
         wsServer.start(server)
 
         // Start db consistency cronjob
-        // cron.start()
+        cron.start()
     },
     stop: async function() {
         await httpServer.stop()
