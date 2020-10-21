@@ -13,6 +13,7 @@ let config = require('../config')
 describe('CORS test', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
     })
 

@@ -17,14 +17,19 @@ const { SupervisorJob: JobType, TxType, WalletType, TxState, SupervisorStatus } 
 var job
 
 function start() {
+    if (!config.get().dbScanEnabled) {
+        logger.info(`DB-SCANNER: Scanner disabled in config and will not be started.`)
+        return
+    }
     let interval = config.get().dbScanPeriod
+    let scanOlderThan = config.get().dbScanOlderThan
     let cronString = `0 */${interval} * * * *`
     job = new CronJob(
         cronString,
         scanAndProcess
     )
     job.start()
-    logger.info(`DB-SCANNER: Started cron job!`)
+    logger.info(`DB-SCANNER: Started cron job! Database will be checked every ${interval} minute(s) and will look for records older than ${scanOlderThan} minute(s).`)
 }
 
 async function scanAndProcess() {
@@ -142,7 +147,10 @@ async function handleSupervisorRequiredRecords() {
 }
 
 function stop() {
-    job.stop()
+    if (job !== undefined) { 
+        logger.info(`DB-SCANNER: Stoping cron job...`)
+        job.stop()
+    }
 }
 
 module.exports = {

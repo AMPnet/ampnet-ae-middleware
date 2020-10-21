@@ -31,7 +31,6 @@ async function postTransaction(tx, callback) {
         let existingRecords = await repo.get({ hash: txHash })
         if (existingRecords.length === 0) {
             logger.debug(`Transaction ${txHash} does not exist in database and was never broadcasted to blockchain. Moving on...`)
-            // Two layers of security. dryRun() is experimental and will fail silently if anything unexpected occurs.
             await performSecurityChecks(txData)
             let dryRunResult = await dryRun(txData)
             await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)

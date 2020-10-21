@@ -20,6 +20,7 @@ let config = require('../config')
 describe('Auto funding test', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()

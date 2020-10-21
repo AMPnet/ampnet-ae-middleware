@@ -13,6 +13,7 @@ let db = require('./util/db')
 describe('Portfolio fetch tests', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()

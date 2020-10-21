@@ -17,6 +17,7 @@ let db = require('./util/db')
 describe('Test role routes', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
