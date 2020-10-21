@@ -10,6 +10,7 @@ let codec = require('../ae/codec')
 let util = require('../ae/util')
 let err = require('../error/errors')
 let txProcessor = require('./transaction-processor')
+let queueClient = require('../queue/queueClient')
 let ErrorType = err.type
 
 let { TxState, TxType } = require('../enums/enums')
@@ -27,24 +28,32 @@ async function postTransaction(tx, callback) {
         let txHash = TxBuilder.buildTxHash(tx)
         logger.debug(`Precalculated tx hash: ${txHash}`)
 
-        // Two layers of security. dryRun() is experimental and will fail silently if anything unexpected occurs.
-        await performSecurityChecks(txData)
-        let dryRunResult = await dryRun(txData)
-        await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
+        let existingRecords = await repo.get({ hash: txHash })
+        if (existingRecords.length === 0) {
+            logger.debug(`Transaction ${txHash} does not exist in database and was never broadcasted to blockchain. Moving on...`)
+            await performSecurityChecks(txData)
+            let dryRunResult = await dryRun(txData)
+            await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
 
-        let result = await client.instance().sendTransaction(tx, { waitMined: false })
+            let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
+            queueClient.publishTxProcessJob(result.hash)
         
-        txProcessor.process(result.hash).then(
-            records => {
-                logger.info(`Processing of transaction ${result.hash} completed successfully. ${records.length} record(s) updated.`)
-            },
-            error => {
-                logger.error(`Processing of transaction ${result.hash} failed with error: \n%o`, error)
+            logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
+            callback(null, { txHash: result.hash })
+        } else {
+            let tx = existingRecords[0]
+            let txExistsOnBlockchain = await util.transactionExists(txHash)
+            if (txExistsOnBlockchain) {
+                logger.debug(`Transaction ${txHash} exists in database and was broadcasted to blockchain!`)
+                queueClient.publishTxProcessJob(txHash)
+                callback(null, { txHash: txHash })
+            } else {
+                logger.debug(`Transaction ${txHash} exists in database but was never broadcasted to blockchain!`)
+                let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
+                queueClient.publishTxProcessJob(result.hash)
+                callback(null, { txHash: result.txHash })
             }
-        )
-        
-        logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
-        callback(null, { txHash: result.hash })
+        }
     } catch(error) {
         logger.error("Error while posting transaction \n%o", error)
         logger.error("Error log \n%o", err.pretty(error))

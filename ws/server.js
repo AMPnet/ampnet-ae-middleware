@@ -109,4 +109,8 @@ function notifiySubscribers(wallet) {
     }
 }
 
-module.exports = { start, notifySubscribersForTransaction }
+async function stop() {
+    return ws.close()
+}
+
+module.exports = { start, stop, notifySubscribersForTransaction }

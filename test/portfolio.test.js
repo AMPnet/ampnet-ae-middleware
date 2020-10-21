@@ -3,7 +3,7 @@ let assert = chai.assert;
 
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
@@ -13,6 +13,7 @@ let db = require('./util/db')
 describe('Portfolio fetch tests', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()

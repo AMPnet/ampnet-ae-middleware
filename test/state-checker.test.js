@@ -5,10 +5,11 @@ let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let config = require('../config')
 let codec = require('../ae/codec')
-let stateChecker = require('../service/state-checker')
+let repo = require('../persistence/repository')
+let cron = require('../supervisor')
 let { TxType, TxState, SupervisorStatus, WalletType, txStateToGrpc } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
@@ -20,6 +21,7 @@ let db = require('./util/db')
 describe('DB records recovery test', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_OLDER_THAN'] = 0
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -32,7 +34,7 @@ describe('DB records recovery test', function() {
         await supervisor.stop()
     })
 
-    it('should recover from inconsistent state in database', async () => {
+    it('should recover from inconsistent state in database', async () => {  
         let contractId = config.get().contracts.coop.address
         let callData = await codec.coop.encodeAddWallet(accounts.bob.publicKey)
         let addWalletTx = await clients.owner().contractCallTx({
@@ -51,7 +53,7 @@ describe('DB records recovery test', function() {
             state: TxState.PENDING,
             created_at: new Date()
         })
-        await stateChecker.processAllRecords()
+        cron.scanAndProcess()
         await util.waitTxProcessed(addWalletTxHash)
 
         let txInfo = await grpcClient.getTransactionInfo(addWalletTxHash)

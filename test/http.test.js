@@ -3,7 +3,7 @@ let axios = require('axios')
 let assert = chai.assert;
 
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
@@ -16,6 +16,7 @@ let config = require('../config')
 describe('HTTP endpoints tests', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         process.env['GIFT_AMOUNT'] = 0
         await grpcServer.start()
         await grpcClient.start()

@@ -3,7 +3,7 @@ let assert = chai.assert;
 
 let config = require('../config')
 let client = require('../ae/client')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType, txTypeToGrpc } = require('../enums/enums')
 
@@ -16,6 +16,7 @@ let db = require('./util/db')
 describe('Fetch transaction info tests', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         process.env['GIFT_AMOUNT'] = 0
         await grpcServer.start({}, false)
         await grpcClient.start()

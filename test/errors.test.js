@@ -11,7 +11,7 @@ let config = require('../config')
 let grpcServer = require('../grpc/server')
 let client = require('../ae/client')
 let codec = require('../ae/codec')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let contracts = require('../ae/contracts')
 let { TxType, TxState } = require('../enums/enums')
 
@@ -21,6 +21,7 @@ let ErrorType = err.type
 describe('Error handling tests', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         process.env['GIFT_AMOUNT'] = 0
         await grpcServer.start()
         await grpcClient.start()

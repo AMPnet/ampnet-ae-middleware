@@ -3,7 +3,7 @@ let assert = chai.assert;
 
 let config = require('../config')
 let client = require('../ae/client')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
@@ -17,6 +17,7 @@ let db = require('./util/db')
 describe('Test role routes', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -34,7 +35,7 @@ describe('Test role routes', function() {
         assert.equal(tokenIssuer, accounts.owner.publicKey)
     })
 
-    it('Should be able to fetch token issuer wallet', async () => {
+    it('Should be able to fetch platform manager wallet', async () => {
         let platformManager = await grpcClient.getPlatformManager()
         assert.equal(platformManager, accounts.owner.publicKey)
     })

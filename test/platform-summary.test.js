@@ -5,7 +5,7 @@ let assert = chai.assert
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let aeUtil = require('../ae/util')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
@@ -20,6 +20,7 @@ let config = require('../config')
 describe('Platform summary', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()

@@ -5,7 +5,7 @@ let assert = chai.assert;
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let aeUtil = require('../ae/util')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
@@ -20,6 +20,7 @@ let config = require('../config')
 describe('Sell offers test', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -32,7 +33,7 @@ describe('Sell offers test', function() {
         await supervisor.stop()
     })
 
-    it('Should be possible to owned shares of fully funded project to another cooperative member', async () => {
+    it('Should be possible to sell owned shares of fully funded project to another cooperative member', async () => {
         let baseUrl = `http://0.0.0.0:${config.get().http.port}`
         let createSellOfferUrl = `${baseUrl}/market/create-offer`
         let acceptSellOfferUrl = `${baseUrl}/market/accept-sell-offer`

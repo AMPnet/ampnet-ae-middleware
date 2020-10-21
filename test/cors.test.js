@@ -5,7 +5,7 @@ let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
-let supervisor = require('../supervisor')
+let supervisor = require('../queue/queue')
 let axios = require('axios')
 let config = require('../config')
 
@@ -13,6 +13,7 @@ let config = require('../config')
 describe('CORS test', function() {
 
     beforeEach(async() => {
+        process.env['DB_SCAN_ENABLED'] = "false"
         await grpcServer.start()
     })
 

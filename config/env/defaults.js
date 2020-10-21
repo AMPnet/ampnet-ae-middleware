@@ -22,6 +22,8 @@ async function get() {
     let ws = getWs()
     let db = getDb()
     let queueDb = getQueueDb()
+    let dbScanEnabledString = process.env.DB_SCAN_ENABLED || "true"
+
     return {
         serviceEnv: process.env.ENV,
         env: process.env.NODE_ENV,
@@ -34,8 +36,13 @@ async function get() {
         db: db,
         queueDb: queueDb,
         giftAmount: process.env.GIFT_AMOUNT || 0.3,
+        refundThreshold: process.env.REFUND_THRESHOLD || 0.1,
         contractCreateGasAmount: process.env.CONTRACT_CREATE_GAS_AMOUNT || 50000,
-        contractCallGasAmount: process.env.CONTRACT_CALL_GAS_AMOUNT || 10000
+        contractCallGasAmount: process.env.CONTRACT_CALL_GAS_AMOUNT || 10000,
+        dbScanEnabled: (dbScanEnabledString === "true"),
+        dbScanPeriod: process.env.DB_SCAN_PERIOD || 1,
+        
+        dbScanOlderThan: process.env.DB_SCAN_OLDER_THAN || 1
     }
 }
 
