@@ -19,7 +19,7 @@ const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternit
 async function process(hash) {
     logger.info(`Processing transaction ${hash}`)
 
-    let confirmations = 3
+    let confirmations = config.get().numberOfConfirmations
     await clients.instance().waitForTxConfirm(hash, {
         confirm: confirmations
     })
