@@ -21,7 +21,7 @@ describe('Happy path scenario', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['NUMBER_OF_CONFIRMATIONS'] = 0
+        process.env['NUMBER_OF_CONFIRMATIONS'] = 2
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()

@@ -20,8 +20,8 @@ async function process(hash) {
     logger.info(`Processing transaction ${hash}`)
 
     let confirmations = config.get().numberOfConfirmations
-    await clients.instance().waitForTxConfirm(hash, {
-        confirm: confirmations
+    await clients.instance().poll(hash, {
+        blocks: confirmations
     })
     let info = await clients.instance().getTxInfo(hash)
     logger.info(`Fetched tx info \n%o`, info)
@@ -397,7 +397,7 @@ async function callSpecialActions(tx) {
                 waitMined: false
             })
             logger.info(`Approve investment transaction posted to blockchain and will be added to tx processor queue.`)
-            queueClient.publishTxProcessJob(result.hash)
+            process(result.hash)
         } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
             let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
             let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
@@ -441,7 +441,7 @@ async function callSpecialActions(tx) {
                 shouldPayoutAnotherBatch = await client.contractDecodeData(contracts.projSource, enums.functions.proj.payoutRevenueSharesBatch, info.returnValue, info.returnType)
                 batchCount++
                 logger.info(`Payed out batch #${batchCount}.`)
-                queueClient.publishTxProcessJob(result.hash, !shouldPayoutAnotherBatch)
+                process(result.hash)
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
         } else if (tx.type == enums.TxType.APPROVE_COUNTER_OFFER) {
@@ -481,7 +481,7 @@ async function callSpecialActions(tx) {
                 verify: true
             })
             logger.info(`Market tryToSettle transaction posted to blockchain and will be added to tx processor queue.`)
-            queueClient.publishTxProcessJob(result.hash, true)
+            process(result.hash)
         } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
             queueClient.publishJobFromTx(tx)
         }

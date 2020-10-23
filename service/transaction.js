@@ -36,7 +36,7 @@ async function postTransaction(tx, callback) {
             await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
 
             let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
-            queueClient.publishTxProcessJob(result.hash)
+            txProcessor.process(result.hash)
         
             logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
             callback(null, { txHash: result.hash })
@@ -50,7 +50,7 @@ async function postTransaction(tx, callback) {
             } else {
                 logger.debug(`Transaction ${txHash} exists in database but was never broadcasted to blockchain!`)
                 let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
-                queueClient.publishTxProcessJob(result.hash)
+                txProcessor.process(result.hash)
                 callback(null, { txHash: result.txHash })
             }
         }
