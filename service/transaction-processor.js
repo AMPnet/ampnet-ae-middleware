@@ -380,12 +380,13 @@ async function callSpecialActions(tx) {
                 address: investorWorkerKeyPair.publicKey,
                 networkId: config.get().node.networkId
             })
-            let dryRunResult = await client.contractCallStatic(
+            let [dryRunResult, dryRunErr] = await handle(client.contractCallStatic(
                 contracts.projSource,
                 projectContractAddress,
                 enums.functions.proj.invest,
                 [ investorWallet ]
-            )
+            ))
+            await handleDryRunErr(tx, dryRunErr)
             logger.info(`Approve investment dry run result: %o`, dryRunResult)
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
@@ -420,12 +421,13 @@ async function callSpecialActions(tx) {
             logger.info(`Calling revenue share payout for project ${projectContractAddress}.`)
             var batchCount = 0
             do {
-                dryRunResult = await client.contractCallStatic(
+                let [dryRunResult, dryRunErr] = await handle(client.contractCallStatic(
                     contracts.projSource,
                     projectContractAddress,
                     enums.functions.proj.payoutRevenueSharesBatch,
                     [ ]
-                )
+                ))
+                await handleDryRunErr(tx, dryRunErr)
                 logger.info(`Revenue batch payout dry run result: %o`, dryRunResult)
                 let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
                 let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
@@ -464,12 +466,13 @@ async function callSpecialActions(tx) {
                 address: buyerWorkerKeyPair.publicKey,
                 networkId: config.get().node.networkId
             })
-            let dryRunResult = await client.contractCallStatic(
+            let [dryRunResult, dryRunErr] = await handle(client.contractCallStatic(
                 contracts.sellOfferSource,
                 sellOfferContract,
                 enums.functions.sellOffer.tryToSettle,
                 [ buyerWallet ]
-            )
+            ))
+            await handleDryRunErr(tx, dryRunErr)
             logger.info(`Market tryToSettle dry run result %o`, dryRunResult)
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
@@ -500,6 +503,28 @@ async function getSellOfferInfo(sellOfferContract) {
     )
     let resultDecoded = await result.decode()
     return resultDecoded
+}
+
+async function handleDryRunErr(originTx, dryRunErr) {
+    if (dryRunErr) {
+        logger.warn(`Dry run resulted in error: %o`, dryRunErr)
+        logger.warn(`Marking job as failed and updating origin tx supervisor state to PROCESSED.`)
+        repo.update(
+            {
+                hash: originTx.hash
+            },
+            {
+                supervisor_status: enums.SupervisorStatus.PROCESSED
+            }
+        )
+        throw new Error(dryRunErr)
+    }
+}
+
+const handle = (promise) => {
+    return promise
+      .then(data => ([data, undefined]))
+      .catch(error => Promise.resolve([undefined, error]));
 }
 
 module.exports = {
