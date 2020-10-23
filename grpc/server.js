@@ -124,12 +124,7 @@ module.exports = {
             generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
             getActiveSellOffers: sellOfferSvc.getActiveSellOffers
         });
-
-        // Check state
-        if (checkDbConsistency) {
-            await stateChecker.processAllRecords()
-        }
-
+        
         // Bind GRPC server
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
         await grpcServer.start()
