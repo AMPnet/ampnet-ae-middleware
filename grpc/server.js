@@ -30,7 +30,6 @@ let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
 let sellOfferSvc = require('../service/selloffer')
-let stateChecker = require('../service/state-checker')
 
 // repository
 let repo = require('../persistence/repository')
@@ -124,7 +123,7 @@ module.exports = {
             generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
             getActiveSellOffers: sellOfferSvc.getActiveSellOffers
         });
-        
+
         // Bind GRPC server
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
         await grpcServer.start()
