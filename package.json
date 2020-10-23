@@ -4,7 +4,7 @@
   "dependencies": {
     "@grpc/proto-loader": "^0.5.5",
     "@hpidcock/node-grpc-interceptors": "0.0.9",
-    "bignumber.js": "^9.0.0",
+    "bignumber.js": "^9.0.1",
     "cls-hooked": "^4.2.2",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
