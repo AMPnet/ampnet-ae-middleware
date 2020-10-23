@@ -34,14 +34,14 @@ async function get() {
         ws: ws,
         db: db,
         queueDb: queueDb,
-        giftAmount: process.env.GIFT_AMOUNT || 0.3,
-        refundThreshold: process.env.REFUND_THRESHOLD || 0.1,
-        contractCreateGasAmount: process.env.CONTRACT_CREATE_GAS_AMOUNT || 50000,
-        contractCallGasAmount: process.env.CONTRACT_CALL_GAS_AMOUNT || 10000,
+        giftAmount: Number(process.env.GIFT_AMOUNT) || 0.3,
+        refundThreshold: Number(process.env.REFUND_THRESHOLD) || 0.1,
+        contractCreateGasAmount: Number(process.env.CONTRACT_CREATE_GAS_AMOUNT) || 50000,
+        contractCallGasAmount: Number(process.env.CONTRACT_CALL_GAS_AMOUNT) || 10000,
         dbScanEnabled: (dbScanEnabledString === "true"),
-        dbScanPeriod: process.env.DB_SCAN_PERIOD || 1,
-        dbScanOlderThan: process.env.DB_SCAN_OLDER_THAN || 1,
-        numberOfConfirmations: process.env.NUMBER_OF_CONFIRMATIONS || 1
+        dbScanPeriod: Number(process.env.DB_SCAN_PERIOD) || 1,
+        dbScanOlderThan: Number(process.env.DB_SCAN_OLDER_THAN) || 1,
+        numberOfConfirmations: Number(process.env.NUMBER_OF_CONFIRMATIONS) || 1
     }
 }
 
@@ -207,13 +207,13 @@ function getGrpc() {
 
 function getHttp() {
     return {
-        port: process.env.HTTP_PORT || 8124
+        port: Number(process.env.HTTP_PORT) || 8124
     }
 }
 
 function getWs() {
     return {
-        port: process.env.WS_PORT || 8125
+        port: Number(process.env.WS_PORT) || 8125
     }
 }
 
@@ -226,7 +226,7 @@ function getDb() {
     var ssl
     
     var poolMin = 2
-    var poolMax = process.env.DB_MAX_POOL_SIZE || 5
+    var poolMax = Number(process.env.DB_MAX_POOL_SIZE) || 5
     var idleTimeoutMillis = 30000
     
     host = process.env.DB_HOST || "localhost"
@@ -311,7 +311,7 @@ function getQueueDb() {
         password: password,
         port: port,
         database: database,
-        max: process.env.QUEUE_DB_MAX_POOL_SIZE || 1,
+        max: Number(process.env.QUEUE_DB_MAX_POOL_SIZE) || 1,
         ssl: ssl
     }
 }
