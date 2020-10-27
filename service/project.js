@@ -224,10 +224,7 @@ async function activateSellOffer(fromTxHash, sellOfferTxHash) {
 }
 
 async function getProjectInfo(wallet) {
-    var contract = wallet
-    if (wallet.startsWith("th_")) {
-        contract = (await repo.findByHashOrThrow(wallet)).wallet
-    }
+    var contract = await repo.addressFromWalletData(wallet)
     let result = await client.instance().contractCallStatic(
         contracts.projSource,
         util.enforceCtPrefix(contract),

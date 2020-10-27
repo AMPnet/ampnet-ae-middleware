@@ -168,7 +168,7 @@ async function generateTxRecord(info, hash, event, txData) {
             amount = util.tokenToEur(event.topics[2])
             return {
                 hash: hash,
-                from_wallet: info.callerId,
+                from_wallet: util.enforceAkPrefix(info.contractId),
                 to_wallet: address,
                 input: txData.callData,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
@@ -208,7 +208,7 @@ async function generateTxRecord(info, hash, event, txData) {
             return {
                 hash: hash,
                 from_wallet: withdrawFrom,
-                to_wallet: info.callerId,
+                to_wallet: util.enforceAkPrefix(info.contractId),
                 input: txData.callData,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
                 type: enums.TxType.WITHDRAW,

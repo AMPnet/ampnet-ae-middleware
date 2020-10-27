@@ -35,6 +35,8 @@ describe('Happy path scenario', function() {
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
+        let eurContractAddress = aeUtil.enforceAkPrefix(config.get().contracts.eur.address)
+        
         let socket = new WebSocket(`ws://localhost:${config.get().ws.port}/ws`)
         let bobWalletUpdates = 0
         socket.onopen = function(event) {
@@ -187,6 +189,7 @@ describe('Happy path scenario', function() {
         assert.strictEqual(bobTransactions.length, 5)
         
         let bobTransactionsDeposit = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
+        assert.equal(bobTransactionsDeposit.from)
         assert.equal(bobTransactionsDeposit.amount, mintToBobAmount)
         assert.exists(bobTransactionsDeposit.date)
         assert.equal(bobTransactionsDeposit.state, enums.txStateToGrpc(enums.TxState.MINED))
@@ -213,9 +216,10 @@ describe('Happy path scenario', function() {
         assert.exists(bobTransactionsPayout.date)
         assert.equal(bobTransactionsPayout.state, enums.txStateToGrpc(enums.TxState.MINED))
 
-        let bobInvestmentsInProject = await grpcClient.getInvestmentsInProject(addBobWalletTxHash, addProjWalletTxHash)
+        let bobInvestmentsInProject = await grpcClient.getInvestmentsInProject(accounts.bob.publicKey, addProjWalletTxHash)
         assert.strictEqual(bobInvestmentsInProject.length, 1)
         let bobInvestmentInProject = bobInvestmentsInProject[0]
+        assert.exists(bobInvestmentInProject.txHash)
         assert.equal(bobInvestmentInProject.amount, bobInvestmentAmount)
         assert.equal(bobInvestmentInProject.state, enums.txStateToGrpc(enums.TxState.MINED))
         assert.exists(bobInvestmentInProject.date)
@@ -223,7 +227,7 @@ describe('Happy path scenario', function() {
         let alicePortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
         assert.isUndefined(alicePortfolio)
 
-        let aliceInvestmentsInProject = await grpcClient.getInvestmentsInProject(addAliceWalletTxHash, addProjWalletTxHash)
+        let aliceInvestmentsInProject = await grpcClient.getInvestmentsInProject(accounts.alice.publicKey, addProjWalletTxHash)
         assert.isUndefined(aliceInvestmentsInProject)
 
         let aliceTransactions = await grpcClient.getTransactions(addAliceWalletTxHash)
@@ -297,7 +301,7 @@ describe('Happy path scenario', function() {
         assert.strictEqual(addOrgWalletTxRecord.wallet_type, WalletType.ORGANIZATION)
         
         let mintToBobTxRecord = (await db.getBy({hash: mintToBobTxHash}))[0]
-        assert.strictEqual(mintToBobTxRecord.from_wallet, eurOwner)
+        assert.strictEqual(mintToBobTxRecord.from_wallet, eurContractAddress)
         assert.strictEqual(mintToBobTxRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(mintToBobTxRecord.state, TxState.MINED)
         assert.strictEqual(mintToBobTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
@@ -305,7 +309,7 @@ describe('Happy path scenario', function() {
         assert.equal(mintToBobTxRecord.amount, mintToBobAmount)
 
         let mintToAliceTxRecord = (await db.getBy({hash: mintToAliceTxHash}))[0]
-        assert.strictEqual(mintToAliceTxRecord.from_wallet, eurOwner)
+        assert.strictEqual(mintToAliceTxRecord.from_wallet, eurContractAddress)
         assert.strictEqual(mintToAliceTxRecord.to_wallet, accounts.alice.publicKey)
         assert.strictEqual(mintToAliceTxRecord.state, TxState.MINED)
         assert.strictEqual(mintToAliceTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
@@ -322,7 +326,7 @@ describe('Happy path scenario', function() {
         
         let bobWithdrawTxRecord = (await db.getBy({hash: burnFromBobTxHash}))[0]
         assert.strictEqual(bobWithdrawTxRecord.from_wallet, accounts.bob.publicKey)
-        assert.strictEqual(bobWithdrawTxRecord.to_wallet, eurOwner)
+        assert.strictEqual(bobWithdrawTxRecord.to_wallet, eurContractAddress)
         assert.strictEqual(bobWithdrawTxRecord.state, TxState.MINED)
         assert.strictEqual(bobWithdrawTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(bobWithdrawTxRecord.type, TxType.WITHDRAW)
@@ -388,7 +392,7 @@ describe('Happy path scenario', function() {
 
         let mintToProjTxRecord = (await db.getBy({hash: mintRevenueToProjectTxHash}))[0]
         let projectContractAddress = aeUtil.enforceAkPrefix((await clients.owner().getTxInfo(createProjTxHash)).contractId)
-        assert.strictEqual(mintToProjTxRecord.from_wallet, eurOwner)
+        assert.strictEqual(mintToProjTxRecord.from_wallet, eurContractAddress)
         assert.strictEqual(mintToProjTxRecord.to_wallet, projectContractAddress)
         assert.strictEqual(mintToProjTxRecord.state, TxState.MINED)
         assert.strictEqual(mintToProjTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)

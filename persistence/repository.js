@@ -2,15 +2,18 @@ let config = require('../config')
 let aeUtil = require('../ae/util')
 let util = require('../util/util')
 let err = require('../error/errors')
-let enums = require('../enums/enums')
 let ErrorType = err.type
-
-let { TxState, TxType, WalletType } = require('../enums/enums')
+let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
 
 let knex
 
 function init() {
     knex = require('knex')(config.get().db)
+}
+
+async function addressFromWalletData(walletData) {
+    if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) { return util.enforceAkPrefix(walletData) }
+    return (await findByHashOrThrow(walletData)).wallet
 }
 
 async function findByHashOrThrow(txHash) {
@@ -149,7 +152,7 @@ async function getPendingOlderThan(minutes) {
     return new Promise(resolve => {
         knex.raw(`
             select * from transaction t
-            where t.created_at < '${threshold}' and t.state = '${enums.TxState.PENDING}'
+            where t.created_at < '${threshold}' and t.state = '${TxState.PENDING}'
         `).then(result => {
             resolve(result.rows)
         })
@@ -163,7 +166,7 @@ async function getSupervisorRequiredOlderThan(minutes) {
     return new Promise(resolve => {
         knex.raw(`
             select * from transaction t
-            where t.created_at < '${threshold}' and t.state = '${enums.TxState.MINED}' and t.supervisor_status = '${enums.SupervisorStatus.REQUIRED}'
+            where t.created_at < '${threshold}' and t.state = '${TxState.MINED}' and t.supervisor_status = '${SupervisorStatus.REQUIRED}'
         `).then(result => {
             resolve(result.rows)
         })
@@ -171,13 +174,15 @@ async function getSupervisorRequiredOlderThan(minutes) {
 }
 
 async function getUserTransactions(wallet) {
+    let parsedWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise(resolve => {
         knex('transaction')
-            .where({ from_wallet: wallet })
-            .orWhere({ to_wallet: wallet })
+            .where({ from_wallet: parsedWallet })
+            .orWhere({ to_wallet: parsedWallet })
             .then(records => {
                 let processedRecords = records.map(r => {
                     return {
+                        hash: r.hash,
                         from_wallet: r.from_wallet,
                         to_wallet: r.to_wallet,
                         amount: r.amount,
@@ -192,19 +197,20 @@ async function getUserTransactions(wallet) {
 }
 
 async function getUserUncanceledInvestments(wallet) {
+    let parsedWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise(resolve => {
         knex.raw(`
             select * from transaction t
             where 
-                t.from_wallet='${wallet}' and 
-                t.type='${enums.TxType.INVEST}' and 
-                t.state='${enums.TxState.MINED}' and 
+                t.from_wallet='${parsedWallet}' and 
+                t.type='${TxType.INVEST}' and 
+                t.state='${TxState.MINED}' and 
                 t.created_at > COALESCE(
                     (
                         select max(created_at) from transaction
                         where 
-                            type='${enums.TxType.CANCEL_INVESTMENT}' and 
-                            state='${enums.TxState.MINED}' and 
+                            type='${TxType.CANCEL_INVESTMENT}' and 
+                            state='${TxState.MINED}' and 
                             from_wallet=t.to_wallet and 
                             to_wallet=t.from_wallet
                     ),
@@ -222,8 +228,8 @@ async function getUserMarketTransactions(wallet) {
             select * from transaction t
             where
                 (t.from_wallet='${wallet}' or t.to_wallet='${wallet}') and
-                t.type='${enums.TxType.SHARES_SOLD}' and
-                t.state='${enums.TxState.MINED}'
+                t.type='${TxType.SHARES_SOLD}' and
+                t.state='${TxState.MINED}'
         `).then(result => {
             resolve(result.rows)
         })
@@ -267,6 +273,7 @@ async function runMigrations() {
 }
 
 module.exports = {
+    addressFromWalletData,
     findByHashOrThrow,
     findByWalletOrThrow,
     findFirstByWallet,

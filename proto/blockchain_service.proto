@@ -142,11 +142,11 @@ message PortfolioResponse {
 }
 
 message TransactionsRequest {
-    string tx_hash = 1;
+    string wallet_data = 1;
 }
 
 message InvestmentsInProjectRequest {
-    string from_tx_hash = 1;
+    string from_address = 1;
     string project_tx_hash = 2;
 }
 
@@ -158,6 +158,7 @@ message TransactionsResponse {
         string date = 4;
         TransactionType type = 5;
         TransactionState state = 6;
+        string tx_hash = 7;
     }
     repeated Transaction transactions = 1;
 }

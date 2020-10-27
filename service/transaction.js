@@ -123,8 +123,8 @@ async function getTransactionInfo(call, callback) {
             })
         } else {
             logger.debug(`Received request to fetch info for transaction with hash ${hash}. From: ${from} To: ${to}`)
-            let fromWallet = (from.startsWith("th_")) ? ((await repo.findByHashOrThrow(from)).wallet) : from
-            let toWallet = (to.startsWith("th_")) ? ((await repo.findByHashOrThrow(to)).wallet) : to
+            let fromWallet = await repo.addressFromWalletData(from)
+            let toWallet = await repo.addressFromWalletData(to)
             records = await repo.get({ 
                 hash: hash,
                 from_wallet: fromWallet,
@@ -157,12 +157,12 @@ async function getTransactionInfo(call, callback) {
 }
 
 async function getTransactions(call, callback) {
-    logger.debug(`Received request to fetch transactions for user with wallet txHash ${call.request.txHash}`)
+    logger.debug(`Received request to fetch transactions for user with wallet data ${call.request.walletData}`)
     try {
-        let tx = await repo.findByHashOrThrow(call.request.txHash)
-        logger.debug(`Address represented by given hash: ${tx.wallet}`)
+        let wallet = await repo.addressFromWalletData(call.request.walletData)
+        logger.debug(`Address represented by given wallet data: ${wallet}`)
         let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.APPROVE_INVESTMENT, TxType.INVEST, TxType.SHARE_PAYOUT, TxType.CANCEL_INVESTMENT])
-        let transactionsPromisified = (await repo.getUserTransactions(tx.wallet))
+        let transactionsPromisified = (await repo.getUserTransactions(wallet))
             .filter(r => types.has(r.type))
             .map(r => {
                 switch (r.type) {
@@ -170,6 +170,7 @@ async function getTransactions(call, callback) {
                     case TxType.WITHDRAW:
                         return new Promise(resolve => {
                             resolve({
+                                txHash: r.hash,
                                 amount: r.amount,
                                 type: enums.txTypeToGrpc(r.type),
                                 date: r.date,
@@ -181,7 +182,8 @@ async function getTransactions(call, callback) {
                         return new Promise(async (resolve) => {
                             repo.findByWalletOrThrow(r.to_wallet).then(project => {
                                 resolve({
-                                    fromTxHash: call.request.txHash,
+                                    txHash: r.hash,
+                                    fromTxHash: call.request.walletData,
                                     toTxHash: project.hash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
@@ -194,8 +196,9 @@ async function getTransactions(call, callback) {
                         return new Promise(async (resolve) => {
                             repo.findByWalletOrThrow(r.from_wallet).then(project => {
                                 resolve({
+                                    txHash: r.hash,
                                     fromTxHash: project.hash,
-                                    toTxHash: call.request.txHash,
+                                    toTxHash: call.request.walletData,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
@@ -207,8 +210,9 @@ async function getTransactions(call, callback) {
                         return new Promise(async (resolve) => {
                             repo.findByWalletOrThrow(r.from_wallet).then(project => {
                                 resolve({
+                                    txHash: r.hash,
                                     fromTxHash: project.hash,
-                                    toTxHash: call.request.txHash,
+                                    toTxHash: call.request.walletData,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
@@ -228,18 +232,17 @@ async function getTransactions(call, callback) {
 }
 
 async function getInvestmentsInProject(call, callback) {
-    logger.debug(`Received request to fetch investments in project ${call.request.projectTxHash} for user with wallet ${call.request.fromTxHash}`)
+    logger.debug(`Received request to fetch investments in project ${call.request.projectTxHash} for user with wallet ${call.request.fromAddress}`)
     try {
-        let investorTx = await repo.findByHashOrThrow(call.request.fromTxHash)
-        logger.debug(`Investor wallet represented by given hash: ${investorTx.wallet}`)
         let projectTx = await repo.findByHashOrThrow(call.request.projectTxHash)
         logger.debug(`Project address represented by given hash: ${projectTx.wallet}`)
-        let investments = (await repo.getUserUncanceledInvestments(investorTx.wallet))
+        let investments = (await repo.getUserUncanceledInvestments(call.request.fromAddress))
             .filter(tx => {
                 return tx.to_wallet == projectTx.wallet
             })
             .map(tx => {
                 return {
+                    txHash: tx.hash,
                     fromTxHash: call.request.fromTxHash,
                     toTxHash: call.request.projectTxHash,
                     amount: tx.amount,
