@@ -187,7 +187,7 @@ async function getUserTransactions(wallet) {
                         to_wallet: r.to_wallet,
                         amount: r.amount,
                         type: r.type,
-                        date: (r.state == enums.TxState.PENDING) ? util.dateToUnixEpoch(r.created_at) : util.dateToUnixEpoch(r.processed_at),
+                        date: (r.state == TxState.PENDING) ? util.dateToUnixEpoch(r.created_at) : util.dateToUnixEpoch(r.processed_at),
                         state: r.state
                     }
                 })
