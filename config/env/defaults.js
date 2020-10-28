@@ -7,8 +7,8 @@ let { Environment, ServiceEnv } = require('../../enums/enums')
 let logger = require('../../logger')(module)
 
 async function get() {
-    process.env.ENV = process.env.ENV || ServiceEnv.DEV
-    process.env.NODE_ENV = process.env.NODE_ENV || Environment.LOCAL
+    process.env.ENV = valueOrDefault(process.env.ENV, ServiceEnv.DEV)
+    process.env.NODE_ENV = valueOrDefault(process.env.NODE_ENV, Environment.LOCAL)
     let node = {
         url: getNodeUrl(),
         internalUrl: getNodeInternalUrl(),
@@ -22,7 +22,7 @@ async function get() {
     let ws = getWs()
     let db = getDb()
     let queueDb = getQueueDb()
-    let dbScanEnabledString = process.env.DB_SCAN_ENABLED || "true"
+    let dbScanEnabledString = valueOrDefault(process.env.DB_SCAN_ENABLED, "true")
     return {
         serviceEnv: process.env.ENV,
         env: process.env.NODE_ENV,
@@ -34,19 +34,19 @@ async function get() {
         ws: ws,
         db: db,
         queueDb: queueDb,
-        giftAmount: Number(process.env.GIFT_AMOUNT) || 0.3,
-        refundThreshold: Number(process.env.REFUND_THRESHOLD) || 0.1,
-        contractCreateGasAmount: Number(process.env.CONTRACT_CREATE_GAS_AMOUNT) || 50000,
-        contractCallGasAmount: Number(process.env.CONTRACT_CALL_GAS_AMOUNT) || 10000,
+        giftAmount: Number(valueOrDefault(process.env.GIFT_AMOUNT, 0.3)),
+        refundThreshold: Number(valueOrDefault(process.env.REFUND_THRESHOLD, 0.1)),
+        contractCreateGasAmount: Number(valueOrDefault(process.env.CONTRACT_CREATE_GAS_AMOUNT, 50000)),
+        contractCallGasAmount: Number(valueOrDefault(process.env.CONTRACT_CALL_GAS_AMOUNT, 10000)),
         dbScanEnabled: (dbScanEnabledString === "true"),
-        dbScanPeriod: Number(process.env.DB_SCAN_PERIOD) || 1,
-        dbScanOlderThan: Number(process.env.DB_SCAN_OLDER_THAN) || 1,
-        numberOfConfirmations: Number(process.env.NUMBER_OF_CONFIRMATIONS) || 1
+        dbScanPeriod: Number(valueOrDefault(process.env.DB_SCAN_PERIOD, 1)),
+        dbScanOlderThan: Number(valueOrDefault(process.env.DB_SCAN_OLDER_THAN, 1)),
+        numberOfConfirmations: Number(valueOrDefault(process.env.NUMBER_OF_CONFIRMATIONS, 1))
     }
 }
 
 function getNodeUrl() {
-    if (process.env.NODE_URL) { return process.env.NODE_URL }
+    if (process.env.NODE_URL !== undefined) { return process.env.NODE_URL }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "http://localhost:3013/"
         case Environment.TESTNET: return "https://sdk-testnet.aepps.com/"
@@ -55,7 +55,7 @@ function getNodeUrl() {
 }
 
 function getNodeInternalUrl() {
-    if (process.env.NODE_INTERNAL_URL) { return process.env.NODE_INTERNAL_URL }
+    if (process.env.NODE_INTERNAL_URL !== undefined) { return process.env.NODE_INTERNAL_URL }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "http://localhost:3113/"
         case Environment.TESTNET: return "https://sdk-testnet.aepps.com"
@@ -64,7 +64,7 @@ function getNodeInternalUrl() {
 }
  
 function getCompilerUrl() {
-    if (process.env.COMPILER_URL) { return process.env.COMPILER_URL }
+    if (process.env.COMPILER_URL !== undefined) { return process.env.COMPILER_URL }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "http://localhost:3080"
         case Environment.TESTNET: return "https://latest.compiler.aepps.com"
@@ -73,7 +73,7 @@ function getCompilerUrl() {
 }
 
 function getNetworkId() {
-    if (process.env.NETWORK_ID) { return process.env.NETWORK_ID }
+    if (process.env.NETWORK_ID !== undefined) { return process.env.NETWORK_ID }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "ae_docker"
         case Environment.TESTNET: return "ae_uat"
@@ -90,7 +90,7 @@ function getSupervisorKeypair() {
         publicKey: "ak_2rTfmU3BQHohJvLPoHzRKWijgqbFi4dwYmzVjyqgQrQAQmkhr6",
         secretKey: "2826a2b18d1bb2530341eb28e4e582613cd9d0687e7681c89a34159f39d554c3f40028b9aa6ee6fbcb53135799866edf08b8eb838fe9e56d9691d0963951358f"
     }
-    if (process.env.SUPERVISOR_PUBLIC_KEY && process.env.SUPERVISOR_PRIVATE_KEY) {
+    if (process.env.SUPERVISOR_PUBLIC_KEY !== undefined && process.env.SUPERVISOR_PRIVATE_KEY !== undefined) {
         return {
             publicKey: process.env.SUPERVISOR_PUBLIC_KEY,
             secretKey: process.env.SUPERVISOR_PRIVATE_KEY
@@ -119,7 +119,7 @@ async function getContracts(node, supervisorKeypair) {
         address: supervisorKeypair.publicKey,
         networkId: node.networkId
     })
-    if (process.env.COOP_ADDRESS && process.env.EUR_ADDRESS) {
+    if (process.env.COOP_ADDRESS !== undefined && process.env.EUR_ADDRESS !== undefined) {
         logger.info("Base contracts pre-deployed.")
         logger.info(`Coop: ${process.env.COOP_ADDRESS}`)
         logger.info(`EUR: ${process.env.EUR_ADDRESS}`)
@@ -163,13 +163,13 @@ async function getContracts(node, supervisorKeypair) {
         await coopInstance.call('set_token', [eur.address])
         logger.info(`EUR token registered in Coop contract`)
  
-        if (process.env.COOP_OWNER) {
+        if (process.env.COOP_OWNER !== undefined) {
             logger.info(`Transferring Coop contract ownership to ${process.env.COOP_OWNER}`)
             await coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
             logger.info(`Ownership transferred.`)
         }
 
-        if (process.env.EUR_OWNER) {
+        if (process.env.EUR_OWNER !== undefined) {
             logger.info(`Transferring EUR contract ownership to ${process.env.EUR_OWNER}`)
             await eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
             logger.info(`Ownership transferred.`)
@@ -195,7 +195,7 @@ async function getContracts(node, supervisorKeypair) {
 }
 
 function getGrpc() {
-    if (process.env.GRPC_URL) {
+    if (process.env.GRPC_URL !== undefined) {
         return {
             url: process.env.GRPC_URL
         }
@@ -207,13 +207,13 @@ function getGrpc() {
 
 function getHttp() {
     return {
-        port: Number(process.env.HTTP_PORT) || 8124
+        port: Number(valueOrDefault(process.env.HTTP_PORT, 8124))
     }
 }
 
 function getWs() {
     return {
-        port: Number(process.env.WS_PORT) || 8125
+        port: Number(valueOrDefault(process.env.WS_PORT, 8125))
     }
 }
 
@@ -229,29 +229,29 @@ function getDb() {
     var poolMax = Number(process.env.DB_MAX_POOL_SIZE) || 5
     var idleTimeoutMillis = 30000
     
-    host = process.env.DB_HOST || "localhost"
-    port = process.env.DB_PORT || "5432"
+    host = valueOrDefault(process.env.DB_HOST, "localhost")
+    port = valueOrDefault(process.env.DB_PORT, "5432")
 
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL:
             poolMin = 0
             idleTimeoutMillis = 500
-            user = process.env.DB_USER || "ae_middleware_local"
-            password = process.env.DB_PASSWORD || "password"
-            database = process.env.DB_NAME || "ae_middleware_local"
+            user = valueOrDefault(process.env.DB_USER, "ae_middleware_local")
+            password = valueOrDefault(process.env.DB_PASSWORD, "password")
+            database = valueOrDefault(process.env.DB_NAME, "ae_middleware_local")
             break
         case Environment.TESTNET:
-            user = process.env.DB_USER || "ae_middleware_testnet"
-            password = process.env.DB_PASSWORD || "password"
-            database = process.env.DB_NAME || "ae_middleware_testnet"
+            user = valueOrDefault(process.env.DB_USER, "ae_middleware_testnet")
+            password = valueOrDefault(process.env.DB_PASSWORD, "password")
+            database = valueOrDefault(process.env.DB_NAME, "ae_middleware_testnet")
             break
         case Environment.MAINNET:
-            user = process.env.DB_USER || "ae_middleware_mainnet"
-            password = process.env.DB_PASSWORD || "password"
-            database = process.env.DB_NAME || "ae_middleware_mainnet"
+            user = valueOrDefault(process.env.DB_USER, "ae_middleware_mainnet")
+            password = valueOrDefault(process.env.DB_PASSWORD, "password")
+            database = valueOrDefault(process.env.DB_NAME, "ae_middleware_mainnet")
             break
     }
-    sslString = process.env.DB_SSL || "false"
+    sslString = valueOrDefault(process.env.DB_SSL, "false")
     ssl = (sslString == "true")
 
     return {
@@ -282,28 +282,28 @@ function getQueueDb() {
     var port
     var database
     
-    host = process.env.QUEUE_DB_HOST || "localhost"
-    port = process.env.QUEUE_DB_PORT || "5432"
+    host = valueOrDefault(process.env.QUEUE_DB_HOST, "localhost")
+    port = valueOrDefault(process.env.QUEUE_DB_PORT, "5432")
 
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL:
-            user = process.env.QUEUE_DB_USER || "ae_middleware_local_queue"
-            password = process.env.QUEUE_DB_PASSWORD || "password"
-            database = process.env.QUEUE_DB_NAME || "ae_middleware_local_queue"
+            user = valueOrDefault(process.env.QUEUE_DB_USER, "ae_middleware_local_queue")
+            password = valueOrDefault(process.env.QUEUE_DB_PASSWORD, "password")
+            database = valueOrDefault(process.env.QUEUE_DB_NAME, "ae_middleware_local_queue")
             break
         case Environment.TESTNET:
-            user = process.env.QUEUE_DB_USER || "ae_middleware_testnet_queue"
-            password = process.env.QUEUE_DB_PASSWORD || "password"
-            database = process.env.QUEUE_DB_NAME || "ae_middleware_testnet_queue"
+            user = valueOrDefault(process.env.QUEUE_DB_USER, "ae_middleware_testnet_queue")
+            password = valueOrDefault(process.env.QUEUE_DB_PASSWORD, "password")
+            database = valueOrDefault(process.env.QUEUE_DB_NAME, "ae_middleware_testnet_queue")
             break
         case Environment.MAINNET:
-            user = process.env.QUEUE_DB_USER || "ae_middleware_mainnet_queue"
-            password = process.env.QUEUE_DB_PASSWORD || "password"
-            database = process.env.QUEUE_DB_NAME || "ae_middleware_mainnet_queue"
+            user = valueOrDefault(process.env.QUEUE_DB_USER, "ae_middleware_mainnet_queue")
+            password = valueOrDefault(process.env.QUEUE_DB_PASSWORD, "password")
+            database = valueOrDefault(process.env.QUEUE_DB_NAME, "ae_middleware_mainnet_queue")
             break
     }
 
-    sslString = process.env.QUEUE_DB_SSL || "false"
+    sslString = valueOrDefault(process.env.QUEUE_DB_SSL, "false")
     ssl = (sslString == "true")
     return {
         host: host,
@@ -311,9 +311,13 @@ function getQueueDb() {
         password: password,
         port: port,
         database: database,
-        max: Number(process.env.QUEUE_DB_MAX_POOL_SIZE) || 1,
+        max: Number(valueOrDefault(process.env.QUEUE_DB_MAX_POOL_SIZE, 1)),
         ssl: ssl
     }
+}
+
+function valueOrDefault(value, defaultValue) {
+    return (value !== undefined) ? value : defaultValue
 }
 
 module.exports = { get }

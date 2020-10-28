@@ -12,7 +12,7 @@ function init() {
 }
 
 async function addressFromWalletData(walletData) {
-    if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) { return util.enforceAkPrefix(walletData) }
+    if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) { return aeUtil.enforceAkPrefix(walletData) }
     return (await findByHashOrThrow(walletData)).wallet
 }
 

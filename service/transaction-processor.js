@@ -92,11 +92,25 @@ async function storeTransactionData(txHash, txData, txInfo, originatedFrom = nul
     logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData)
-        await repo.saveTransaction({
-            ...record,
-            originated_from: originatedFrom
+        let existingRecords = await repo.get({
+            hash: record.hash
         })
-        logger.debug(`Stored new record:\n%o`, record)
+        if (existingRecords.length > 0) {
+            logger.debug(`Transaction records with hash ${record.hash} already exist in database. Updating records...`)
+            await repo.update(
+                { hash: record.hash },
+                { 
+                    ...record,
+                    originated_from: originated_from
+                }
+            )
+        } else {
+            await repo.saveTransaction({
+                ...record,
+                originated_from: originatedFrom
+            })
+            logger.debug(`Stored new record:\n%o`, record)
+        }
         ws.notifySubscribersForTransaction(record)
     }
     logger.debug(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
