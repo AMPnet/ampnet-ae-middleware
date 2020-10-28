@@ -19,10 +19,7 @@ const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternit
 async function process(hash) {
     logger.info(`Processing transaction ${hash}`)
 
-    let confirmations = config.get().numberOfConfirmations
-    await clients.instance().poll(hash, {
-        blocks: confirmations
-    })
+    await clients.instance().poll(hash)
     let info = await clients.instance().getTxInfo(hash)
     logger.info(`Fetched tx info \n%o`, info)
     

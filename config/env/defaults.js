@@ -40,8 +40,7 @@ async function get() {
         contractCallGasAmount: Number(valueOrDefault(process.env.CONTRACT_CALL_GAS_AMOUNT, 10000)),
         dbScanEnabled: (dbScanEnabledString === "true"),
         dbScanPeriod: Number(valueOrDefault(process.env.DB_SCAN_PERIOD, 1)),
-        dbScanOlderThan: Number(valueOrDefault(process.env.DB_SCAN_OLDER_THAN, 1)),
-        numberOfConfirmations: Number(valueOrDefault(process.env.NUMBER_OF_CONFIRMATIONS, 1))
+        dbScanOlderThan: Number(valueOrDefault(process.env.DB_SCAN_OLDER_THAN, 1))
     }
 }
 
