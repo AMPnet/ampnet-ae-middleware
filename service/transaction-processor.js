@@ -98,7 +98,7 @@ async function storeTransactionData(txHash, txData, txInfo, originatedFrom = nul
                 { hash: record.hash },
                 { 
                     ...record,
-                    originated_from: originated_from
+                    originated_from: originatedFrom
                 }
             )
         } else {
