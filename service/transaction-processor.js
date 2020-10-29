@@ -19,10 +19,7 @@ const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternit
 async function process(hash) {
     logger.info(`Processing transaction ${hash}`)
 
-    let confirmations = config.get().numberOfConfirmations
-    await clients.instance().poll(hash, {
-        blocks: confirmations
-    })
+    await clients.instance().poll(hash)
     let info = await clients.instance().getTxInfo(hash)
     logger.info(`Fetched tx info \n%o`, info)
     
@@ -92,11 +89,25 @@ async function storeTransactionData(txHash, txData, txInfo, originatedFrom = nul
     logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData)
-        await repo.saveTransaction({
-            ...record,
-            originated_from: originatedFrom
+        let existingRecords = await repo.get({
+            hash: record.hash
         })
-        logger.debug(`Stored new record:\n%o`, record)
+        if (existingRecords.length > 0) {
+            logger.debug(`Transaction records with hash ${record.hash} already exist in database. Updating records...`)
+            await repo.update(
+                { hash: record.hash },
+                { 
+                    ...record,
+                    originated_from: originated_from
+                }
+            )
+        } else {
+            await repo.saveTransaction({
+                ...record,
+                originated_from: originatedFrom
+            })
+            logger.debug(`Stored new record:\n%o`, record)
+        }
         ws.notifySubscribersForTransaction(record)
     }
     logger.debug(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
@@ -168,7 +179,7 @@ async function generateTxRecord(info, hash, event, txData) {
             amount = util.tokenToEur(event.topics[2])
             return {
                 hash: hash,
-                from_wallet: info.callerId,
+                from_wallet: util.enforceAkPrefix(info.contractId),
                 to_wallet: address,
                 input: txData.callData,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
@@ -208,7 +219,7 @@ async function generateTxRecord(info, hash, event, txData) {
             return {
                 hash: hash,
                 from_wallet: withdrawFrom,
-                to_wallet: info.callerId,
+                to_wallet: util.enforceAkPrefix(info.contractId),
                 input: txData.callData,
                 supervisor_status: enums.SupervisorStatus.NOT_REQUIRED,
                 type: enums.TxType.WITHDRAW,

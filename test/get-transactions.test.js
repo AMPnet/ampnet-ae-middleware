@@ -88,6 +88,7 @@ describe('Fetch transaction info tests', function() {
         let txs = await grpcClient.getTransactions(userWalletHash)
         
         let pendingTx = txs[0]
+        assert.equal(pendingTx.txHash, pendingInvestmentHash)
         assert.equal(pendingTx.fromTxHash, userWalletHash)
         assert.equal(pendingTx.toTxHash, projectWalletHash)
         assert.equal(pendingTx.amount, pendingInvestmentAmount)
@@ -95,6 +96,7 @@ describe('Fetch transaction info tests', function() {
         assert.equal(pendingTx.date, pendingInvestmnetDate.getTime())
 
         let minedTx = txs[1]
+        assert.equal(minedTx.txHash, minedInvestmentHash)
         assert.equal(minedTx.fromTxHash, userWalletHash)
         assert.equal(minedTx.toTxHash, projectWalletHash)
         assert.equal(minedTx.amount, minedInvestmentAmount)

@@ -240,10 +240,10 @@ module.exports = {
             })
         })
     },
-    getTransactions: async function(txHash) {
+    getTransactions: async function(walletData) {
         return new Promise(resolve => {
             client.getTransactions({
-                txHash: txHash
+                walletData: walletData
             }, (err, result) => {
                 if (err != null) {
                     resolve(err)
@@ -266,10 +266,10 @@ module.exports = {
             })
         })
     },
-    getInvestmentsInProject: async function(fromTxHash, projectTxHash) {
+    getInvestmentsInProject: async function(fromAddress, projectTxHash) {
         return new Promise(resolve => {
             client.getInvestmentsInProject({
-                fromTxHash: fromTxHash,
+                fromAddress: fromAddress,
                 projectTxHash: projectTxHash
             }, (err, result) => {
                 if (err != null) {
