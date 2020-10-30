@@ -32,7 +32,7 @@ async function initAndStart(dbConfig) {
 
     let autoFunderSubscriptionOptions = {
         teamSize: 1,
-        teamConcurrency: 2,
+        teamConcurrency: 1,
         newJobCheckIntervalSeconds: 2
     }
     await queue.subscribe(
@@ -40,9 +40,14 @@ async function initAndStart(dbConfig) {
         autoFunderSubscriptionOptions,
         autoFunderJobHandler
     )
+    let autoFunderOnCompleteOptions = {
+        teamSize: 3,
+        teamConcurrency: 3,
+        newJobCheckIntervalSeconds: 2
+    }
     await queue.onComplete(
         autoFunderQueue,
-        autoFunderSubscriptionOptions,
+        autoFunderOnCompleteOptions,
         autoFunderJobCompleteHandler
     )
 
