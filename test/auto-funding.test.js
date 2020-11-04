@@ -53,8 +53,7 @@ describe('Auto funding test', function() {
 
         let thresholdAe = config.get().refundThreshold
         let threshold = aeUtil.toToken(thresholdAe)
-        let giftAe = config.get().giftAmount
-        let gift = aeUtil.toToken(giftAe)
+        let gift = aeUtil.toToken(0.3)
 
         let addRandomWalletTx = await grpcClient.generateAddWalletTx(randomWallet.publicKey)
         let addRandomWalletTxSigned = await clients.owner().signTransaction(addRandomWalletTx)

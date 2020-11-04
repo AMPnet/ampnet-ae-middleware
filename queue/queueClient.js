@@ -31,10 +31,8 @@ function publishTxProcessJob(hash) {
     )
 }
 
-function publishSendFundsJob(wallet, amountAe) {
+function publishSendFundsJob(wallet) {
     queue.publish(autoFunderQueue, {
-        type: JobType.SEND_FUNDS,
-        amount: util.toToken(amountAe),
         wallets: [wallet]
     }).then(
         result => {
@@ -49,16 +47,12 @@ function publishSendFundsJob(wallet, amountAe) {
 async function publishJobFromTx(tx) {
     switch (tx.type) {
         case TxType.WALLET_CREATE:
-            giftAmountAe = config.get().giftAmount
+            autoFund = config.get().autoFund
             jobType = JobType.SEND_FUNDS
-            if (giftAmountAe > 0) {
+            if (autoFund) {
                 queue.publish(autoFunderQueue, {
-                    type: jobType,
-                    amount: util.toToken(giftAmountAe),
                     wallets: [tx.wallet, tx.worker_public_key],
-                    originTxHash: tx.hash,
-                    originTxFromWallet: tx.from_wallet,
-                    originTxToWallet: tx.to_wallet
+                    originTxHash: tx.hash
                 }).then(
                     result => {
                         logger.info(`QUEUE-PUBLISHER: Send funds to ${tx.wallet} (main user wallet) job originated from transaction ${tx.hash} published successfully. Job id: ${result}`)

@@ -22,7 +22,7 @@ describe('Error handling tests', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['GIFT_AMOUNT'] = 0
+        process.env['AUTO_FUND'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()

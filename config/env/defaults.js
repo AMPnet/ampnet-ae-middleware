@@ -23,6 +23,7 @@ async function get() {
     let db = getDb()
     let queueDb = getQueueDb()
     let dbScanEnabledString = valueOrDefault(process.env.DB_SCAN_ENABLED, "true")
+    let autoFundString = valueOrDefault(process.env.AUTO_FUND, "true")
     return {
         serviceEnv: process.env.ENV,
         env: process.env.NODE_ENV,
@@ -34,7 +35,7 @@ async function get() {
         ws: ws,
         db: db,
         queueDb: queueDb,
-        giftAmount: Number(valueOrDefault(process.env.GIFT_AMOUNT, 0.3)),
+        autoFund: (autoFundString === "true"),
         refundThreshold: Number(valueOrDefault(process.env.REFUND_THRESHOLD, 0.1)),
         contractCreateGasAmount: Number(valueOrDefault(process.env.CONTRACT_CREATE_GAS_AMOUNT, 50000)),
         contractCallGasAmount: Number(valueOrDefault(process.env.CONTRACT_CALL_GAS_AMOUNT, 10000)),

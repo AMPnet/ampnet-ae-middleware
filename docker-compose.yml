@@ -25,3 +25,17 @@ services:
     image: aeternity/aesophia_http:v4.3.2
     ports:
        - "3080:3080"
+  
+  auto-funder:
+    image: ampnet/auto-funder:local
+    environment:
+      QUEUE_DB_HOST: db
+      NODE_URL: http://ae-node:3013
+      NODE_INTERNAL_URL: http://ae-node:3113
+      COMPILER_URL: http://sophia-compiler:3080
+      FUNDERS: 707881878eacacce4db463de9c7bf858b95c3144d52fafed4a41ffd666597d0393d23cf31fcd12324cd45d4784d08953e8df8283d129f357463e6795b40e88aa
+    restart: always
+    depends_on:
+      - ae-node
+      - sophia-compiler
+      - db

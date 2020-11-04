@@ -1,17 +1,13 @@
 const PgBoss = require('pg-boss')
-const { TxBuilder } = require('@aeternity/aepp-sdk')
 
 const queueClient = require('./queueClient')
-const config = require('../config')
 const logger = require('../logger')(module)
-const ae = require('../ae/client')
-const util = require('../ae/util')
 const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
 const txProcessor = require('../service/transaction-processor')
-const { JobType, TxType, WalletType } = require('../enums/enums')
+const { JobType } = require('../enums/enums')
 
-const autoFunderQueue = "ampnet-ae-middleware-supervisor-queue"
+const autoFunderQueue = "ampnet-auto-funder-queue"
 const txProcessorQueue = "ampnet-ae-middleware-tx-processor-queue"
 
 let queue
@@ -30,16 +26,6 @@ async function initAndStart(dbConfig) {
     })
     await queue.start()
 
-    let autoFunderSubscriptionOptions = {
-        teamSize: 1,
-        teamConcurrency: 1,
-        newJobCheckIntervalSeconds: 2
-    }
-    await queue.subscribe(
-        autoFunderQueue,
-        autoFunderSubscriptionOptions,
-        autoFunderJobHandler
-    )
     let autoFunderOnCompleteOptions = {
         teamSize: 3,
         teamConcurrency: 3,
@@ -73,69 +59,6 @@ async function initAndStart(dbConfig) {
     logger.info("Queue Client initialized successfully!")
 }
 
-async function autoFunderJobHandler(job) {
-    logger.info(`FUNDER-QUEUE: Processing job with queue id ${job.id}`)
-    switch (job.data.type) {
-        case JobType.SEND_FUNDS:
-            let wallets = job.data.wallets
-            let amount = job.data.amount
-            
-            if (wallets.length === 0) {
-                logger.info("FUNDER-QUEUE: No wallets provided for auto-funding. Ignoring job.")
-                return
-            }
-            if (amount === 0) {
-                logger.info("FUNDER-QUEUE: Funding amount set to 0AE. Ignoring job.")
-                return
-            }
-            
-            let senderAddress = await ae.sender().address()
-            let senderBalance = await ae.sender().getBalance(senderAddress)
-            let nonce = await ae.sender().getAccountNonce(senderAddress)
-            let pool = await ae.sender().mempool()
-            for (entry of pool.transactions) {
-                let tx = entry.tx
-                if (tx.type === 'SpendTx' && tx.senderId === senderAddress && tx.nonce >= nonce) {
-                    nonce = (entry.tx.nonce + 1)
-                }
-            }
-
-            let transactions = []
-            let totalCost = 0
-            for (wallet of wallets) {
-                let tx = await ae.sender().spendTx({
-                    senderId: senderAddress,
-                    recipientId: wallet,
-                    amount: amount,
-                    nonce: nonce
-                })
-                let params = TxBuilder.unpackTx(tx).tx
-                let signedTx = await ae.sender().signTransaction(tx)
-                
-                transactions.push(signedTx)
-                totalCost += (Number(params.fee) + Number(params.amount))
-                nonce++
-            }
-
-            if (totalCost > senderBalance) {
-                logger.error(`FUNDER-QUEUE: Error while funding wallets. Insufficient balance on supervisor account. Ignoring job.`)
-                job.done(new Error(`Processing job with queue id ${job.id} failed. Insufficient balance on funder account.`))
-            }
-
-            let jobs = []
-            for (t of transactions) {
-                jobs.push(
-                    ae.sender().sendTransaction(t, { waitMined: false, verify: false })
-                )
-            }
-
-            return Promise.all(jobs)
-        default:
-            logger.error(`FUNDER-QUEUE: Processing job with queue id ${job.id} failed. Unknown job type.`)
-            job.done(new Error(`Processing job with queue id ${job.id} failed. Unknown job type.`))
-    }
-}
-
 async function autoFunderJobCompleteHandler(job) {
     if (job.data.failed) {
         logger.error(`FUNDER-QUEUE: Job ${job.data.request.id} failed. Full output: %o`, job)
@@ -147,21 +70,10 @@ async function autoFunderJobCompleteHandler(job) {
         logger.info(`FUNDER-QUEUE: Job ${job.data.request.id} completed!`)
         return
     }
-
-    let jobResponse = job.data.response.value
-    let results = []
-
-    logger.info(`FUNDER-QUEUE: Job ${job.data.request.id} completed! Broadcasted ${jobResponse.length} transactions`)
-    for (transaction of jobResponse) {
-        results.push(ae.sender().poll(transaction.hash))
-    }
-    await Promise.all(results)
-    logger.info(`FUNDER-QUEUE: Transactions mined. Updating status in database.`)
-
+    logger.info(`FUNDER-QUEUE: Job ${job.data.request.id} completed!`)
+    
     repo.update({
-        hash: jobData.originTxHash,
-        from_wallet: jobData.originTxFromWallet,
-        to_wallet: jobData.originTxToWallet
+        hash: jobData.originTxHash
     },
     { supervisor_status: enums.SupervisorStatus.PROCESSED })
 }

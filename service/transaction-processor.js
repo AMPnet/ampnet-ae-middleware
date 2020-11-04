@@ -357,11 +357,11 @@ async function generateTxRecord(info, hash, event, txData) {
 
 async function sendFundsIfRequired(info) {
     let callerBalance = await clients.instance().getBalance(info.callerId)
-    let giftAmount = config.get().giftAmount
+    let autoFund = config.get().autoFund
     let threshold = config.get().refundThreshold
-    if (callerBalance < util.toToken(threshold)) {
+    if (autoFund && callerBalance < util.toToken(threshold)) {
         logger.info(`Sending funds to caller wallet. Balance fell below ${threshold} AE threshold after processing last transaction.`)
-        queueClient.publishSendFundsJob(info.callerId, giftAmount)
+        queueClient.publishSendFundsJob(info.callerId)
     } else {
         logger.info("Not sending funds to caller wallet. Wallet has enough funds after processing last transaction.")
     }
