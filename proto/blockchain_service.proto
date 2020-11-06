@@ -109,6 +109,17 @@ message GetProjectsInfoResponse {
     repeated ProjectInfo projects = 1;
 }
 
+message GetInvestmentDetailsRequest {
+    string investor_wallet = 1;
+    string project_tx_hash = 2;
+}
+
+message GetInvestmentDetailsResponse {
+    string investor_balance = 1;
+    string investment_amount = 2;
+    string total_funds_raised = 3;
+}
+
 message IsInvestmentCancelableRequest {
     string investor_tx_hash = 1;
     string project_tx_hash = 2;
@@ -280,6 +291,7 @@ service BlockchainService {
     rpc IsInvestmentCancelable(IsInvestmentCancelableRequest) returns (IsInvestmentCancelableResponse);
     rpc GenerateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
     rpc GetProjectsInfo(GetProjectsInfoRequest) returns (GetProjectsInfoResponse);
+    rpc GetInvestmentDetails(GetInvestmentDetailsRequest) returns (GetInvestmentDetailsResponse);
     
     // Contract create
     

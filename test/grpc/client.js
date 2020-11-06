@@ -184,6 +184,21 @@ module.exports = {
             })
         })
     },
+    getInvestmentDetails: async function(investorWallet, projectTxHash) {
+        return new Promise(resolve => {
+            client.getInvestmentDetails({
+                investorWallet,
+                projectTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    console.log("err", err)
+                    resolve(err)
+                } else {
+                    resolve(result)
+                }
+            })
+        })
+    },
     generateStartRevenueSharesPayoutTx: async function(fromTxHash, projectTxHash, revenue) {
         return new Promise(resolve => {
             client.generateStartRevenueSharesPayoutTx({

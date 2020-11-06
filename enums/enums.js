@@ -110,6 +110,7 @@ let functions = {
         isInvestmentCancelable: "can_cancel_investment",
         checkInvestmentPreconditions: "check_investment_preconditions",
         checkSharePayoutPreconditions: "check_share_payout_preconditions",
+        getInvestmentDetails: "get_investment_details"
     },
     sellOffer: {
         tryToSettle: "try_to_settle",

@@ -146,6 +146,12 @@ describe('Happy path scenario', function() {
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
         await util.waitTxProcessed(investTxHash)
 
+        let bobInvestmentDetails = await grpcClient.getInvestmentDetails(accounts.bob.publicKey, addProjWalletTxHash)
+        console.log("bobInvestmentDetails", bobInvestmentDetails)
+        assert.equal(bobInvestmentDetails.investorBalance, 0)
+        assert.equal(bobInvestmentDetails.investmentAmount, bobInvestmentAmount)
+        assert.equal(bobInvestmentDetails.totalFundsRaised, bobInvestmentAmount)
+
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
 

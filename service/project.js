@@ -102,6 +102,34 @@ async function isInvestmentCancelable(call, callback) {
     }
 }
 
+async function getInvestmentDetails(call, callback) {
+    try {
+        logger.debug(`Received request get investment details for investor ${call.request.investorWallet} and project ${call.request.projectTxHash}`)
+        let investorWallet = call.request.investorWallet
+        let project = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
+        logger.debug(`Project address represented by given hash: ${project}`)
+        let result = await client.instance().contractCallStatic(
+            contracts.projSource,
+            util.enforceCtPrefix(project),
+            functions.proj.getInvestmentDetails,
+            [ investorWallet ],
+            {
+                callerId: Crypto.generateKeyPair().publicKey
+            }
+        )
+        let decoded = await result.decode()
+        logger.debug(`Fetched investment details: %o`, decoded)
+        callback(null, {
+            investorBalance: util.tokenToEur(decoded[0]),
+            investmentAmount: util.tokenToEur(decoded[1]),
+            totalFundsRaised: util.tokenToEur(decoded[2])
+        })
+    } catch(error) {
+        logger.error(`Error while fetching investment details \n%o`, err.pretty(error))
+        err.handle(error, callback)
+    }
+}
+
 async function startRevenueSharesPayout(call, callback) {
     try {
         logger.debug(`Received request to generate startRevenueSharesPayout transaction.\nCaller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
@@ -255,5 +283,6 @@ module.exports = {
     startRevenueSharesPayout, 
     getProjectsInfo,
     activateSellOffer,
-    getProjectInfo
+    getProjectInfo,
+    getInvestmentDetails
 }

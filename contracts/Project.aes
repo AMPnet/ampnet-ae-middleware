@@ -193,6 +193,11 @@ contract Project =
 
     entrypoint get_project_info() : (int * int * int * int * int * bool * int) = (state.minInvestmentPerUser, state.maxInvestmentPerUser, state.investmentCap, state.endsAt, state.totalFundsRaised, state.payoutInProcess, _balance())
 
+    entrypoint get_investment_details(investor: address) : (int * int * int) =
+        let walletBalance = state.organization.coop().token().balance_of(investor)
+        let investmentAmount = get_investment(investor)
+        (walletBalance, investmentAmount, state.totalFundsRaised)
+    
     entrypoint get_token() : TokenInterface = state.organization.coop().token()
 
     entrypoint get_investment(investor: address) : int = state.investments[investor = 0]

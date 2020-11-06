@@ -121,7 +121,8 @@ module.exports = {
             getTokenIssuer: eurSvc.getTokenIssuer,
             generateTransferPlatformManagerOwnershipTx: coopSvc.transferOwnership,
             generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
-            getActiveSellOffers: sellOfferSvc.getActiveSellOffers
+            getActiveSellOffers: sellOfferSvc.getActiveSellOffers,
+            getInvestmentDetails: projSvc.getInvestmentDetails
         });
 
         // Bind GRPC server
