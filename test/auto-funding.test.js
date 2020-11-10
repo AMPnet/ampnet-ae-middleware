@@ -64,16 +64,16 @@ describe('Auto funding test', function() {
         assert.strictEqual(Number(balanceBeforeAutoFund), gift)
         
         await client.spend(balanceBeforeAutoFund - threshold + 1, accounts.bob.publicKey)
+        let balanceAfterSpend = await clients.empty().balance(randomWallet.publicKey)
+
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addRandomWalletTxHash)
         let createOrgTxSigned = await client.signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
         await util.waitTxProcessed(createOrgTxHash)
-        
-        let balanceAfterTxProcessed = await clients.empty().balance(randomWallet.publicKey)
         await util.sleep(10000)
         let balanceAfterAutoFund = await clients.empty().balance(randomWallet.publicKey)
-        
-        assert.strictEqual(balanceAfterAutoFund - balanceAfterTxProcessed, gift)
+
+        assert.isTrue(Number(balanceAfterAutoFund) > Number(balanceAfterSpend))
     })
 
 })
