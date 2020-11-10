@@ -27,7 +27,7 @@ services:
        - "3080:3080"
   
   auto-funder:
-    image: ampnet/auto-funder:local
+    image: ampnet/auto-funder:latest
     environment:
       QUEUE_DB_HOST: db
       NODE_URL: http://ae-node:3013
