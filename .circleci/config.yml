@@ -11,7 +11,7 @@ jobs:
       - checkout
       - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - run: docker network prune -f
-      - run: docker-compose pull
+      - run: docker-compose pull auto-funder
       - run: docker-compose up -d
 
       - run: |
