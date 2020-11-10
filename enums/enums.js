@@ -107,9 +107,9 @@ let functions = {
         getInfo: "get_project_info",
         withdraw: "withdraw",
         cancelInvestment: "cancel_investment",
-        isInvestmentCancelable: "can_cancel_investment",
         checkInvestmentPreconditions: "check_investment_preconditions",
         checkSharePayoutPreconditions: "check_share_payout_preconditions",
+        getInvestmentDetails: "get_investment_details"
     },
     sellOffer: {
         tryToSettle: "try_to_settle",
@@ -130,6 +130,15 @@ function fromEvent(event) {
         return events.get(eventHex)
     } else {
         throw new Error(`Could not convert event ${event} to transaction type!`)
+    }
+}
+
+function supervisorStatusToGrpc(status) {
+    switch(status) {
+        case SupervisorStatus.NOT_REQUIRED: return 0
+        case SupervisorStatus.REQUIRED: return 1
+        case SupervisorStatus.PROCESSED: return 2
+        default: throw new Error(`Cannot convert ${status} to GRPC type!`)
     }
 }
 
@@ -183,5 +192,6 @@ module.exports = {
     functions,
     fromEvent,
     txTypeToGrpc,
-    txStateToGrpc
+    txStateToGrpc,
+    supervisorStatusToGrpc
 }

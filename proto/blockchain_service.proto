@@ -109,16 +109,6 @@ message GetProjectsInfoResponse {
     repeated ProjectInfo projects = 1;
 }
 
-message IsInvestmentCancelableRequest {
-    string investor_tx_hash = 1;
-    string project_tx_hash = 2;
-}
-
-message IsInvestmentCancelableResponse {
-    bool can_cancel = 1;
-}
-
-
 ////////// Transaction messages //////////
 
 message PostTxRequest {
@@ -150,17 +140,25 @@ message InvestmentsInProjectRequest {
     string project_tx_hash = 2;
 }
 
+message TransactionInfoRequest {
+    string tx_hash = 1;
+    string from = 2;
+    string to = 3;
+}
+
+message TransactionInfo {
+    string from_tx_hash = 1;
+    string to_tx_hash = 2;
+    string amount = 3;
+    string date = 4;
+    TransactionType type = 5;
+    TransactionState state = 6;
+    string tx_hash = 7;
+    SupervisorStatus supervisor_status = 8;
+}
+
 message TransactionsResponse {
-    message Transaction {
-        string from_tx_hash = 1;
-        string to_tx_hash = 2;
-        string amount = 3;
-        string date = 4;
-        TransactionType type = 5;
-        TransactionState state = 6;
-        string tx_hash = 7;
-    }
-    repeated Transaction transactions = 1;
+    repeated TransactionInfo transactions = 1;
 }
 
 message ActiveSellOffersResponse {
@@ -178,21 +176,6 @@ message ActiveSellOffersResponse {
     repeated SellOffer offers = 1;
 }
 
-message TransactionInfoRequest {
-    string tx_hash = 1;
-    string from = 2;
-    string to = 3;
-}
-
-message TransactionInfoResponse {
-    string hash = 1;
-    string from_wallet = 2;
-    string to_wallet = 3;
-    TransactionState state = 4;
-    TransactionType type = 5;
-    string amount = 6;
-    string supervisor_status = 7;
-}
 
 ///////// Contract create messages /////////
 
@@ -220,6 +203,12 @@ message Empty {
 }
 
 ////////// Types ///////////////////////////
+
+enum SupervisorStatus {
+    NOT_REQUIRED = 0;
+    REQUIRED = 1;
+    PROCESSED = 2;
+}
 
 enum TransactionState {
     MINED = 0;
@@ -277,7 +266,6 @@ service BlockchainService {
 
     rpc GenerateApproveProjectWithdrawTx(GenerateApproveProjectWithdrawTxRequest) returns (RawTxResponse);
     rpc GenerateCancelInvestmentTx(GenerateCancelInvestmentTxRequest) returns (RawTxResponse);
-    rpc IsInvestmentCancelable(IsInvestmentCancelableRequest) returns (IsInvestmentCancelableResponse);
     rpc GenerateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
     rpc GetProjectsInfo(GetProjectsInfoRequest) returns (GetProjectsInfoResponse);
     
@@ -292,6 +280,6 @@ service BlockchainService {
     rpc GetPortfolio(PortfolioRequest) returns (PortfolioResponse);
     rpc GetTransactions(TransactionsRequest) returns (TransactionsResponse);
     rpc GetInvestmentsInProject(InvestmentsInProjectRequest) returns (TransactionsResponse);
-    rpc GetTransactionInfo(TransactionInfoRequest) returns (TransactionInfoResponse);
+    rpc GetTransactionInfo(TransactionInfoRequest) returns (TransactionInfo);
     rpc GetActiveSellOffers(Empty) returns (ActiveSellOffersResponse);
 }

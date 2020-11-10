@@ -101,7 +101,7 @@ describe('Fetch transaction info tests', function() {
         assert.equal(minedTx.toTxHash, projectWalletHash)
         assert.equal(minedTx.amount, minedInvestmentAmount)
         assert.equal(minedTx.type, txTypeToGrpc(TxType.INVEST))
-        assert.equal(minedTx.date, minedInvestmentDate.getTime())
+        assert.equal(minedTx.date, minedInvestmentCreatedAt.getTime())
     })
 
 })

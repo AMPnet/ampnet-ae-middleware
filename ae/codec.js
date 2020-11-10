@@ -55,10 +55,6 @@ async function encodeCancelInvestment() {
     return contracts.getProjCompiled().encodeCall(functions.proj.cancelInvestment, [ ])
 }
 
-async function encodeIsInvestmentCancelable(investor) {
-    return contracts.getProjCompiled().encodeCall(functions.proj.isInvestmentCancelable, [ investor ])
-}
-
 async function decodeGetProjectInfoResult(result) {
     let decoded = await client.instance().contractDecodeData(
         contracts.projSource,
@@ -143,7 +139,6 @@ module.exports = {
         encodeStartRevenueSharesPayout,
         encodeApproveWithdrawProjectFunds,
         encodeCancelInvestment,
-        encodeIsInvestmentCancelable,
         encodeActivateSellOffer
     },
     sellOffer: {

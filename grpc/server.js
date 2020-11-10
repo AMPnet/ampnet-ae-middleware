@@ -116,7 +116,6 @@ module.exports = {
             getInvestmentsInProject: txSvc.getInvestmentsInProject,
             generateCancelInvestmentTx: projSvc.cancelInvestment,
             generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
-            isInvestmentCancelable: projSvc.isInvestmentCancelable,
             getPlatformManager: coopSvc.getPlatformManager,
             getTokenIssuer: eurSvc.getTokenIssuer,
             generateTransferPlatformManagerOwnershipTx: coopSvc.transferOwnership,
