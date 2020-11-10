@@ -39,3 +39,5 @@ services:
       - ae-node
       - sophia-compiler
       - db
+    ports:
+      - 8130:8130
