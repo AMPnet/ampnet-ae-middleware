@@ -21,7 +21,7 @@ async function get() {
     let http = getHttp()
     let ws = getWs()
     let db = getDb()
-    let queueDb = getQueueDb()
+    let redis = getRedis()
     let dbScanEnabledString = valueOrDefault(process.env.DB_SCAN_ENABLED, "true")
     let autoFundString = valueOrDefault(process.env.AUTO_FUND, "true")
     return {
@@ -34,7 +34,7 @@ async function get() {
         http: http,
         ws: ws,
         db: db,
-        queueDb: queueDb,
+        redis: redis,
         autoFund: (autoFundString === "true"),
         refundThreshold: Number(valueOrDefault(process.env.REFUND_THRESHOLD, 0.1)),
         contractCreateGasAmount: Number(valueOrDefault(process.env.CONTRACT_CREATE_GAS_AMOUNT, 50000)),
@@ -275,45 +275,10 @@ function getDb() {
     }
 }
 
-function getQueueDb() {
-    var host
-    var user
-    var password
-    var port
-    var database
-    
-    host = valueOrDefault(process.env.QUEUE_DB_HOST, "localhost")
-    port = valueOrDefault(process.env.QUEUE_DB_PORT, "5432")
-
-    switch (process.env.NODE_ENV) {
-        case Environment.LOCAL:
-            user = valueOrDefault(process.env.QUEUE_DB_USER, "ae_middleware_local_queue")
-            password = valueOrDefault(process.env.QUEUE_DB_PASSWORD, "password")
-            database = valueOrDefault(process.env.QUEUE_DB_NAME, "ae_middleware_local_queue")
-            break
-        case Environment.TESTNET:
-            user = valueOrDefault(process.env.QUEUE_DB_USER, "ae_middleware_testnet_queue")
-            password = valueOrDefault(process.env.QUEUE_DB_PASSWORD, "password")
-            database = valueOrDefault(process.env.QUEUE_DB_NAME, "ae_middleware_testnet_queue")
-            break
-        case Environment.MAINNET:
-            user = valueOrDefault(process.env.QUEUE_DB_USER, "ae_middleware_mainnet_queue")
-            password = valueOrDefault(process.env.QUEUE_DB_PASSWORD, "password")
-            database = valueOrDefault(process.env.QUEUE_DB_NAME, "ae_middleware_mainnet_queue")
-            break
-    }
-
-    sslString = valueOrDefault(process.env.QUEUE_DB_SSL, "false")
-    ssl = (sslString == "true")
+function getRedis() {
     return {
-        host: host,
-        user: user,
-        password: password,
-        port: port,
-        database: database,
-        min: 0,
-        max: Number(valueOrDefault(process.env.QUEUE_DB_MAX_POOL_SIZE, 1)),
-        ssl: ssl
+        host: valueOrDefault(process.env.REDIS_HOST, '127.0.0.1'),
+        port: Number(valueOrDefault(process.env.REDIS_PORT, 6379))
     }
 }
 

@@ -26,7 +26,6 @@ describe('Test role routes', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 

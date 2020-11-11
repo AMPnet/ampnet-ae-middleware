@@ -30,7 +30,6 @@ describe('Precondition checks test', function() {
     afterEach(async() => {
         delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 

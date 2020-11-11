@@ -51,6 +51,7 @@ describe('DB records recovery test', function() {
             hash: addWalletTxHash,
             type: TxType.WALLET_CREATE,
             state: TxState.PENDING,
+            supervisor_status: SupervisorStatus.NOT_REQUIRED,
             created_at: new Date()
         })
         cron.scanAndProcess()

@@ -19,11 +19,10 @@ describe('CORS test', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
-    it('summary http response should contain allowOrigin header', async () => {
+    it.skip('summary http response should contain allowOrigin header', async () => {
         let summaryUrl = `http://0.0.0.0:${config.get().http.port}/summary`
         let response = (await axios.get(summaryUrl))
         assert.strictEqual(response.headers['access-control-allow-origin'], '*')

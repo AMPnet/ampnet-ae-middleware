@@ -8,6 +8,11 @@ services:
     ports:
       - 5432:5432
 
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+
   ae-node:
     image: aeternity/aeternity:v5.5.4
     environment:
@@ -29,15 +34,16 @@ services:
   auto-funder:
     image: ampnet/auto-funder:latest
     environment:
-      QUEUE_DB_HOST: db
       NODE_URL: http://ae-node:3013
       NODE_INTERNAL_URL: http://ae-node:3113
       COMPILER_URL: http://sophia-compiler:3080
+      REDIS_HOST: redis
       FUNDERS: 707881878eacacce4db463de9c7bf858b95c3144d52fafed4a41ffd666597d0393d23cf31fcd12324cd45d4784d08953e8df8283d129f357463e6795b40e88aa
     restart: always
     depends_on:
       - ae-node
       - sophia-compiler
       - db
+      - redis
     ports:
       - 8130:8130

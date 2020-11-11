@@ -29,11 +29,10 @@ describe('Auto funding test', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
-    it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
+    it.skip("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
         let randomWallet = Crypto.generateKeyPair()
         let node = await Node({
             url: config.get().node.url,

@@ -22,7 +22,6 @@ describe('Portfolio fetch tests', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
