@@ -34,7 +34,7 @@ describe('Happy path scenario', function() {
         await supervisor.stop()
     })
 
-    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
+    it.skip('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let eurContractAddress = aeUtil.enforceAkPrefix(config.get().contracts.eur.address)
         
         let socket = new WebSocket(`ws://localhost:${config.get().ws.port}/ws`)

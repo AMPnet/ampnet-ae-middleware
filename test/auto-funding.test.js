@@ -32,7 +32,7 @@ describe('Auto funding test', function() {
         await supervisor.stop()
     })
 
-    it.skip("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
+    it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
         let randomWallet = Crypto.generateKeyPair()
         let node = await Node({
             url: config.get().node.url,

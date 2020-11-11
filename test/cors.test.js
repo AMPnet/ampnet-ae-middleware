@@ -22,7 +22,7 @@ describe('CORS test', function() {
         await supervisor.stop()
     })
 
-    it.skip('summary http response should contain allowOrigin header', async () => {
+    it('summary http response should contain allowOrigin header', async () => {
         let summaryUrl = `http://0.0.0.0:${config.get().http.port}/summary`
         let response = (await axios.get(summaryUrl))
         assert.strictEqual(response.headers['access-control-allow-origin'], '*')
