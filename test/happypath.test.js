@@ -62,6 +62,11 @@ describe('Happy path scenario', function() {
         let addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned)
         await util.waitTxProcessed(addAliceWalletTxHash)
 
+        let addJaneWalletTx = await grpcClient.generateAddWalletTx(accounts.jane.publicKey)
+        let addJaneWalletTxSigned = await clients.owner().signTransaction(addJaneWalletTx)
+        let addJaneWalletTxHash = await grpcClient.postTransaction(addJaneWalletTxSigned)
+        await util.waitTxProcessed(addJaneWalletTxHash)
+
         let bobBalanceBeforeDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceBeforeDeposit, 0)
 
@@ -87,6 +92,12 @@ describe('Happy path scenario', function() {
         let mintToAliceTxHash = await grpcClient.postTransaction(mintToAliceTxSigned)
         await util.waitTxProcessed(mintToAliceTxHash)
 
+        let mintToJaneAmount = 100000
+        let mintToJaneTx = await grpcClient.generateMintTx(addJaneWalletTxHash, mintToJaneAmount)
+        let mintToJaneTxSigned = await clients.owner().signTransaction(mintToJaneTx)
+        let mintToJaneTxHash = await grpcClient.postTransaction(mintToJaneTxSigned)
+        await util.waitTxProcessed(mintToJaneTxHash)
+
         let bobBalanceAfterDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterDeposit, mintToBobAmount)
 
@@ -109,7 +120,7 @@ describe('Happy path scenario', function() {
             addOrgWalletTxHash,
             10000,                              // min 100$ per user
             100000,                             // max 1000$ per user
-            100000,                             // 1000$ investment cap
+            200000,                             // 2000$ investment cap
             util.currentTimeWithDaysOffset(10)  // expires in 10 days
         )
         let createProjTxSigned = await clients.bob().signTransaction(createProjTx)
@@ -155,7 +166,13 @@ describe('Happy path scenario', function() {
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
 
-        let withdrawInvestmentAmount = 100000 // withdraw all funds from project
+        let janeInvestmentAmount = mintToJaneAmount
+        let janeInvestTx = await grpcClient.generateInvestTx(addJaneWalletTxHash, addProjWalletTxHash, janeInvestmentAmount)
+        let janeInvestTxSigned = await clients.jane().signTransaction(janeInvestTx)
+        let janeInvestTxHash = await grpcClient.postTransaction(janeInvestTxSigned)
+        await util.waitTxProcessed(janeInvestTxHash)
+
+        let withdrawInvestmentAmount = 200000 // withdraw all funds from project
         let approveProjectWithdrawTx = await grpcClient.generateApproveProjectWithdrawTx(addBobWalletTxHash, addProjWalletTxHash, withdrawInvestmentAmount) 
         let approveProjectWithdrawTxSigned = await clients.bob().signTransaction(approveProjectWithdrawTx)
         let approveProjectWithdrawTxHash = await grpcClient.postTransaction(approveProjectWithdrawTxSigned)
@@ -181,8 +198,11 @@ describe('Happy path scenario', function() {
         await util.waitTxProcessed(revenuePayoutTxHash)
         
         let bobBalanceAfterRevenuePayout = await grpcClient.getBalance(addBobWalletTxHash)
-        assert.equal(bobBalanceAfterRevenuePayout, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount + revenueToPayout)
+        assert.equal(bobBalanceAfterRevenuePayout, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount + revenueToPayout / 2)
         
+        let janeBalanceAfterRevenuePayout = await grpcClient.getBalance(addJaneWalletTxHash)
+        assert.equal(janeBalanceAfterRevenuePayout, mintToJaneAmount - janeInvestmentAmount + revenueToPayout / 2)
+
         let bobPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
         assert.strictEqual(bobPortfolio.length, 1, `Expected fetched Bob portfolio to contain 1 investment`)
         assert.strictEqual(bobPortfolio[0].projectTxHash, addProjWalletTxHash)
@@ -215,7 +235,7 @@ describe('Happy path scenario', function() {
         let bobTransactionsPayout = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.SHARE_PAYOUT) })[0]
         assert.strictEqual(bobTransactionsPayout.fromTxHash, addProjWalletTxHash)
         assert.strictEqual(bobTransactionsPayout.toTxHash, addBobWalletTxHash)
-        assert.equal(bobTransactionsPayout.amount, revenueToPayout)
+        assert.equal(bobTransactionsPayout.amount, revenueToPayout / 2)
         assert.exists(bobTransactionsPayout.date)
         assert.equal(bobTransactionsPayout.state, enums.txStateToGrpc(enums.TxState.MINED))
 
@@ -226,6 +246,14 @@ describe('Happy path scenario', function() {
         assert.equal(bobInvestmentInProject.amount, bobInvestmentAmount)
         assert.equal(bobInvestmentInProject.state, enums.txStateToGrpc(enums.TxState.MINED))
         assert.exists(bobInvestmentInProject.date)
+
+        let janeTransactions = await grpcClient.getTransactions(addJaneWalletTxHash)
+        let janeTransactionsPayout = janeTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.SHARE_PAYOUT) && t.toTxHash === addJaneWalletTxHash })[0]
+        assert.strictEqual(janeTransactionsPayout.fromTxHash, addProjWalletTxHash)
+        assert.strictEqual(janeTransactionsPayout.toTxHash, addJaneWalletTxHash)
+        assert.equal(janeTransactionsPayout.amount, revenueToPayout / 2)
+        assert.exists(janeTransactionsPayout.date)
+        assert.equal(janeTransactionsPayout.state, enums.txStateToGrpc(enums.TxState.MINED))
 
         let alicePortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
         assert.isUndefined(alicePortfolio)
@@ -259,7 +287,7 @@ describe('Happy path scenario', function() {
         assert.exists(aliceTransactionsCancel.date)
         assert.equal(aliceTransactionsCancel.state, enums.txStateToGrpc(enums.TxState.MINED))
 
-        let expectedRecordCount = 20
+        let expectedRecordCount = 25
         let allRecords = await db.getAll()
         console.log("allRecords", allRecords)
 
@@ -410,13 +438,13 @@ describe('Happy path scenario', function() {
         assert.strictEqual(startRevenuePayoutTxRecord.type, TxType.START_REVENUE_PAYOUT)
         assert.equal(startRevenuePayoutTxRecord.amount, revenueToPayout)
 
-        let revenueSharePayoutTxRecord = (await db.getBy({type: TxType.SHARE_PAYOUT}))[0]
+        let revenueSharePayoutTxRecord = (await db.getBy({type: TxType.SHARE_PAYOUT, to_wallet: accounts.bob.publicKey}))[0]
         assert.strictEqual(revenueSharePayoutTxRecord.from_wallet, newProjWallet)
         assert.strictEqual(revenueSharePayoutTxRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(revenueSharePayoutTxRecord.state, TxState.MINED)
         assert.strictEqual(revenueSharePayoutTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(revenueSharePayoutTxRecord.type, TxType.SHARE_PAYOUT)
-        assert.equal(revenueSharePayoutTxRecord.amount, revenueToPayout)
+        assert.equal(revenueSharePayoutTxRecord.amount, revenueToPayout / 2)
 
         assert.strictEqual(bobWalletUpdates, 22)
         socket.terminate()

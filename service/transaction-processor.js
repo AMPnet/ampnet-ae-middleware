@@ -87,10 +87,13 @@ async function handleTransactionFailed(hash, info) {
 
 async function storeTransactionData(txHash, txData, txInfo, originatedFrom = null) {
     logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
+    
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData)
         let existingRecords = await repo.get({
-            hash: record.hash
+            hash: record.hash,
+            from_wallet: record.from_wallet,
+            to_wallet: record.to_wallet
         })
         if (existingRecords.length > 0) {
             logger.debug(`Transaction records with hash ${record.hash} already exist in database. Updating records...`)

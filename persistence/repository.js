@@ -29,13 +29,18 @@ async function findByHashOrThrow(txHash) {
                     case TxType.WALLET_CREATE:
                         switch (record.state) {
                             case TxState.MINED:
-                                resolve(record)
+                                if (record.supervisor_status === SupervisorStatus.REQUIRED) {
+                                    reject(err.generate(ErrorType.WALLET_CREATION_PENDING))
+                                } else {
+                                    resolve(record)
+                                }
                                 break
                             case TxState.PENDING:
                                 reject(err.generate(ErrorType.WALLET_CREATION_PENDING))
                                 break
                             case TxState.FAILED:
                                 reject(err.generate(ErrorType.WALLET_CREATION_FAILED))
+                                break
                         }
                         break
                     default:
@@ -68,11 +73,18 @@ async function findByWalletOrThrow(wallet) {
                 record = rows[0]
                 switch (record.state) {
                     case TxState.MINED:
-                        resolve(record)
+                        if (record.supervisor_status === SupervisorStatus.REQUIRED) {
+                            reject(err.generate(ErrorType.WALLET_CREATION_PENDING))
+                        } else {
+                            resolve(record)
+                        }
+                        break
                     case TxState.PENDING:
                         reject(err.generate(ErrorType.WALLET_CREATION_PENDING))
+                        break
                     case TxState.FAILED:
                         reject(err.generate(ErrorType.WALLET_CREATION_FAILED))
+                        break
                 }
             }
         })

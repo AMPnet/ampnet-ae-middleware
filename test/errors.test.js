@@ -13,7 +13,7 @@ let client = require('../ae/client')
 let codec = require('../ae/codec')
 let supervisor = require('../queue/queue')
 let contracts = require('../ae/contracts')
-let { TxType, TxState } = require('../enums/enums')
+let { TxType, TxState, SupervisorStatus } = require('../enums/enums')
 
 let err = require('../error/errors')
 let ErrorType = err.type
@@ -184,6 +184,19 @@ describe('Error handling tests', function() {
             created_at: new Date()
         })
         let errResponse = await grpcClient.isWalletActive(pendingHash)
+        assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_PENDING).message)
+    })
+
+    it('Should fial if trying to check isWalletActive for txHash which is not yet auto-funded', async () => {
+        let supervisorRequiredHash = "supervisor-required-hash"
+        await db.insert({
+            hash: supervisorRequiredHash,
+            type: TxType.WALLET_CREATE,
+            state: TxState.MINED,
+            supervisor_status: SupervisorStatus.REQUIRED,
+            created_at: new Date()
+        })
+        let errResponse = await grpcClient.isWalletActive(supervisorRequiredHash)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_PENDING).message)
     })
     
