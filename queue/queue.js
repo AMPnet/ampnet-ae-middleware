@@ -1,76 +1,51 @@
-const PgBoss = require('pg-boss')
+const Queue = require('bull')
 
 const queueClient = require('./queueClient')
 const logger = require('../logger')(module)
 const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
 const txProcessor = require('../service/transaction-processor')
-const { JobType } = require('../enums/enums')
+const config = require('../config')
 
-const autoFunderQueue = "ampnet-auto-funder-queue"
-const txProcessorQueue = "ampnet-ae-middleware-tx-processor-queue"
+let txProcessorQueue 
+let autoFunderQueueServer
+let autoFunderQueueClient
 
-let queue
-
-async function initAndStart(dbConfig) {
-    queue = new PgBoss({
-        host: dbConfig.host,
-        port: dbConfig.port,
-        database: dbConfig.database,
-        user: dbConfig.user,
-        password: dbConfig.password,
-        archiveCompletedJobsEvery: '1 day',
-        deleteArchivedJobsEvery: '7 days',
-        max: dbConfig.max,
-        ssl: dbConfig.ssl
-    })
-    await queue.start()
-
-    let autoFunderOnCompleteOptions = {
-        teamSize: 3,
-        teamConcurrency: 3,
-        newJobCheckIntervalSeconds: 2
+function init() {
+    let redisConfig = {
+        redis: config.get().redis
     }
-    await queue.onComplete(
-        autoFunderQueue,
-        autoFunderOnCompleteOptions,
-        autoFunderJobCompleteHandler
-    )
+    txProcessorQueue = new Queue("ampnet-ae-middleware-tx-processor-queue", redisConfig)
+    autoFunderQueueServer = new Queue("ampnet-auto-funder-queue-server", redisConfig)
+    autoFunderQueueClient = new Queue("ampnet-auto-funder-queue-client", redisConfig)
 
-    let txProcessorSubscriptionOptions = {
-        teamSize: 10,
-        teamConcurrency: 10,
-        newJobCheckIntervalSeconds: 1
-    }
-    await queue.subscribe(
-        txProcessorQueue,
-        txProcessorSubscriptionOptions,
-        txProcessorJobHandler
-    )
-    await queue.onComplete(
-        txProcessorQueue,
-        txProcessorSubscriptionOptions,
-        txProcessorJobCompleteHandler
-    )
+    txProcessorQueue.process(10, txProcessorJobHandler)
+    txProcessorQueue.on('completed', txProcessorJobCompleteHandler)
+    autoFunderQueueClient.process(autoFunderJobCompleteHandler)
     
     logger.info("Queue initialized successfully!")
 
-    queueClient.init(queue, autoFunderQueue, txProcessorQueue)
+    queueClient.init(autoFunderQueueServer, txProcessorQueue)
     logger.info("Queue Client initialized successfully!")
 }
 
-async function autoFunderJobCompleteHandler(job) {
-    if (job.data.failed) {
-        logger.error(`FUNDER-QUEUE: Job ${job.data.request.id} failed. Full output: %o`, job)
-        return
-    }
+async function txProcessorJobHandler(job) {
+    logger.info(`PROCESSOR-QUEUE: Processing job with queue id ${job.id}`)
+    let hash = job.data.hash
+    return txProcessor.process(hash)
+}
 
-    let jobData = job.data.request.data
+async function txProcessorJobCompleteHandler(job, result) {
+    logger.info(`PROCESSOR-QUEUE: Job ${job.id} completed. Result: %o`, result)
+}
+
+async function autoFunderJobCompleteHandler(job) {
+    let jobData = job.data
     if (jobData.originTxHash === undefined) {
-        logger.info(`FUNDER-QUEUE: Job ${job.data.request.id} completed!`)
+        logger.info(`FUNDER-QUEUE: Job ${job.id} completed!`)
         return
     }
-    logger.info(`FUNDER-QUEUE: Job ${job.data.request.id} completed!`)
+    logger.info(`FUNDER-QUEUE: Job ${job.id} completed!`)
     
     repo.update({
         hash: jobData.originTxHash
@@ -78,32 +53,10 @@ async function autoFunderJobCompleteHandler(job) {
     { supervisor_status: enums.SupervisorStatus.PROCESSED })
 }
 
-async function txProcessorJobHandler(job) {
-    logger.info(`PROCESSOR-QUEUE: Processing job with queue id ${job.id}`)
-    switch (job.data.type) {
-        case JobType.PROCESS_TX:
-            let hash = job.data.hash
-            return txProcessor.process(hash)
-        default:
-            logger.error(`PROCESSOR-QUEUE: Processing job with queue id ${job.id} failed. Unknown job type.`)
-            job.done(new Error(`Processing job with queue id ${job.id} failed. Unknown job type.`))
-    }
-}
-
-async function txProcessorJobCompleteHandler(job) {
-    console.log("PROCESSOR-QUEUE: job done", job)
-}
-
 async function stop() {
-    return queue.stop()
+    await txProcessorQueue.close()
+    await autoFunderQueueServer.close()
+    await autoFunderQueueClient.close()
 }
 
-async function clearStorage() {
-    return queue.deleteAllQueues()
-}
-
-module.exports = {
-    initAndStart,
-    stop,
-    clearStorage
-}
+module.exports = { init, stop }

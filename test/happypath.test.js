@@ -1,5 +1,6 @@
 let path = require('path')
 let chai = require('chai')
+let axios = require('axios')
 let WebSocket = require('ws')
 let assert = chai.assert
 
@@ -21,7 +22,7 @@ describe('Happy path scenario', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['NUMBER_OF_CONFIRMATIONS'] = 2
+        process.env['AUTO_FUND'] = "true"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -30,8 +31,8 @@ describe('Happy path scenario', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
+        process.env['AUTO_FUND'] = "false"
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
@@ -129,8 +130,13 @@ describe('Happy path scenario', function() {
         let aliceBalanceBeforeCancelInvestment = await grpcClient.getBalance(addAliceWalletTxHash)
         assert.equal(aliceBalanceBeforeCancelInvestment, 0)
 
-        let isAliceInvestmentCancelable = await grpcClient.isInvestmentCancelable(addAliceWalletTxHash, addProjWalletTxHash)
-        assert.isTrue(isAliceInvestmentCancelable)
+        let investmentDetailsUrl = `http://0.0.0.0:${config.get().http.port}/projects/${addProjWalletTxHash}/investors/${addAliceWalletTxHash}/details`
+        let investmentDetails = (await axios.get(investmentDetailsUrl)).data
+        assert.equal(investmentDetails.walletBalance, 0)
+        assert.equal(investmentDetails.amountInvested, aliceInvestmentAmount)
+        assert.equal(investmentDetails.totalFundsRaised, aliceInvestmentAmount)
+        assert.equal(investmentDetails.investmentCancelable, true)
+        assert.equal(investmentDetails.payoutInProcess, false)
 
         let aliceCancelInvestmentTx = await grpcClient.generateCancelInvestmentTx(addAliceWalletTxHash, addProjWalletTxHash)
         let aliceCancelInvestmentTxSigned = await clients.alice().signTransaction(aliceCancelInvestmentTx)
@@ -148,9 +154,6 @@ describe('Happy path scenario', function() {
 
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
-
-        let isBobInvestmentCancelable = await grpcClient.isInvestmentCancelable(addBobWalletTxHash, addProjWalletTxHash)
-        assert.isFalse(isBobInvestmentCancelable)
 
         let withdrawInvestmentAmount = 100000 // withdraw all funds from project
         let approveProjectWithdrawTx = await grpcClient.generateApproveProjectWithdrawTx(addBobWalletTxHash, addProjWalletTxHash, withdrawInvestmentAmount) 

@@ -22,7 +22,7 @@ async function start(config) {
     configureExpress()
     configureHealthAndMetrics()
     
-    addInvestmentCancelableRoute()
+    addInvestmentDetailsRoute()
     addPlatformSummaryRoute()
     addGetBalanceRoute()
 
@@ -68,19 +68,16 @@ function addGetBalanceRoute() {
     })
 }
 
-function addInvestmentCancelableRoute() {
-    expr.get('/projects/:projectHash/investors/:investorHash/cancelable', async (req, res) => {
-        projSvc.canCancelInvestment(req.params.projectHash, req.params.investorHash)
-            .then(result => {
-                let response = {
-                    can_cancel: result
-                }
+function addInvestmentDetailsRoute() {
+    expr.get('/projects/:projectHash/investors/:investorHash/details', async (req, res) => {
+        projSvc.getInvestmentDetails(req.params.projectHash, req.params.investorHash)
+            .then(response => {
                 res.writeHead(200, { "Content-Type" : "application/json" })
                 res.write(JSON.stringify(response))
                 res.end()
             })
             .catch(reason => {
-                console.log("Could not resolve canCancelInvestment", reason)
+                console.log("Could not fetch investment details: ", reason)
                 res.status(404).send(reason)
             })
     })

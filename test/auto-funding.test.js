@@ -1,12 +1,9 @@
-let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
 let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
-let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../queue/queue')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
@@ -21,6 +18,7 @@ describe('Auto funding test', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
+        process.env['AUTO_FUND'] = "true"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -29,8 +27,8 @@ describe('Auto funding test', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
+        process.env['AUTO_FUND'] = "false"
     })
 
     it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
@@ -64,16 +62,16 @@ describe('Auto funding test', function() {
         assert.strictEqual(Number(balanceBeforeAutoFund), gift)
         
         await client.spend(balanceBeforeAutoFund - threshold + 1, accounts.bob.publicKey)
+        let balanceAfterSpend = await clients.empty().balance(randomWallet.publicKey)
+
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addRandomWalletTxHash)
         let createOrgTxSigned = await client.signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
         await util.waitTxProcessed(createOrgTxHash)
-        
-        let balanceAfterTxProcessed = await clients.empty().balance(randomWallet.publicKey)
         await util.sleep(10000)
         let balanceAfterAutoFund = await clients.empty().balance(randomWallet.publicKey)
-        
-        assert.strictEqual(balanceAfterAutoFund - balanceAfterTxProcessed, gift)
+
+        assert.isTrue(Number(balanceAfterAutoFund) > Number(balanceAfterSpend))
     })
 
 })

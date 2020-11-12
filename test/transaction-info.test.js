@@ -1,11 +1,9 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let config = require('../config')
-let client = require('../ae/client')
 let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
-let { TxType, TxState, SupervisorStatus, WalletType, txStateToGrpc, txTypeToGrpc } = require('../enums/enums')
+let { TxType, TxState, txStateToGrpc, txTypeToGrpc } = require('../enums/enums')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
@@ -27,7 +25,6 @@ describe('Fetch transaction info tests', function() {
     afterEach(async() => {
         delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
@@ -39,16 +36,16 @@ describe('Fetch transaction info tests', function() {
         await util.waitTxProcessed(addBobWalletTxHash)
 
         let info = await grpcClient.getTransactionInfo(addBobWalletTxHash)
-        assert.equal(info.hash, addBobWalletTxHash)
-        assert.equal(info.fromWallet, accounts.owner.publicKey)
-        assert.equal(info.toWallet, accounts.bob.publicKey)
+        assert.equal(info.txHash, addBobWalletTxHash)
+        assert.equal(info.fromTxHash, accounts.owner.publicKey)
+        assert.equal(info.toTxHash, accounts.bob.publicKey)
         assert.equal(info.state, txStateToGrpc(TxState.MINED))
         assert.equal(info.type, txTypeToGrpc(TxType.WALLET_CREATE))
 
         let infoUsingHash = await grpcClient.getTransactionInfo(addBobWalletTxHash, accounts.owner.publicKey, addBobWalletTxHash)
-        assert.equal(infoUsingHash.hash, addBobWalletTxHash)
-        assert.equal(infoUsingHash.fromWallet, accounts.owner.publicKey)
-        assert.equal(infoUsingHash.toWallet, accounts.bob.publicKey)
+        assert.equal(infoUsingHash.txHash, addBobWalletTxHash)
+        assert.equal(infoUsingHash.fromTxHash, accounts.owner.publicKey)
+        assert.equal(infoUsingHash.toTxHash, addBobWalletTxHash)
         assert.equal(infoUsingHash.state, txStateToGrpc(TxState.MINED))
         assert.equal(infoUsingHash.type, txTypeToGrpc(TxType.WALLET_CREATE))
     })

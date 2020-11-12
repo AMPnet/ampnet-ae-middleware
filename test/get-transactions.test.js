@@ -1,16 +1,12 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let config = require('../config')
-let client = require('../ae/client')
 let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
-let { TxType, TxState, SupervisorStatus, WalletType, txTypeToGrpc } = require('../enums/enums')
+let { TxType, TxState, WalletType, txTypeToGrpc } = require('../enums/enums')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
-let accounts = require('./ae/accounts')
-let util = require('./util/util')
 let db = require('./util/db')
 
 describe('Fetch transaction info tests', function() {
@@ -27,7 +23,6 @@ describe('Fetch transaction info tests', function() {
     afterEach(async() => {
         delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
@@ -101,7 +96,7 @@ describe('Fetch transaction info tests', function() {
         assert.equal(minedTx.toTxHash, projectWalletHash)
         assert.equal(minedTx.amount, minedInvestmentAmount)
         assert.equal(minedTx.type, txTypeToGrpc(TxType.INVEST))
-        assert.equal(minedTx.date, minedInvestmentDate.getTime())
+        assert.equal(minedTx.date, minedInvestmentCreatedAt.getTime())
     })
 
 })

@@ -20,7 +20,7 @@ let httpServer = require('../http/server')
 let wsServer = require('../ws/server')
 
 // supervisor job queue
-let supervisorQueue = require('../queue/queue')
+let queue = require('../queue/queue')
 let cron = require('../supervisor')
 
 // services
@@ -83,9 +83,9 @@ module.exports = {
         await contracts.compile()
         logger.info('Contracts compiled.')
 
-        // Initialize supervisor job queue
-        await supervisorQueue.initAndStart(config.get().queueDb)
-        logger.info('Supervisor job queue initialized and started.')
+        // Initialize queue
+        queue.init()
+        logger.info('Queue initialized and started.')
 
         // Initialize Grpc server
         grpcServer = interceptors.serverProxy(new grpc.Server())
@@ -116,7 +116,6 @@ module.exports = {
             getInvestmentsInProject: txSvc.getInvestmentsInProject,
             generateCancelInvestmentTx: projSvc.cancelInvestment,
             generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
-            isInvestmentCancelable: projSvc.isInvestmentCancelable,
             getPlatformManager: coopSvc.getPlatformManager,
             getTokenIssuer: eurSvc.getTokenIssuer,
             generateTransferPlatformManagerOwnershipTx: coopSvc.transferOwnership,
@@ -139,9 +138,10 @@ module.exports = {
         cron.start()
     },
     stop: async function() {
+        cron.stop()
         await httpServer.stop()
         await wsServer.stop()
-        cron.stop()
+        await queue.stop()
         return grpcServer.forceShutdown()
     }
 }

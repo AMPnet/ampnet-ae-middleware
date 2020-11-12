@@ -1,4 +1,3 @@
-let { Crypto } = require('@aeternity/aepp-sdk')
 let grpcErrors = require('grpc-errors')
 let client = require('../ae/client')
 
@@ -11,6 +10,7 @@ let type = {
     WALLET_NOT_FOUND: "10",
     WALLET_CREATION_FAILED: "11",
     WALLET_CREATION_PENDING: "12",
+    WALLET_ALREADY_EXISTS: "13",
     GROUP_INVALID_COOP_ARG: "20",
     PROJ_INVALID_GROUP_ARG: "30",
     SELL_OFFER_INVALID_PROJ_ARG: "31",
@@ -32,6 +32,7 @@ let DefaultMessages = new Map([
     [type.WALLET_NOT_FOUND, "Wallet not found!"],
     [type.WALLET_CREATION_PENDING, "Wallet creation transaction still pending!"],
     [type.WALLET_CREATION_FAILED, "Wallet creation transaction failed!"],
+    [type.WALLET_ALREADY_EXISTS, "Wallet already exists!"],
     [type.AEPP_SDK_ERROR, "Ae Sdk error was thrown."],
     [type.DRY_RUN_ERROR, "Unknown error occured while dry running transaction. Contact system administrator!"],
     [type.PRECONDITION_FAILED_ERROR, "Error: precondition failed."],
@@ -46,6 +47,7 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
         case type.WALLET_CREATION_FAILED:
         case type.WALLET_CREATION_PENDING:
         case type.TX_VERIFICATION_ERROR:
+        case type.WALLET_ALREADY_EXISTS:
         case type.DRY_RUN_ERROR:
         case type.PRECONDITION_FAILED_ERROR:
         case type.TX_NOT_SIGNED:

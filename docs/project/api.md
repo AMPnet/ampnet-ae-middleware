@@ -22,3 +22,22 @@ response:
     balance: 0
 }
 ```
+
+## Get investment details
+
+request:
+```
+method: GET
+route:  /projects/:projectHash/investors/:investorHash/details
+```
+response:
+```
+{
+  walletBalance: 0,
+  amountInvested: 10000,
+  totalFundsRaised: 10000,
+  investmentCancelable: true,
+  payoutInProcess: false
+}
+```
+

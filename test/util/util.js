@@ -36,11 +36,11 @@ function waitTxProcessed(txHash, from, to) {
         let maxChecks = 20
         var attempts = 0
         var txState = enums.txStateToGrpc(enums.TxState.PENDING)
-        var supervisorState = enums.SupervisorStatus.REQUIRED
+        var supervisorState = enums.supervisorStatusToGrpc(enums.SupervisorStatus.REQUIRED)
         while(attempts < maxChecks) {
             await sleep(interval)
             info = await grpc.getTransactionInfo(txHash, from, to)
-            if (info.state != enums.txStateToGrpc(enums.TxState.PENDING) && info.supervisorStatus != enums.SupervisorStatus.REQUIRED) { 
+            if (info.state != enums.txStateToGrpc(enums.TxState.PENDING) && info.supervisorStatus != enums.supervisorStatusToGrpc(enums.SupervisorStatus.REQUIRED)) { 
                 txState = info.state
                 supervisorState = info.supervisorStatus
                 break
@@ -49,7 +49,7 @@ function waitTxProcessed(txHash, from, to) {
         }
         if (txState == enums.txStateToGrpc(enums.TxState.PENDING)) {
             throw new Error(`Waiting for transaction ${txHash} to be mined timed out.`)
-        } else if (supervisorState == enums.SupervisorStatus.REQUIRED) {
+        } else if (supervisorState == enums.supervisorStatusToGrpc(enums.SupervisorStatus.REQUIRED)) {
             throw new Error(`Waiting for supervisor to process transaction ${txHash} timed out.`)
         } else {
             console.log(`Transaction ${txHash} processed. \n\tTx status: ${txState}\n\tSupervisor status: ${supervisorState}`)

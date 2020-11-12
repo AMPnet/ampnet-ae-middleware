@@ -8,6 +8,7 @@ let config = require('../config')
 let logger = require('../logger')(module)
 let codec = require('../ae/codec')
 let util = require('../ae/util')
+let commonUtil = require('../util/util')
 let err = require('../error/errors')
 let txProcessor = require('./transaction-processor')
 let queueClient = require('../queue/queueClient')
@@ -140,13 +141,14 @@ async function getTransactionInfo(call, callback) {
         }
 
         let info = {
-            hash: records[0].hash,
-            fromWallet: records[0].from_wallet,
-            toWallet: records[0].to_wallet,
+            txHash: records[0].hash,
+            fromTxHash: from || records[0].from_wallet,
+            toTxHash: to || records[0].to_wallet,
             state: enums.txStateToGrpc(records[0].state),
             type: enums.txTypeToGrpc(records[0].type),
             amount: records[0].amount,
-            supervisorStatus: records[0].supervisor_status
+            supervisorStatus: enums.supervisorStatusToGrpc(records[0].supervisor_status),
+            date: commonUtil.dateToUnixEpoch(records[0].created_at)
         }
         logger.debug(`Successfully fetched transaction info, state: ${info.state}`)
         callback(null, info)

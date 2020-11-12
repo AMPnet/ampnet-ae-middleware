@@ -90,18 +90,6 @@ async function cancelInvestment(call, callback) {
     }
 }
 
-async function isInvestmentCancelable(call, callback) {
-    try {
-        logger.debug(`Received request to check if investment is cancelable.`)
-        let result = await canCancelInvestment(call.request.projectTxHash, call.request.investorTxHash)
-        logger.debug(`Can cancel investment: ${result}`)
-        callback(null, { canCancel: result })
-    } catch(error) {
-        logger.error(`Error while checking if investment is cancelable \n%o`, err.pretty(error))
-        err.handle(error, callback)
-    }
-}
-
 async function startRevenueSharesPayout(call, callback) {
     try {
         logger.debug(`Received request to generate startRevenueSharesPayout transaction.\nCaller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
@@ -168,8 +156,8 @@ async function getProjectsInfo(call, callback) {
     }
 }
 
-async function canCancelInvestment(projectTxHash, investorTxHash) {
-    logger.debug(`Received request to check if investment is cancelable.`)
+async function getInvestmentDetails(projectTxHash, investorTxHash) {
+    logger.debug(`Received request to fetch investment details.`)
     let investorWallet = (await repo.findByHashOrThrow(investorTxHash)).wallet
     logger.debug(`Investor wallet: ${investorWallet}`)
     let projectWallet = (await repo.findByHashOrThrow(projectTxHash)).wallet
@@ -177,13 +165,20 @@ async function canCancelInvestment(projectTxHash, investorTxHash) {
     let result = await client.instance().contractCallStatic(
         contracts.projSource,
         util.enforceCtPrefix(projectWallet),
-        functions.proj.isInvestmentCancelable,
+        functions.proj.getInvestmentDetails,
         [ investorWallet ],
         {
             callerId: Crypto.generateKeyPair().publicKey
         }
     )
-    return result.decode()
+    let decodedResult = await result.decode()
+    return {
+        walletBalance: util.tokenToEur(decodedResult[0]),
+        amountInvested: util.tokenToEur(decodedResult[1]),
+        totalFundsRaised: util.tokenToEur(decodedResult[2]),
+        investmentCancelable: decodedResult[3],
+        payoutInProcess: decodedResult[4]
+    }
 }
 
 async function checkSharePayoutPreconditions(caller, project, revenue) {
@@ -250,8 +245,7 @@ module.exports = {
     createProject,
     approveWithdraw,
     cancelInvestment,
-    isInvestmentCancelable,
-    canCancelInvestment,
+    getInvestmentDetails,
     startRevenueSharesPayout, 
     getProjectsInfo,
     activateSellOffer,

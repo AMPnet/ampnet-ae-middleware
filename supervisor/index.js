@@ -1,16 +1,10 @@
 const CronJob = require('cron').CronJob
 
-const PgBoss = require('pg-boss')
-const { Crypto } = require('@aeternity/aepp-sdk')
-
 const config = require('../config')
 const logger = require('../logger')(module)
-const ae = require('../ae/client')
 const util = require('../ae/util')
 const repo = require('../persistence/repository')
 const queueClient = require('../queue/queueClient')
-const enums = require('../enums/enums')
-const contracts = require('../ae/contracts')
 const projectService = require('../service/project')
 const { SupervisorJob: JobType, TxType, WalletType, TxState, SupervisorStatus } = require('../enums/enums')
 
@@ -70,7 +64,7 @@ async function handlePendingRecords() {
                     })
                 }
             }).catch(err => {
-                logger.warn(`DB-SCANNER: Error while fetching info for transaction ${hash}. Hash may be invalid, further investigation required.`)
+                logger.warn(`DB-SCANNER: Error while fetching info for transaction ${hash}. Hash may be invalid, further investigation required. Error: %o`, err)
             })
         }
     }

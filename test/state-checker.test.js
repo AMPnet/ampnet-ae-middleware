@@ -1,14 +1,10 @@
-let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
-let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
-let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../queue/queue')
 let config = require('../config')
 let codec = require('../ae/codec')
-let repo = require('../persistence/repository')
 let cron = require('../supervisor')
 let { TxType, TxState, SupervisorStatus, WalletType, txStateToGrpc } = require('../enums/enums')
 
@@ -22,6 +18,7 @@ describe('DB records recovery test', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_OLDER_THAN'] = 0
+        process.env['AUTO_FUND'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -30,7 +27,6 @@ describe('DB records recovery test', function() {
 
     afterEach(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
@@ -51,6 +47,7 @@ describe('DB records recovery test', function() {
             hash: addWalletTxHash,
             type: TxType.WALLET_CREATE,
             state: TxState.PENDING,
+            supervisor_status: SupervisorStatus.NOT_REQUIRED,
             created_at: new Date()
         })
         cron.scanAndProcess()

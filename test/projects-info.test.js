@@ -1,11 +1,8 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let config = require('../config')
-let client = require('../ae/client')
 let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
@@ -16,7 +13,7 @@ let db = require('./util/db')
 
 describe('Test fetching information for list of given projects', function() {
 
-    beforeEach(async() => {
+    before(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
         process.env['AUTO_FUND'] = "false"
         await grpcServer.start()
@@ -25,10 +22,9 @@ describe('Test fetching information for list of given projects', function() {
         await db.init()
     })
 
-    afterEach(async() => {
+    after(async() => {
         delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
@@ -71,7 +67,6 @@ describe('Test fetching information for list of given projects', function() {
         let addFirstProjWalletTxSigned = await clients.owner().signTransaction(addFirstProjWalletTx)
         let addFirstProjWalletTxHash = await grpcClient.postTransaction(addFirstProjWalletTxSigned)
         await util.waitTxProcessed(addFirstProjWalletTxHash)
-
 
         let secondProjMinPerUser = 500
         let secondProjMaxPerUser = 600

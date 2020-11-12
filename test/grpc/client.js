@@ -169,21 +169,6 @@ module.exports = {
             })
         })
     },
-    isInvestmentCancelable: async function(investorTxHash, projectTxHash) {
-        return new Promise(resolve => {
-            client.isInvestmentCancelable({
-                investorTxHash,
-                projectTxHash
-            }, (err, result) => {
-                if (err != null) {
-                    console.log("err", err)
-                    resolve(err)
-                } else {
-                    resolve(result.canCancel)
-                }
-            })
-        })
-    },
     generateStartRevenueSharesPayoutTx: async function(fromTxHash, projectTxHash, revenue) {
         return new Promise(resolve => {
             client.generateStartRevenueSharesPayoutTx({

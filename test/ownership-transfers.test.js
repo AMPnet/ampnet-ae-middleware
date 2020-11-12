@@ -6,7 +6,7 @@ let client = require('../ae/client')
 let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
 let codec = require('../ae/codec')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
+let { TxType, TxState, SupervisorStatus } = require('../enums/enums')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
@@ -14,21 +14,24 @@ let accounts = require('./ae/accounts')
 let util = require('./util/util')
 let db = require('./util/db')
 
-describe('Fetch transaction info tests', function() {
+describe('Ownership transfer tests', function() {
 
-    beforeEach(async() => {
+    before(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
         process.env['AUTO_FUND'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
         await db.init()
+
+        addAliceWalletTx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey)
+        addAliceWalletTxSigned = await clients.owner().signTransaction(addAliceWalletTx)
+        addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned)
+        await util.waitTxProcessed(addAliceWalletTxHash)
     })
 
-    afterEach(async() => {
-        delete process.env.GIFT_AMOUNT
+    after(async() => {
         await grpcServer.stop()
-        await supervisor.clearStorage()
         await supervisor.stop()
     })
 
@@ -41,12 +44,9 @@ describe('Fetch transaction info tests', function() {
         let fetchedCoopOwner = await grpcClient.getPlatformManager()
         assert.equal(fetchedCoopOwner, accounts.bob.publicKey)
 
-        let expectedRecordCount = 1
-        let allRecords = await db.getAll()
-        let recordsCount = allRecords.length
-        assert.strictEqual(recordsCount, expectedRecordCount)
-
-        let ownershipChangeRecord = allRecords[0]
+        let ownershipChangeRecord = (await db.getBy({
+            hash: changeOwnershipTxHash
+        }))[0]
         assert.strictEqual(ownershipChangeRecord.from_wallet, accounts.owner.publicKey)
         assert.strictEqual(ownershipChangeRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(ownershipChangeRecord.state, TxState.MINED)
@@ -63,12 +63,9 @@ describe('Fetch transaction info tests', function() {
         let fetchedEurOwner = await grpcClient.getTokenIssuer()
         assert.equal(fetchedEurOwner, accounts.bob.publicKey)
 
-        let expectedRecordCount = 1
-        let allRecords = await db.getAll()
-        let recordsCount = allRecords.length
-        assert.strictEqual(recordsCount, expectedRecordCount)
-
-        let ownershipChangeRecord = allRecords[0]
+        let ownershipChangeRecord = (await db.getBy({
+            hash: changeOwnershipTxHash
+        }))[0]
         assert.strictEqual(ownershipChangeRecord.from_wallet, accounts.owner.publicKey)
         assert.strictEqual(ownershipChangeRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(ownershipChangeRecord.state, TxState.MINED)
@@ -77,32 +74,27 @@ describe('Fetch transaction info tests', function() {
     })
 
     it('Should fail if non-owner tries to change ownership of Eur/Coop', async () => {
-        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
-        await util.waitTxProcessed(addBobWalletTxHash)
-
-        let coopTransferCallData = await codec.coop.encodeTransferCoopOwnership(accounts.bob.publicKey)
+        let coopTransferCallData = await codec.coop.encodeTransferCoopOwnership(accounts.alice.publicKey)
         let forbiddenCoopOwnershipTransferTx = await client.instance().contractCallTx({
-            callerId: accounts.bob.publicKey,
+            callerId: accounts.alice.publicKey,
             contractId: config.get().contracts.coop.address,
             amount: 0,
             gas: 10000,
             callData: coopTransferCallData
         })
-        let forbiddenCoopOwnershipTransferTxSigned = await clients.bob().signTransaction(forbiddenCoopOwnershipTransferTx)
+        let forbiddenCoopOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenCoopOwnershipTransferTx)
         let forbiddenCoopOwnership = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned)
         assert.equal(forbiddenCoopOwnership.details, "50 > Only Platform Manager can make this action!")
 
-        let eurTransferCallData = await codec.eur.encodeTransferEurOwnership(accounts.bob.publicKey)
+        let eurTransferCallData = await codec.eur.encodeTransferEurOwnership(accounts.alice.publicKey)
         let forbiddenEurOwnershipTransferTx = await client.instance().contractCallTx({
-            callerId: accounts.bob.publicKey,
+            callerId: accounts.alice.publicKey,
             contractId: config.get().contracts.eur.address,
             amount: 0,
             gas: 10000,
             callData: eurTransferCallData
         })
-        let forbiddenEurOwnershipTransferTxSigned = await clients.bob().signTransaction(forbiddenEurOwnershipTransferTx)
+        let forbiddenEurOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenEurOwnershipTransferTx)
         let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned)
         assert.equal(forbiddenEurOwnership.details, "50 > Only Token Issuer can make this action!")
     })
