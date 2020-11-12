@@ -40,8 +40,8 @@ describe('Error handling tests', function() {
         await supervisor.stop()
     })
 
-    it('Should fail with correct error message if transaction broadcasted but not signed', async () => {
-        let unsignedTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+    it.only('Should fail with correct error message if transaction broadcasted but not signed', async () => {
+        let unsignedTx = await grpcClient.generateAddWalletTx(accounts.jane.publicKey)
         let errResponse = await grpcClient.postTransaction(unsignedTx)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
     }) 
