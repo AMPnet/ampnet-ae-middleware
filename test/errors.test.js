@@ -235,7 +235,7 @@ describe('Error handling tests', function() {
         assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Internal error:\n  insufficient_funds\n")
     })
 
-    it.only('Transaction should fail if trying to generate addWallet transaction for wallet that already exists', async () => {
+    it('Transaction should fail if trying to generate addWallet transaction for wallet that already exists', async () => {
         let addBobWalletAgainTxErrResponse = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         assert.strictEqual(addBobWalletAgainTxErrResponse.details, err.generate(ErrorType.WALLET_ALREADY_EXISTS).message)
     })
