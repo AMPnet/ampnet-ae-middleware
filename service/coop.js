@@ -19,6 +19,12 @@ async function addWallet(call, callback) {
         } else {
             address = call.request.wallet
         }
+        let existingWalletRecords = (await repo.get({
+            wallet: address
+        }))
+        if (existingWalletRecords.length > 0) {
+            throw err.generate(err.type.WALLET_ALREADY_EXISTS)
+        }
         let callData = await codec.coop.encodeAddWallet(address)
         let coopAddress = config.get().contracts.coop.address
         let coopOwner = await config.get().contracts.coop.owner()
