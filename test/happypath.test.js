@@ -22,7 +22,7 @@ describe('Happy path scenario', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['NUMBER_OF_CONFIRMATIONS'] = 2
+        process.env['AUTO_FUND'] = "true"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -32,9 +32,10 @@ describe('Happy path scenario', function() {
     afterEach(async() => {
         await grpcServer.stop()
         await supervisor.stop()
+        process.env['AUTO_FUND'] = "false"
     })
 
-    it.skip('Should be possible to run one complete life-cycle of a project to be funded', async () => {
+    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let eurContractAddress = aeUtil.enforceAkPrefix(config.get().contracts.eur.address)
         
         let socket = new WebSocket(`ws://localhost:${config.get().ws.port}/ws`)

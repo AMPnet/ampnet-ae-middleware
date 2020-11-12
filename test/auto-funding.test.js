@@ -1,12 +1,9 @@
-let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
 let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
-let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../queue/queue')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
@@ -21,6 +18,7 @@ describe('Auto funding test', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
+        process.env['AUTO_FUND'] = "true"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -30,6 +28,7 @@ describe('Auto funding test', function() {
     afterEach(async() => {
         await grpcServer.stop()
         await supervisor.stop()
+        process.env['AUTO_FUND'] = "false"
     })
 
     it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {

@@ -1,9 +1,6 @@
-let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
-let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
-let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../queue/queue')
 let axios = require('axios')

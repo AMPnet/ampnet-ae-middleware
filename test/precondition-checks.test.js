@@ -1,12 +1,8 @@
-let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
-let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
-let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let supervisor = require('../queue/queue')
-let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
@@ -14,13 +10,11 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
-let config = require('../config')
-
 describe('Precondition checks test', function() {
 
     beforeEach(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
+        process.env['AUTO_FUND'] = "true"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
@@ -31,6 +25,7 @@ describe('Precondition checks test', function() {
         delete process.env.GIFT_AMOUNT
         await grpcServer.stop()
         await supervisor.stop()
+        process.env['AUTO_FUND'] = "false"
     })
 
     it('Should return correct error messages if invest or revenue share payout transactions do not meet required conditions', async () => {

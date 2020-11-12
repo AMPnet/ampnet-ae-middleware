@@ -1,16 +1,12 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let config = require('../config')
-let client = require('../ae/client')
 let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
-let { TxType, TxState, SupervisorStatus, WalletType, txTypeToGrpc } = require('../enums/enums')
+let { TxType, TxState, WalletType, txTypeToGrpc } = require('../enums/enums')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
-let accounts = require('./ae/accounts')
-let util = require('./util/util')
 let db = require('./util/db')
 
 describe('Fetch transaction info tests', function() {

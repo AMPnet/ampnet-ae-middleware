@@ -16,15 +16,16 @@ let db = require('./util/db')
 
 describe('Test role routes', function() {
 
-    beforeEach(async() => {
+    before(async() => {
         process.env['DB_SCAN_ENABLED'] = "false"
+        process.env['AUTO_FUND'] = "false"
         await grpcServer.start()
         await grpcClient.start()
         await clients.init()
         await db.init()
     })
 
-    afterEach(async() => {
+    after(async() => {
         await grpcServer.stop()
         await supervisor.stop()
     })

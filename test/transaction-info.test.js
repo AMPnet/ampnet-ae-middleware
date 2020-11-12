@@ -1,11 +1,9 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let config = require('../config')
-let client = require('../ae/client')
 let supervisor = require('../queue/queue')
 let grpcServer = require('../grpc/server')
-let { TxType, TxState, SupervisorStatus, WalletType, txStateToGrpc, txTypeToGrpc } = require('../enums/enums')
+let { TxType, TxState, txStateToGrpc, txTypeToGrpc } = require('../enums/enums')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
