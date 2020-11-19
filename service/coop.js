@@ -26,6 +26,7 @@ async function addWallet(call, callback) {
             throw err.generate(err.type.WALLET_ALREADY_EXISTS)
         }
         let callData = await codec.coop.encodeAddWallet(address)
+        logger.debug(`Encoded call data: ${callData}`)
         let coopAddress = config.get().contracts.coop.address
         let coopOwner = await config.get().contracts.coop.owner()
         let tx = await client.instance().contractCallTx({
@@ -57,6 +58,7 @@ async function walletActive(call, callback) {
                 callerId: Crypto.generateKeyPair().publicKey
             }
         )
+        logger.debug(`Received static call result: %o`, result)
         let resultDecoded = await result.decode()
         logger.debug(`Wallet active: ${resultDecoded}`)
         callback(null, { active: resultDecoded })
@@ -78,6 +80,7 @@ async function getPlatformManager(call, callback) {
                 callerId: Crypto.generateKeyPair().publicKey
             }
         )
+        logger.debug(`Received static call result: %o`, result)
         let resultDecoded = await result.decode()
         logger.debug(`Fetched platform manager: ${resultDecoded}`)
         callback(null, { wallet: resultDecoded })
@@ -91,6 +94,7 @@ async function transferOwnership(call, callback) {
     logger.debug(`Received request to generate platform manager ownership transaction. New owner: ${call.request.newOwnerWallet}`)
     try {
         let callData = await codec.coop.encodeTransferCoopOwnership(call.request.newOwnerWallet)
+        logger.debug(`Encoded call data: ${callData}`)
         let coopOwner = await config.get().contracts.coop.owner()
         let tx = await client.instance().contractCallTx({
             callerId: coopOwner,

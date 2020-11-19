@@ -25,6 +25,7 @@ async function createProject(call, callback) {
             util.eurToToken(call.request.investmentCap),
             call.request.endInvestmentTime
         )
+        logger.debug(`Encoded call data: ${callData}`)
         let result = await client.instance().contractCreateTx({
             ownerId: fromWallet,
             code: contracts.getProjCompiled().bytecode,
@@ -52,6 +53,7 @@ async function approveWithdraw(call, callback) {
         let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
         logger.debug(`Project: ${projectWallet}`)
         let callData = await codec.proj.encodeApproveWithdrawProjectFunds(amount)
+        logger.debug(`Encoded call data: ${callData}`)
         let tx = await client.instance().contractCallTx({
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
@@ -75,6 +77,7 @@ async function cancelInvestment(call, callback) {
         let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
         logger.debug(`Project: ${projectWallet}`)
         let callData = await codec.proj.encodeCancelInvestment()
+        logger.debug(`Encoded call data: ${callData}`)
         let tx = await client.instance().contractCallTx({
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
@@ -101,6 +104,7 @@ async function startRevenueSharesPayout(call, callback) {
         logger.debug(`Project: ${projectWallet}`)
         await checkSharePayoutPreconditions(fromWallet, projectWallet, revenue)
         let callData = await codec.proj.encodeStartRevenueSharesPayout(revenue)
+        logger.debug(`Encoded call data: ${callData}`)
         let tx = await client.instance().contractCallTx({
             callerId: fromWallet,
             contractId: util.enforceCtPrefix(projectWallet),
@@ -219,6 +223,7 @@ async function activateSellOffer(fromTxHash, sellOfferTxHash) {
 }
 
 async function getProjectInfo(wallet) {
+    logger.debug(`Fetching info for project ${wallet}`)
     var contract = await repo.addressFromWalletData(wallet)
     let result = await client.instance().contractCallStatic(
         contracts.projSource,
@@ -229,7 +234,9 @@ async function getProjectInfo(wallet) {
             callerId: Crypto.generateKeyPair().publicKey
         }
     )
+    logger.debug(`Fetched result: %o`, result)
     let decoded = await result.decode()
+    logger.debug(`Decoded project info: %o`, )
     return {
         minPerUserInvestment: util.tokenToEur(decoded[0]),
         maxPerUserInvestment: util.tokenToEur(decoded[1]),

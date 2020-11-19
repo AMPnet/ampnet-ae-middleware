@@ -13,6 +13,7 @@ async function createOrganization(call, callback) {
         let walletTx = await repo.findByHashOrThrow(call.request.fromTxHash)
         logger.debug(`Address represented by given hash: ${walletTx.wallet}`)
         let callData = await codec.org.encodeCreateOrganization()
+        logger.debug(`Encoded call data: ${callData}`)
         let result = await client.instance().contractCreateTx({
             ownerId: walletTx.wallet,
             code: contracts.getOrgCompiled().bytecode,

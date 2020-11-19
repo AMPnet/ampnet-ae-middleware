@@ -16,6 +16,7 @@ async function mint(call, callback) {
         let record = await repo.findByHashOrThrow(call.request.toTxHash)
         logger.debug(`Address represented by given hash: ${record.wallet}`)
         let callData = await codec.eur.encodeMint(record.wallet, util.eurToToken(call.request.amount))
+        logger.debug(`Encoded call data: ${callData}`)
         let eurOwner = await config.get().contracts.eur.owner()
         let tx = await client.instance().contractCallTx({
             callerId: eurOwner,
@@ -40,6 +41,7 @@ async function approveWithdraw(call, callback) {
         let amount = util.eurToToken(call.request.amount)
         let eurOwner = await config.get().contracts.eur.owner()
         let callData = await codec.eur.encodeApprove(eurOwner, amount)
+        logger.debug(`Encoded call data: ${callData}`)
         let tx = await client.instance().contractCallTx({
             callerId: record.wallet,
             contractId: config.get().contracts.eur.address,
@@ -63,6 +65,7 @@ async function burnFrom(call, callback) {
         let amount = await allowance(record.wallet)
         logger.debug(`Amount to burn: ${amount}`)
         let callData = await codec.eur.encodeBurnFrom(record.wallet, amount)
+        logger.debug(`Encoded call data: ${callData}`)
         let eurOwner = await config.get().contracts.eur.owner()
         let tx = await client.instance().contractCallTx({
             callerId: eurOwner,
@@ -80,7 +83,6 @@ async function burnFrom(call, callback) {
 }
 
 async function balance(call, callback) {
-    logger.debug(`Received request to fetch balance of wallet with txHash ${call.request.walletTxHash}`)
     getBalance(call.request.walletTxHash)
         .then((result) => {
             callback(null, { balance: result })
@@ -101,6 +103,7 @@ async function invest(call, callback) {
         let amount = util.eurToToken(call.request.amount)
         await checkInvestmentPreconditions(project, investor, amount)
         let callData = await codec.eur.encodeApprove(project, amount)
+        logger.debug(`Encoded call data: ${callData}`)
         let tx = await client.instance().contractCallTx({
             callerId: investor,
             contractId: config.get().contracts.eur.address,
@@ -124,6 +127,7 @@ async function acceptSellOffer(fromTxHash, sellOfferTxHash, counterOfferPrice) {
     logger.debug(`SellOffer address: ${sellOffer}`)
     let amount = util.eurToToken(counterOfferPrice)
     let callData = await codec.eur.encodeApprove(sellOffer, amount)
+    logger.debug(`Encoded call data: ${callData}`)
     let tx = await client.instance().contractCallTx({
         callerId: buyer,
         contractId: config.get().contracts.eur.address,
@@ -147,8 +151,9 @@ async function getTokenIssuer(call, callback) {
                 callerId: Crypto.generateKeyPair().publicKey
             }
         )
+        logger.debug(`Fetched result: %o`, result)
         let resultDecoded = await result.decode()
-        logger.debug(`Fetched token issuer: ${resultDecoded}`)
+        logger.debug(`Decoded token issuer: ${resultDecoded}`)
         callback(null, { wallet: resultDecoded })
     } catch (error) {
         logger.error(`Error while fetching token issuer wallet:\n%o`, err.pretty(error))
@@ -160,6 +165,7 @@ async function transferOwnership(call, callback) {
     logger.debug(`Received request to generate token issuer ownership transaction. New owner: ${call.request.newOwnerWallet}`)
     try {
         let callData = await codec.eur.encodeTransferEurOwnership(call.request.newOwnerWallet)
+        logger.debug(`Encoded call data: ${callData}`)
         let eurOwner = await config.get().contracts.eur.owner()
         let tx = await client.instance().contractCallTx({
             callerId: eurOwner,
@@ -180,6 +186,7 @@ async function transferOwnership(call, callback) {
 // HELPER FUNCTIONS
 
 async function getBalance(walletHash) {
+    logger.debug(`Received request to fetch balance of wallet with txHash ${walletHash}`)
     let tx = await repo.findByHashOrThrow(walletHash)
     logger.debug(`Address represented by given hash: ${tx.wallet}`)
     let result = await client.instance().contractCallStatic(
@@ -191,13 +198,15 @@ async function getBalance(walletHash) {
             callerId: Crypto.generateKeyPair().publicKey
         }
     )
+    logger.debug(`Fetched result: %o`, result)
     let resultDecoded = await result.decode()
     let resultInEur = util.tokenToEur(resultDecoded)
-    logger.debug(`Successfully fetched balance: ${resultInEur}`)
+    logger.debug(`Successfully decoded balance: ${resultInEur}`)
     return resultInEur
 }
 
 async function allowance(owner) {
+    logger.debug(`Fetching allowance for wallet ${owner}`)
     let eurOwner = await config.get().contracts.eur.owner() 
     let result = await client.instance().contractCallStatic(
         contracts.eurSource,
@@ -208,6 +217,7 @@ async function allowance(owner) {
             callerId: Crypto.generateKeyPair().publicKey
         }
     )
+    logger.debug(`Allowance result %o`, result)
     return result.decode()
 }
 

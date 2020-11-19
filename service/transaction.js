@@ -315,23 +315,31 @@ async function checkContractData(tx) {
     let sellOfferBytecode = contracts.getSellOfferCompiled().bytecode
     switch (tx.code) {
         case orgBytecode:
+            logger.debug(`Check Org contract call - decoding call data`)
             callData = await codec.decodeDataByBytecode(orgBytecode, tx.callData)
+            logger.debug(`Check Org contract call - decoded call data: %o`, callData)
             if (callData.arguments[0].value != config.get().contracts.coop.address) {
                 throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
         case projBytecode:
+            logger.debug(`Check Proj contract data - decoding call data`)
             callData = await codec.decodeDataByBytecode(projBytecode, tx.callData)
+            logger.debug(`Check Proj contract data - decoded call data: %o`, callData)
             orgAddress = callData.arguments[0].value
             isOrgActive = await isWalletActive(orgAddress)
+            logger.debug(`Decoded isOrgActive: ${isOrgActive}`)
             if (!isOrgActive) {
                 throw err.generate(ErrorType.PROJ_INVALID_GROUP_ARG)
             }
             break
         case sellOfferBytecode:
+            logger.debug(`Check SellOffer contract data - decoding call data`)
             callData = await codec.decodeDataByBytecode(sellOfferBytecode, tx.callData)
+            logger.debug(`Check SellOffer contract data - decoded call data: %o`, callData)
             projAddress = callData.arguments[0].value
             isProjActive = await isWalletActive(projAddress)
+            logger.debug(`Decoded isProjActive: ${isProjActive}`)
             if (!isProjActive) {
                 throw err.generate(ErrorType.SELL_OFFER_INVALID_PROJ_ARG)
             }
@@ -349,6 +357,7 @@ async function checkContractData(tx) {
 }
 
 async function isWalletActive(wallet) {
+    logger.debug(`Checking is wallet ${wallet} active`)
     let address = await util.enforceAkPrefix(wallet)
     let result = await client.instance().contractCallStatic(
         contracts.coopSource, 
@@ -359,6 +368,7 @@ async function isWalletActive(wallet) {
             callerId: Crypto.generateKeyPair().publicKey
         }
     )
+    logger.debug(`Fetched wallet active result: ${result}`)
     return result.decode()
 }
 
