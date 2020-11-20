@@ -8,8 +8,8 @@ async function encodeAddWallet(wallet) {
     return contracts.getCoopCompiled().encodeCall(functions.coop.addWallet, [ wallet ])
 }
 
-async function encodeCreateOrganization() {
-    return contracts.getOrgCompiled().encodeCall("init", [ config.get().contracts.coop.address ])
+async function encodeCreateOrganization(coopContract) {
+    return contracts.getOrgCompiled().encodeCall("init", [ coopContract ])
 }
 
 async function encodeCreateProject(org, minInvestment, maxInvestment, investmentCap, endsAt) {

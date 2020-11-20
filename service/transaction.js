@@ -15,6 +15,7 @@ let queueClient = require('../queue/queueClient')
 let ErrorType = err.type
 
 let { TxState, TxType } = require('../enums/enums')
+const coop = require('./coop')
 
 async function postTransactionGrpc(call, callback) {
     postTransaction(call.request.data, call.request.coop, function(err, result) {
@@ -263,19 +264,19 @@ async function getInvestmentsInProject(call, callback) {
     }
 }
 
-async function performSecurityChecks(txData) {
+async function performSecurityChecks(txData, coopInfo) {
     if (txData.txType != 'signedTx') {
         throw err.generate(ErrorType.TX_NOT_SIGNED)
     }
     let unpackedTx = txData.tx.encodedTx
     switch (unpackedTx.txType) {
         case 'contractCallTx':
-            await checkTxCaller(unpackedTx.tx.callerId)
-            await checkTxCallee(unpackedTx.tx.contractId)
+            await checkTxCaller(unpackedTx.tx.callerId, coopInfo)
+            await checkTxCallee(unpackedTx.tx.contractId, coopInfo)
             break
         case 'contractCreateTx':
-            await checkTxCaller(unpackedTx.tx.ownerId)
-            await checkContractData(unpackedTx.tx)
+            await checkTxCaller(unpackedTx.tx.ownerId, coopInfo)
+            await checkContractData(unpackedTx.tx, coopInfo)
             break
         default:
             throw err.generate(ErrorType.GENERIC_ERROR, `Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
@@ -283,16 +284,13 @@ async function performSecurityChecks(txData) {
 }
 
 async function checkTxCaller(callerId, coopInfo) {
-    let coopAuthorityId = await coopInfo.coop_owner
-    let issuingAuthorityId = await coopInfo.eur_owner
-    
     // if caller is coop or token authority return normally
-    if(callerId == coopAuthorityId || callerId == issuingAuthorityId) {
+    if(callerId == coopInfo.coop_owner || callerId == coopInfo.eur_owner) {
         return
     }
 
     // if caller not found in repo or caller's wallet still not mined exception is thrown
-    return repo.findByWalletOrThrow(callerId)
+    return repo.findByWalletOrThrow(callerId, coopInfo.id)
 }
 
 async function checkTxCallee(calleeId, coopInfo) {
@@ -304,16 +302,16 @@ async function checkTxCallee(calleeId, coopInfo) {
      * Special case. Allow calling SellOffer without requiring for its
      * wallet to be activated. (SellOffers do not require active wallets)
      */
-    let record = await repo.findFirstByWallet(calleeId)
+    let record = await repo.findByWalletOrThrow(calleeId, coopInfo.id)
     if (typeof record !== 'undefined' && record.type == enums.TxType.SELL_OFFER_CREATE) { return }
 
-    let walletActive = await isWalletActive(calleeId)
+    let walletActive = await isWalletActive(calleeId, coopInfo)
     if (walletActive) { return }
     
     throw err.generate(ErrorType.TX_INVALID_CONTRACT_CALLED)
 }
 
-async function checkContractData(tx) {
+async function checkContractData(tx, coopInfo) {
     let orgBytecode = contracts.getOrgCompiled().bytecode
     let projBytecode = contracts.getProjCompiled().bytecode
     let sellOfferBytecode = contracts.getSellOfferCompiled().bytecode
@@ -322,7 +320,7 @@ async function checkContractData(tx) {
             logger.debug(`Check Org contract call - decoding call data`)
             callData = await codec.decodeDataByBytecode(orgBytecode, tx.callData)
             logger.debug(`Check Org contract call - decoded call data: %o`, callData)
-            if (callData.arguments[0].value != config.get().contracts.coop.address) {
+            if (callData.arguments[0].value != coopInfo.coop_contract) {
                 throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
@@ -331,7 +329,7 @@ async function checkContractData(tx) {
             callData = await codec.decodeDataByBytecode(projBytecode, tx.callData)
             logger.debug(`Check Proj contract data - decoded call data: %o`, callData)
             orgAddress = callData.arguments[0].value
-            isOrgActive = await isWalletActive(orgAddress)
+            isOrgActive = await isWalletActive(orgAddress, coopInfo)
             logger.debug(`Decoded isOrgActive: ${isOrgActive}`)
             if (!isOrgActive) {
                 throw err.generate(ErrorType.PROJ_INVALID_GROUP_ARG)
@@ -342,7 +340,7 @@ async function checkContractData(tx) {
             callData = await codec.decodeDataByBytecode(sellOfferBytecode, tx.callData)
             logger.debug(`Check SellOffer contract data - decoded call data: %o`, callData)
             projAddress = callData.arguments[0].value
-            isProjActive = await isWalletActive(projAddress)
+            isProjActive = await isWalletActive(projAddress, coopInfo)
             logger.debug(`Decoded isProjActive: ${isProjActive}`)
             if (!isProjActive) {
                 throw err.generate(ErrorType.SELL_OFFER_INVALID_PROJ_ARG)
@@ -360,12 +358,12 @@ async function checkContractData(tx) {
     }
 }
 
-async function isWalletActive(wallet) {
-    logger.debug(`Checking is wallet ${wallet} active`)
+async function isWalletActive(wallet, coopInfo) {
+    logger.debug(`Checking is wallet ${wallet} active in coop ${coopInfo}`)
     let address = await util.enforceAkPrefix(wallet)
     let result = await client.instance().contractCallStatic(
         contracts.coopSource, 
-        config.get().contracts.coop.address, 
+        coopInfo.coop_contract, 
         enums.functions.coop.isWalletActive,
         [ address ],
         {

@@ -6,7 +6,7 @@ let util = require('../ae/util')
 let { TxState, TxType, WalletType } = require('../enums/enums')
 
 
-async function getSummary() {
+async function getSummary(coopId) {
     var projectCapsSum = 0
     var projectsCount = 0
     var investmentsCount = 0
@@ -17,7 +17,8 @@ async function getSummary() {
     let projectWalletCreateRecords = await repository.get({
         type: TxType.WALLET_CREATE,
         state: TxState.MINED,
-        wallet_type: WalletType.PROJECT
+        wallet_type: WalletType.PROJECT,
+        coop_id: coopId
     })
 
     let projectWalletCreateRecordsSize = projectWalletCreateRecords.length
@@ -28,7 +29,8 @@ async function getSummary() {
         let projectCreateRecords = await repository.get({
             type: TxType.PROJ_CREATE,
             state: TxState.MINED,
-            to_wallet: projectWallet
+            to_wallet: projectWallet,
+            coop_id: coopId
         })
         if (projectCreateRecords.length == 0) {
             logger.warn(`Unexpected error occured while processing project. Could not find matching PROJ_CREATE transaction for given WALLET_CREATE transaction (${projectWalletCreateRecord.hash})`)

@@ -22,12 +22,7 @@ before(async () => {
     coopId = "ampnet-coop-1"
     await grpcClient.createCooperative(coopId, accounts.owner.publicKey)
     let adminWalletTx = await util.waitWalletExists()
-    console.log("adminWalletTx", adminWalletTx)
     await util.waitTxProcessed(adminWalletTx.hash)
-    let tx = await db.getBy({
-        hash: adminWalletTx.hash
-    })
-    console.log("tx", tx)
 })
 
 after(async () => {

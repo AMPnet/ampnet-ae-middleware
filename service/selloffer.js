@@ -57,11 +57,13 @@ async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerTxHash) {
 }
 
 async function getActiveSellOffers(call, callback) {
-    logger.debug(`Received request to fetch active sell offers.`)
     try {
+        logger.debug(`Received request to fetch active sell offers for coop ${call.request.coop}.`)
+        let coopId = call.request.coop
         let sellOfferCreateTransactions = await repo.get({
             type: enums.TxType.SELL_OFFER_CREATE,
-            state: enums.TxState.MINED
+            state: enums.TxState.MINED,
+            coop_id: coopId
         })
         let sellOffers = await Promise.all(sellOfferCreateTransactions.map(tx => {
             return new Promise((resolve, reject) => {
@@ -82,13 +84,13 @@ async function getActiveSellOffers(call, callback) {
         }))
         let sellOffersFiltered = sellOffers.filter(offer => !offer[5])    
         let sellOffersTransformed = await Promise.all(sellOffersFiltered.map(async (offer) => {
-            let projectTxHash = (await repo.findByWalletOrThrow(offer[0])).hash
-            let sellerTxHash = (await repo.findByWalletOrThrow(offer[1])).hash
+            let projectTxHash = (await repo.findByWalletOrThrow(offer[0], coopId)).hash
+            let sellerTxHash = (await repo.findByWalletOrThrow(offer[1]), coopId).hash
             let shares = util.tokenToEur(offer[2])
             let price = util.tokenToEur(offer[3])
             let counterOffersPromisifed = offer[4].map(counterOffer => {
                 return new Promise(resolve => {
-                    repo.findByWalletOrThrow(counterOffer[0]).then(r => {
+                    repo.findByWalletOrThrow(counterOffer[0], coopId).then(r => {
                         let buyerTxHash = r.hash
                         resolve({
                             buyerTxHash: buyerTxHash,

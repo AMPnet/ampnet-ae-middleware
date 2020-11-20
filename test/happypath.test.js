@@ -20,25 +20,23 @@ let config = require('../config')
 
 describe('Happy path scenario', function() {
 
-    beforeEach(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "true"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-        await walletGrpcMockServer.listen()
-    })
+    // beforeEach(async() => {
+    //     process.env['DB_SCAN_ENABLED'] = "false"
+    //     process.env['AUTO_FUND'] = "true"
+    //     await grpcServer.start()
+    //     await grpcClient.start()
+    //     await clients.init()
+    //     await db.init()
+    //     await walletGrpcMockServer.listen()
+    // })
 
-    afterEach(async() => {
-        await grpcServer.stop()
-        await supervisor.stop()
-        process.env['AUTO_FUND'] = "false"
-    })
+    // afterEach(async() => {
+    //     await grpcServer.stop()
+    //     await supervisor.stop()
+    //     process.env['AUTO_FUND'] = "false"
+    // })
 
-    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
-        let eurContractAddress = aeUtil.enforceAkPrefix(config.get().contracts.eur.address)
-        
+    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {        
         let socket = new WebSocket(`ws://localhost:${config.get().ws.port}/ws`)
         let bobWalletUpdates = 0
         socket.onopen = function(event) {

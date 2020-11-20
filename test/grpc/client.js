@@ -26,10 +26,11 @@ module.exports = {
             })
         })
     },
-    generateAddWalletTx: async function(wallet) {
+    generateAddWalletTx: async function(wallet, coop) {
         return new Promise(resolve => {
             client.generateAddWalletTx({
-                wallet: wallet
+                wallet: wallet,
+                coop: coop
             }, (err, result) => {
                 if (err != null) {
                     resolve(err)
@@ -198,10 +199,11 @@ module.exports = {
             })
         })
     },
-    postTransaction: async function(data) {
+    postTransaction: async function(data, coop) {
         return new Promise(resolve => {
             client.postTransaction({
-                data: data
+                data: data,
+                coop: coop
             }, (err, result) => {
                 if (err != null) {
                     resolve(err)

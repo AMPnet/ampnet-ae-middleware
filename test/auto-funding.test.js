@@ -16,20 +16,20 @@ let config = require('../config')
 
 describe('Auto funding test', function() {
 
-    beforeEach(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "true"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-    })
+    // beforeEach(async() => {
+    //     process.env['DB_SCAN_ENABLED'] = "false"
+    //     process.env['AUTO_FUND'] = "true"
+    //     await grpcServer.start()
+    //     await grpcClient.start()
+    //     await clients.init()
+    //     await db.init()
+    // })
 
-    afterEach(async() => {
-        await grpcServer.stop()
-        await supervisor.stop()
-        process.env['AUTO_FUND'] = "false"
-    })
+    // afterEach(async() => {
+    //     await grpcServer.stop()
+    //     await supervisor.stop()
+    //     process.env['AUTO_FUND'] = "false"
+    // })
 
     it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
         let randomWallet = Crypto.generateKeyPair()

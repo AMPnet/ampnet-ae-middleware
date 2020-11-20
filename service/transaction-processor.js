@@ -9,6 +9,7 @@ const contracts = require('../ae/contracts')
 const queueClient = require('../queue/queueClient')
 const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
+const coop = require('./coop')
 
 /**
  * Updates record states for given transaction hash, after transaction has been mined or failed.
@@ -89,7 +90,7 @@ async function storeTransactionData(txHash, txData, txInfo, coopInfo, originated
     logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     
     for (event of txInfo.log) {
-        let record = await generateTxRecord(txInfo, txHash, event, txData)
+        let record = await generateTxRecord(txInfo, txHash, event, txData, coopInfo)
         let existingRecords = await repo.get({
             hash: record.hash,
             from_wallet: record.from_wallet,
@@ -118,7 +119,7 @@ async function storeTransactionData(txHash, txData, txInfo, coopInfo, originated
     logger.debug(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
 }
 
-async function generateTxRecord(info, hash, event, txData) {
+async function generateTxRecord(info, hash, event, txData, coopInfo) {
     let type = enums.fromEvent(event.topics[0])
     switch (type) {
         case enums.TxType.WALLET_CREATE:
@@ -197,13 +198,13 @@ async function generateTxRecord(info, hash, event, txData) {
             caller = util.decodeAddress(event.topics[1])
             spender = util.decodeAddress(event.topics[2])
             amount = util.tokenToEur(event.topics[3])
-            eurOwner = await config.get().contracts.eur.owner()
+            eurOwner = coopInfo.eur_owner
             if (spender == eurOwner) {
-                r = await repo.findByWalletOrThrow(caller)
+                r = await repo.findByWalletOrThrow(caller, coopInfo.id)
                 type = (r.wallet_type == enums.WalletType.PROJECT) ? enums.TxType.PENDING_PROJ_WITHDRAW : enums.TxType.APPROVE_USER_WITHDRAW
                 supervisorStatus = enums.SupervisorStatus.NOT_REQUIRED
             } else {
-                r = await repo.findByWalletOrThrow(spender)
+                r = await repo.findByWalletOrThrow(spender, coopInfo.id)
                 type = (r.type == enums.TxType.SELL_OFFER_CREATE) ? enums.TxType.APPROVE_COUNTER_OFFER : enums.TxType.APPROVE_INVESTMENT
                 supervisorStatus = enums.SupervisorStatus.REQUIRED
             }
@@ -373,11 +374,12 @@ async function sendFundsIfRequired(info) {
 }
 
 async function callSpecialActions(tx) {
+    let coopInfo = await repo.getCooperative(tx.coop_id)
     if (tx.supervisor_status == enums.SupervisorStatus.REQUIRED) {
         logger.info(`Special action call required for record with type ${tx.type} originated from transaction with hash ${tx.hash}`)
         if (tx.type == enums.TxType.APPROVE_INVESTMENT) {
-            let investorWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
-            let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
+            let investorWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet, coopInfo.id)
+            let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet, coopInfo.id)
             let investorWallet = investorWalletCreationTx.wallet
             let investorWorkerKeyPair = {
                 publicKey: investorWalletCreationTx.worker_public_key,
@@ -407,7 +409,7 @@ async function callSpecialActions(tx) {
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
             logger.info(`Approve investment precalculated hash: ${precalculatedHash}. Caching transaction data...`)
-            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
+            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, coopInfo, tx.hash)
             logger.info(`Approve investment transaction cached. Posting transaction to blockchain.`)
             let result = await client.sendTransaction(signedTx, {
                 verify: true,
@@ -416,8 +418,8 @@ async function callSpecialActions(tx) {
             logger.info(`Approve investment transaction posted to blockchain and will be added to tx processor queue.`)
             process(result.hash)
         } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
-            let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
-            let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet)
+            let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet, coopInfo.id)
+            let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet, coopInfo.id)
             let projectManagerWorkerKeyPair = {
                 publicKey: projectManagerWalletCreationTx.worker_public_key,
                 secretKey: projectManagerWalletCreationTx.worker_secret_key
@@ -448,7 +450,7 @@ async function callSpecialActions(tx) {
                 let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
                 let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
                 logger.info(`Revenue batch payout precalculated hash: ${precalculatedHash}. Caching transaction data...`)
-                await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
+                await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, coopInfo, tx.hash)
                 logger.info(`Revenue batch payout transaction cached. Posting transaction to blockchain.`)
                 let result = await client.sendTransaction(signedTx, {
                     waitMined: true,
@@ -463,7 +465,7 @@ async function callSpecialActions(tx) {
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
         } else if (tx.type == enums.TxType.APPROVE_COUNTER_OFFER) {
-            let buyerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet)
+            let buyerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet, coopInfo.id)
             let sellOfferContract = util.enforceCtPrefix(tx.to_wallet)
             let buyerWallet = buyerWalletCreationTx.wallet
             let buyerWorkerKeyPair = {
@@ -493,7 +495,7 @@ async function callSpecialActions(tx) {
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
             logger.info(`Market tryToSettle precalculated hash: ${precalculatedHash}. Caching transaction data...`)
-            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, tx.hash)
+            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, coopInfo, tx.hash)
             logger.info(`Market tryToSettletransaction cached. Posting transaction to blockchain.`)
             let result = await client.sendTransaction(signedTx, {
                 waitMined: false,

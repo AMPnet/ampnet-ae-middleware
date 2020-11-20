@@ -81,20 +81,11 @@ async function findByHashOrThrow(txHash) {
     })
 }
 
-async function findFirstByWallet(wallet) {
+async function findByWalletOrThrow(wallet, coopId) {
     let akWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise( (resolve, reject) => {
         knex('transaction')
-        .where({ wallet: akWallet })
-        .then((rows) => { resolve(rows[0]) })
-    })
-}
-
-async function findByWalletOrThrow(wallet) {
-    let akWallet = aeUtil.enforceAkPrefix(wallet)
-    return new Promise( (resolve, reject) => {
-        knex('transaction')
-        .where({ wallet: akWallet })
+        .where({ wallet: akWallet, coop_id: coopId })
         .then((rows) => {
             if (rows.length == 0) { reject(err.generate(ErrorType.WALLET_NOT_FOUND)) }
             else if (rows.length > 1) { reject(err.generate(ErrorType.GENERIC_ERROR, `Incosistent data. Multiple tx records found with wallet ${akWallet}`)) }
@@ -317,7 +308,6 @@ module.exports = {
     addressFromWalletData,
     findByHashOrThrow,
     findByWalletOrThrow,
-    findFirstByWallet,
     getWalletTypeOrThrow,
     get,
     getAsc,

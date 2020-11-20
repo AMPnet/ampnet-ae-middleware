@@ -85,7 +85,7 @@ function addInvestmentDetailsRoute() {
 
 function addPlatformSummaryRoute() {
     expr.get('/summary', async (req, res) => {
-        let result = await platformSvc.getSummary()
+        let result = await platformSvc.getSummary(req.query.coop)
         res.json(result)
     })
 }
@@ -154,18 +154,6 @@ function addAcceptCounterOfferRoute() {
             res.json({
                 tx: tx
             })
-        }).catch(error => {
-            err.handle(error, function(msg, result) {
-                res.status(404).send(msg)
-            })
-        })
-    })
-}
-
-function addGetActiveOffersRoute() {
-    expr.get('/market/active-offers', async (req, res) => {
-        sellOfferSvc.getActiveSellOffers().then(result => {
-            res.status(200).send("ok")
         }).catch(error => {
             err.handle(error, function(msg, result) {
                 res.status(404).send(msg)

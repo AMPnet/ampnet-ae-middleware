@@ -73,12 +73,17 @@ message GenerateInvestTxRequest {
     string amount = 3;
 }
 
+message TokenIssuerRequest {
+    string coop = 1;
+}
+
 message TokenIssuerResponse {
     string wallet = 1;
 }
 
 message GenerateTransferTokenIssuerOwnershipTxRequest {
     string new_owner_wallet = 1;
+    string coop = 2;
 }
 
 ///////// Organization contract //////////
@@ -173,6 +178,10 @@ message TransactionInfo {
 
 message TransactionsResponse {
     repeated TransactionInfo transactions = 1;
+}
+
+message ActiveSellOffersRequest {
+    string coop = 1;
 }
 
 message ActiveSellOffersResponse {
@@ -275,7 +284,7 @@ service BlockchainService {
     rpc GenerateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
     rpc GenerateInvestTx(GenerateInvestTxRequest) returns (RawTxResponse);
     rpc GetBalance(BalanceRequest) returns (BalanceResponse);
-    rpc GetTokenIssuer(Empty) returns (TokenIssuerResponse);
+    rpc GetTokenIssuer(TokenIssuerRequest) returns (TokenIssuerResponse);
     rpc GenerateTransferTokenIssuerOwnershipTx(GenerateTransferTokenIssuerOwnershipTxRequest) returns (RawTxResponse);
     
     // Organization
@@ -300,5 +309,5 @@ service BlockchainService {
     rpc GetTransactions(TransactionsRequest) returns (TransactionsResponse);
     rpc GetInvestmentsInProject(InvestmentsInProjectRequest) returns (TransactionsResponse);
     rpc GetTransactionInfo(TransactionInfoRequest) returns (TransactionInfo);
-    rpc GetActiveSellOffers(Empty) returns (ActiveSellOffersResponse);
+    rpc GetActiveSellOffers(ActiveSellOffersRequest) returns (ActiveSellOffersResponse);
 }
