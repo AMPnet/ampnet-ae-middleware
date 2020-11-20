@@ -85,7 +85,7 @@ async function handleTransactionFailed(hash, info) {
     return transactions
 }
 
-async function storeTransactionData(txHash, txData, txInfo, originatedFrom = null) {
+async function storeTransactionData(txHash, txData, txInfo, coopInfo, originatedFrom = null) {
     logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     
     for (event of txInfo.log) {
@@ -101,12 +101,14 @@ async function storeTransactionData(txHash, txData, txInfo, originatedFrom = nul
                 { hash: record.hash },
                 { 
                     ...record,
+                    coop_id: coopInfo.id,
                     originated_from: originatedFrom
                 }
             )
         } else {
             await repo.saveTransaction({
                 ...record,
+                coop_id: coopInfo.id,
                 originated_from: originatedFrom
             })
             logger.debug(`Stored new record:\n%o`, record)

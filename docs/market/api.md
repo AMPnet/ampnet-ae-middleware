@@ -68,7 +68,8 @@ method: POST
 route: /transactions
 body: 
         {
-            data: tx_x1y2z3...
+            data: tx_x1y2z3... ,
+            coop: coop-id-1
         }
 ```
 response:

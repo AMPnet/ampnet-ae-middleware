@@ -27,6 +27,7 @@ describe('Happy path scenario', function() {
         await grpcClient.start()
         await clients.init()
         await db.init()
+        await walletGrpcMockServer.listen()
     })
 
     afterEach(async() => {

@@ -6,7 +6,7 @@ let contracts = require('../../ae/contracts')
 let { Environment, ServiceEnv } = require('../../enums/enums')
 let logger = require('../../logger')(module)
 
-async function get() {
+function get() {
     process.env.ENV = valueOrDefault(process.env.ENV, ServiceEnv.DEV)
     process.env.NODE_ENV = valueOrDefault(process.env.NODE_ENV, Environment.LOCAL)
     let node = {
@@ -16,7 +16,6 @@ async function get() {
         networkId: getNetworkId()
     }
     let supervisorKeypair = getSupervisorKeypair()
-    let contracts = await getContracts(node, supervisorKeypair)
     let grpc = getGrpc()
     let http = getHttp()
     let ws = getWs()
@@ -29,8 +28,9 @@ async function get() {
         env: process.env.NODE_ENV,
         node: node,
         supervisor: supervisorKeypair,
-        contracts: contracts,
+        //contracts: contracts,
         grpc: grpc,
+        walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
         http: http,
         ws: ws,
         db: db,

@@ -29,7 +29,7 @@ async function init() {
         networkId: config.get().networkId
     })
 
-    aeSender = await Universal({
+    aeSupervisor = await Universal({
         nodes: [
             { name: "node", instance: aeNode } 
         ],
@@ -46,8 +46,8 @@ function instance() {
     return aeInstance
 }
 
-function sender() {
-    return aeSender
+function supervisor() {
+    return aeSupervisor
 }
 
 function node() {
@@ -61,7 +61,7 @@ function chainNode() {
 module.exports = {
     init,
     instance,
-    sender,
+    supervisor,
     node,
     chainNode
 }

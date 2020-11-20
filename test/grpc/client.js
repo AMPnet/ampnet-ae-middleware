@@ -12,6 +12,20 @@ module.exports = {
         client = await new packageDefinition.BlockchainService(config.get().grpc.url, grpc.credentials.createInsecure());
         return client
     },
+    createCooperative: async function(coop, wallet) {
+        return new Promise(resolve => {
+            client.createCooperative({
+                coop: coop,
+                wallet: wallet
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result)
+                }
+            })
+        })
+    },
     generateAddWalletTx: async function(wallet) {
         return new Promise(resolve => {
             client.generateAddWalletTx({

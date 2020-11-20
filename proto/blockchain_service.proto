@@ -7,10 +7,18 @@ All amount (fiat) values in request and response messages are x100 format intege
 for example amount: 1550 is actually 15.50 EUR.
 ******************************************/
 
+//////// General calls messages //////////////
+
+message CreateCooperativeRequest {
+    string coop = 1;
+    string wallet = 2;
+}
+
 //////// Cooperative contract messages ///////
 
 message GenerateAddWalletTxRequest {
     string wallet = 1;
+    string coop = 2;
 }
 
 message WalletActiveRequest {
@@ -21,12 +29,17 @@ message WalletActiveResponse {
     bool active = 1;
 }
 
+message PlatformManagerRequest {
+    string coop = 1;
+}
+
 message PlatformManagerResponse {
     string wallet = 1;
 }
 
 message GenerateTransferPlatformManagerOwnershipTxRequest {
     string new_owner_wallet = 1;
+    string coop = 2;
 }
 
 
@@ -113,6 +126,7 @@ message GetProjectsInfoResponse {
 
 message PostTxRequest {
     string data = 1;
+    string coop = 2;
 }
 
 message PostTxResponse {
@@ -242,11 +256,16 @@ enum TransactionType {
 
 service BlockchainService {
 
+    // General calls
+
+    rpc CreateCooperative(CreateCooperativeRequest) returns (Empty);
+
+
     // Cooperative
 
     rpc GenerateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
     rpc IsWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
-    rpc GetPlatformManager(Empty) returns (PlatformManagerResponse);
+    rpc GetPlatformManager(PlatformManagerRequest) returns (PlatformManagerResponse);
     rpc GenerateTransferPlatformManagerOwnershipTx(GenerateTransferPlatformManagerOwnershipTxRequest) returns (RawTxResponse);
 
     // EUR

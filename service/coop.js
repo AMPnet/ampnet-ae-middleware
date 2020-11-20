@@ -5,14 +5,30 @@ let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let queueClient = require('../queue/queueClient')
 let { Crypto } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
 let logger = require('../logger')(module)
 
-async function addWallet(call, callback) {
-    logger.debug(`Received request to generate addWallet transaction. Wallet: ${call.request.wallet}`)
+async function createCooperative(call, callback) {
     try {
+        let coopId = call.request.coop
+        let adminWallet = call.request.wallet
+        logger.info(`Received request to create cooperative with admin ${adminWallet} and coopId ${coopId}`)
+        queueClient.publishCreateCoopJob(coopId, adminWallet)
+        callback(null, {})
+    } catch (error) {
+        logger.error(`Error while posting createCooperative job`, err.pretty(error))
+        err.handle(error, callback)
+    }
+}
+
+async function addWallet(call, callback) {
+    try {
+        logger.debug(`Received request to generate addWallet transaction. Wallet: ${call.request.wallet} Coop: ${call.request.coop}`)
+
+        let coopInfo = await repo.getCooperative(call.request.coop)
         if (call.request.wallet.startsWith("th")) {
             let txInfo = await client.instance().getTxInfo(call.request.wallet)
             address = util.enforceAkPrefix(txInfo.contractId)
@@ -20,15 +36,16 @@ async function addWallet(call, callback) {
             address = call.request.wallet
         }
         let existingWalletRecords = (await repo.get({
-            wallet: address
+            wallet: address,
+            coop_id: coopInfo.id
         }))
         if (existingWalletRecords.length > 0) {
             throw err.generate(err.type.WALLET_ALREADY_EXISTS)
         }
         let callData = await codec.coop.encodeAddWallet(address)
         logger.debug(`Encoded call data: ${callData}`)
-        let coopAddress = config.get().contracts.coop.address
-        let coopOwner = await config.get().contracts.coop.owner()
+        let coopAddress = coopInfo.coop_contract
+        let coopOwner = coopInfo.coop_owner
         let tx = await client.instance().contractCallTx({
             callerId : coopOwner,
             contractId : coopAddress,
@@ -48,10 +65,10 @@ async function walletActive(call, callback) {
     logger.debug(`Received request to check is wallet with txHash ${call.request.walletTxHash} active.`)
     try {
         let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
-        logger.debug(`Address represented by given hash: ${tx.wallet}`)
+        logger.debug(`Address represented by given hash: ${tx.wallet}; Coop: ${tx.coop_id}`)
         let result = await client.instance().contractCallStatic(
             contracts.coopSource, 
-            config.get().contracts.coop.address,
+            tx.coop_contract,
             functions.coop.isWalletActive, 
             [ tx.wallet ],
             {
@@ -69,11 +86,12 @@ async function walletActive(call, callback) {
 }
 
 async function getPlatformManager(call, callback) {
-    logger.debug(`Received request to fetch platform manager wallet.`)
     try {
+        logger.debug(`Received request to fetch platform manager wallet for coop ${call.request.coop}.`)
+        let coopInfo = await repo.getCooperative(call.request.coop)
         let result = await client.instance().contractCallStatic(
             contracts.coopSource,
-            config.get().contracts.coop.address,
+            coopInfo.coop_contract,
             functions.coop.getOwner,
             [ ],
             {
@@ -91,14 +109,15 @@ async function getPlatformManager(call, callback) {
 }
 
 async function transferOwnership(call, callback) {
-    logger.debug(`Received request to generate platform manager ownership transaction. New owner: ${call.request.newOwnerWallet}`)
     try {
-        let callData = await codec.coop.encodeTransferCoopOwnership(call.request.newOwnerWallet)
+        logger.debug(`Received request to generate platform manager ownership transaction. New owner: ${call.request.newOwnerWallet}; Coop: ${call.request.coop}`)
+        let newOwnerWallet = call.request.newOwnerWallet
+        let coopInfo = await repo.getCooperative(call.request.coop)
+        let callData = await codec.coop.encodeTransferCoopOwnership(newOwnerWallet)
         logger.debug(`Encoded call data: ${callData}`)
-        let coopOwner = await config.get().contracts.coop.owner()
         let tx = await client.instance().contractCallTx({
-            callerId: coopOwner,
-            contractId: config.get().contracts.coop.address,
+            callerId: coopInfo.coop_owner,
+            contractId: coopInfo.coop_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
             callData: callData
@@ -112,6 +131,7 @@ async function transferOwnership(call, callback) {
 }
 
 module.exports = { 
+    createCooperative,
     addWallet,
     walletActive,
     getPlatformManager,

@@ -187,7 +187,8 @@ function addGetProjectInfoRoute() {
 function addPostTransactionRoute() {
     expr.post('/transactions', async (req, res) => {
         let tx = req.body.data
-        txSvc.postTransaction(tx, function(err, result) {
+        let coop = req.body.coop
+        txSvc.postTransaction(tx, coop, function(err, result) {
             if (err != null) {
                 res.status(404).send(err)
             } else {

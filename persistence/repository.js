@@ -4,11 +4,39 @@ let util = require('../util/util')
 let err = require('../error/errors')
 let ErrorType = err.type
 let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
+const logger = require('../logger')(module)
 
 let knex
 
 function init() {
     knex = require('knex')(config.get().db)
+}
+
+async function getCooperative(coopId) {
+    return new Promise((resolve, rejecet) => {
+        knex('coop')
+            .where({ id: coopId })
+            .then(rows => {
+                if (rows.length == 0) { reject(err.generate(ErrorType.COOP_NOT_FOUND)) }
+                resolve(rows[0])
+            }).catch(err => {
+                logger.warn(`Error while fetching cooperative ${coopId}: %o`, err)
+                throw new Error(err)
+            })
+    })
+}
+
+async function saveCooperative(coop) {
+    return new Promise( resolve => {
+        knex('coop')
+            .insert(coop)
+            .then(() => {
+                resolve()
+            }).catch(err => {
+                logger.warn(`Error while saving cooperative ${coop}: %o`, err)
+                throw new Error(err)
+            })
+    })
 }
 
 async function addressFromWalletData(walletData) {
@@ -19,6 +47,7 @@ async function addressFromWalletData(walletData) {
 async function findByHashOrThrow(txHash) {
     return new Promise((resolve, reject) => {
         knex('transaction')
+        .join('coop', 'coop.id', 'transaction.coop_id')
         .where({ hash: txHash })
         .then(rows => {
             if (rows.length == 0) { reject(err.generate(ErrorType.WALLET_NOT_FOUND)) }
@@ -130,8 +159,8 @@ async function saveTransaction(tx) {
     return new Promise( resolve => {
         knex('transaction')
             .insert(tx)
-            .then(() => {
-                resolve()
+            .then(result => {
+                resolve(result)
             })
     })
 }
@@ -299,8 +328,10 @@ module.exports = {
     getUserUncanceledInvestments,
     getUserMarketTransactions,
     saveTransaction,
+    saveCooperative,
     update,
     saveHash,
     runMigrations,
-    init
+    init,
+    getCooperative
 }

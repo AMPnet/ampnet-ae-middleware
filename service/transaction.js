@@ -17,24 +17,26 @@ let ErrorType = err.type
 let { TxState, TxType } = require('../enums/enums')
 
 async function postTransactionGrpc(call, callback) {
-    postTransaction(call.request.data, function(err, result) {
+    postTransaction(call.request.data, call.request.coop, function(err, result) {
         callback(err, result)
     })
 }
 
-async function postTransaction(tx, callback) {
+async function postTransaction(tx, coop, callback) {
     logger.debug(`Received request to post transaction`)
     try {
         let txData = TxBuilder.unpackTx(tx)
         let txHash = TxBuilder.buildTxHash(tx)
         logger.debug(`Precalculated tx hash: ${txHash}`)
 
+        let coopInfo = await repo.getCooperative(coop)
+
         let existingRecords = await repo.get({ hash: txHash })
         if (existingRecords.length === 0) {
             logger.debug(`Transaction ${txHash} does not exist in database and was never broadcasted to blockchain. Moving on...`)
-            await performSecurityChecks(txData)
+            await performSecurityChecks(txData, coopInfo)
             let dryRunResult = await dryRun(txData)
-            await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult)
+            await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult, coopInfo)
 
             let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
             txProcessor.process(result.hash)
@@ -280,9 +282,9 @@ async function performSecurityChecks(txData) {
     }
 }
 
-async function checkTxCaller(callerId) {
-    let coopAuthorityId = await config.get().contracts.coop.owner()
-    let issuingAuthorityId = await config.get().contracts.eur.owner()
+async function checkTxCaller(callerId, coopInfo) {
+    let coopAuthorityId = await coopInfo.coop_owner
+    let issuingAuthorityId = await coopInfo.eur_owner
     
     // if caller is coop or token authority return normally
     if(callerId == coopAuthorityId || callerId == issuingAuthorityId) {
@@ -293,8 +295,10 @@ async function checkTxCaller(callerId) {
     return repo.findByWalletOrThrow(callerId)
 }
 
-async function checkTxCallee(calleeId) {
-    if (calleeId == config.get().contracts.coop.address || calleeId == config.get().contracts.eur.address) { return }
+async function checkTxCallee(calleeId, coopInfo) {
+    let coopContract = coopInfo.coop_contract
+    let eurContract = coopInfo.eur_contract
+    if (calleeId == coopContract || calleeId == eurContract) { return }
     
     /**
      * Special case. Allow calling SellOffer without requiring for its

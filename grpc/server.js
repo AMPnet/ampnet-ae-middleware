@@ -84,7 +84,7 @@ module.exports = {
         logger.info('Contracts compiled.')
 
         // Initialize queue
-        queue.init()
+        await queue.init()
         logger.info('Queue initialized and started.')
 
         // Initialize Grpc server
@@ -120,7 +120,8 @@ module.exports = {
             getTokenIssuer: eurSvc.getTokenIssuer,
             generateTransferPlatformManagerOwnershipTx: coopSvc.transferOwnership,
             generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
-            getActiveSellOffers: sellOfferSvc.getActiveSellOffers
+            getActiveSellOffers: sellOfferSvc.getActiveSellOffers,
+            createCooperative: coopSvc.createCooperative,
         });
 
         // Bind GRPC server

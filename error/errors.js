@@ -17,6 +17,7 @@ let type = {
     AEPP_SDK_ERROR: "40",
     DRY_RUN_ERROR: "50",
     PRECONDITION_FAILED_ERROR: "60",
+    COOP_NOT_FOUND: "70",
     MALFORMED_CONTRACT_CODE: "90",
     GENERIC_ERROR: "99"
 }
@@ -30,6 +31,7 @@ let DefaultMessages = new Map([
     [type.MALFORMED_CONTRACT_CODE, "Error while deploying Contract. Malformed code. Can only deploy official AMPnet Contracts."],
     [type.GENERIC_ERROR, "Unknown error occured."],
     [type.WALLET_NOT_FOUND, "Wallet not found!"],
+    [type.COOP_NOT_FOUND, "Cooperative does not exist!"],
     [type.WALLET_CREATION_PENDING, "Wallet creation transaction still pending!"],
     [type.WALLET_CREATION_FAILED, "Wallet creation transaction failed!"],
     [type.WALLET_ALREADY_EXISTS, "Wallet already exists!"],
@@ -51,7 +53,8 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
         case type.DRY_RUN_ERROR:
         case type.PRECONDITION_FAILED_ERROR:
         case type.TX_NOT_SIGNED:
-        case type.TX_NOT_FOUND: return new grpcErrors.FailedPreconditionError(errorData)
+        case type.TX_NOT_FOUND: 
+        case type.COOP_NOT_FOUND: return new grpcErrors.FailedPreconditionError(errorData)
         
         case type.TX_INVALID_CONTRACT_CALLED:
         case type.GROUP_INVALID_COOP_ARG:

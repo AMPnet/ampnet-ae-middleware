@@ -1,6 +1,7 @@
 let client = require('../../ae/client')
 let enums = require('../../enums/enums')
 let grpc = require('../grpc/client')
+let db = require('./db')
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -27,6 +28,23 @@ async function waitMined(txHash) {
                 resolve()
             })
         })
+    })
+}
+
+function waitWalletExists() {
+    return new Promise(async (resolve) => {
+        let interval = 3000 //ms
+        let maxChecks = 20
+        var attempts = 0
+        while(attempts < maxChecks) {
+            await sleep(interval)
+            let records = await db.getAll()
+            if (records.length > 0) {
+                resolve(records[0])
+            }
+            attempts++
+        }
+        throw new Error(`Waiting for admin wallet creation timed out.`)
     })
 }
 
@@ -80,7 +98,8 @@ function parseError(err) {
 module.exports = { 
     waitMined,
     waitNextBlock,
-    waitTxProcessed, 
+    waitTxProcessed,
+    waitWalletExists, 
     enforceAkPrefix, 
     currentTimeWithDaysOffset, 
     currentTimeWithSecondsOffset, 

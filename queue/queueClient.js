@@ -6,10 +6,22 @@ const repo = require('../persistence/repository')
 
 let funderQueue
 let processorQueue
+let supervisorQueue
 
-function init(funderQueueInstance, processorQueueInstance) {
+function init(funderQueueInstance, processorQueueInstance, supervisorQueueInstance) {
     funderQueue = funderQueueInstance
     processorQueue = processorQueueInstance
+    supervisorQueue = supervisorQueueInstance
+}
+
+function publishCreateCoopJob(coopId, adminWallet) {
+    supervisorQueue.add({
+      coopId, adminWallet  
+    }).then(result => {
+        logger.info(`QUEUE-PUBLISHER: Create cooperative ${coopId} job published successfully. Job id: ${result.id}`)
+    }, err => {
+        logger.error(`QUEUE-PUBLISHER: Create cooperative ${coopId} job failed to get published. Error: %o`, err)
+    })
 }
 
 function publishTxProcessJob(hash) {
@@ -68,4 +80,4 @@ async function publishJobFromTx(tx) {
     }
 }
 
-module.exports = { init, publishTxProcessJob, publishSendFundsJob, publishJobFromTx }
+module.exports = { init, publishTxProcessJob, publishSendFundsJob, publishJobFromTx, publishCreateCoopJob }
