@@ -1,29 +1,15 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let grpcServer = require('../grpc/server')
 let { TxType, TxState, WalletType } = require('../enums/enums')
-let supervisor = require('../queue/queue')
 
-let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
 let db = require('./util/db')
 
-
 describe('Portfolio fetch tests', function() {
 
-    beforeEach(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-    })
-
-    afterEach(async() => {
-        await grpcServer.stop()
-        await supervisor.stop()
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
     })
 
     it('Should fetch portfolio correctly', async () => {
@@ -35,7 +21,8 @@ describe('Portfolio fetch tests', function() {
             type: TxType.WALLET_CREATE,
             wallet: userWallet,
             wallet_type: WalletType.USER,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         sellerWallet = "ak_seller_wallet"
@@ -46,7 +33,8 @@ describe('Portfolio fetch tests', function() {
             type: TxType.WALLET_CREATE,
             wallet: sellerWallet,
             wallet_type: WalletType.USER,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         projectWallet = "ak_project_wallet"
@@ -58,7 +46,8 @@ describe('Portfolio fetch tests', function() {
             type: TxType.WALLET_CREATE,
             wallet: projectWallet,
             wallet_type: WalletType.PROJECT,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         secondProjectWallet = "ak_second_project_wallet"
@@ -69,7 +58,8 @@ describe('Portfolio fetch tests', function() {
             type: TxType.WALLET_CREATE,
             wallet: secondProjectWallet,
             wallet_type: WalletType.PROJECT,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p1 = await grpcClient.getPortfolio(userWalletHash)
@@ -84,7 +74,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: userWallet,
             to_wallet: projectWallet,
             amount: firstInvestmentAmount,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         await db.insert({
             hash: "random-hash-3",
@@ -93,7 +84,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: userWallet,
             to_wallet: projectWallet,
             amount: secondInvestmentAmount,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p2 = await grpcClient.getPortfolio(userWalletHash)
@@ -109,7 +101,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: userWallet,
             to_wallet: secondProjectWallet,
             amount: secondProjectInvestment,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p3 = await grpcClient.getPortfolio(userWalletHash)
@@ -128,7 +121,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: projectWallet,
             to_wallet: userWallet,
             amount: firstInvestmentAmount + secondInvestmentAmount,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p4 = await grpcClient.getPortfolio(userWalletHash)
@@ -147,7 +141,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: projectWallet,
             to_wallet: userWallet,
             amount: firstInvestmentAmount + secondInvestmentAmount,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p5 = await grpcClient.getPortfolio(userWalletHash)
@@ -162,7 +157,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: userWallet,
             to_wallet: projectWallet,
             amount: firstInvestmentAmount,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p6 = await grpcClient.getPortfolio(userWalletHash)
@@ -177,7 +173,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: userWallet,
             to_wallet: projectWallet,
             amount: firstInvestmentAmount,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p7 = await grpcClient.getPortfolio(userWalletHash)
@@ -198,7 +195,8 @@ describe('Portfolio fetch tests', function() {
             from_wallet: sellerWallet,
             to_wallet: projectWallet,
             amount: sellerWalletInvestment,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         await db.insert({
             hash: "random-hash-10",
@@ -208,7 +206,8 @@ describe('Portfolio fetch tests', function() {
             to_wallet: userWallet,
             input: `${projectContract};${sellerWalletInvestmentPrice}`,
             amount: sellerWalletInvestment,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
 
         let p8 = await grpcClient.getPortfolio(userWalletHash)

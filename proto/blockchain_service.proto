@@ -151,7 +151,7 @@ message PortfolioResponse {
 }
 
 message TransactionsRequest {
-    string wallet_data = 1;
+    string wallet_hash = 1;
 }
 
 message InvestmentsInProjectRequest {

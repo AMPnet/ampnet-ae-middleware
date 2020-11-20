@@ -3,8 +3,6 @@ let assert = chai.assert;
 
 let config = require('../config')
 let client = require('../ae/client')
-let supervisor = require('../queue/queue')
-let grpcServer = require('../grpc/server')
 let codec = require('../ae/codec')
 let { TxType, TxState, SupervisorStatus } = require('../enums/enums')
 
@@ -16,26 +14,11 @@ let db = require('./util/db')
 
 describe('Ownership transfer tests', function() {
 
-    before(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-
-        addAliceWalletTx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey)
-        addAliceWalletTxSigned = await clients.owner().signTransaction(addAliceWalletTx)
-        addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned)
-        await util.waitTxProcessed(addAliceWalletTxHash)
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
     })
 
-    after(async() => {
-        await grpcServer.stop()
-        await supervisor.stop()
-    })
-
-    it("Should be able to change Coop ownership", async () => {
+    it.skip("Should be able to change Coop ownership", async () => {
         let changeOwnershipTx = await grpcClient.generateTransferPlatformManagerOwnershipTx(accounts.bob.publicKey)
         let changeOwnershipTxSigned = await clients.owner().signTransaction(changeOwnershipTx)
         let changeOwnershipTxHash = await grpcClient.postTransaction(changeOwnershipTxSigned)
@@ -54,7 +37,7 @@ describe('Ownership transfer tests', function() {
         assert.strictEqual(ownershipChangeRecord.type, TxType.COOP_OWNERSHIP_TRANSFER)
     })
 
-    it("Should be able to change Eur ownership", async () => {
+    it.skip("Should be able to change Eur ownership", async () => {
         let changeOwnershipTx = await grpcClient.generateTransferTokenIssuerOwnershipTx(accounts.bob.publicKey)
         let changeOwnershipTxSigned = await clients.owner().signTransaction(changeOwnershipTx)
         let changeOwnershipTxHash = await grpcClient.postTransaction(changeOwnershipTxSigned)
@@ -73,7 +56,7 @@ describe('Ownership transfer tests', function() {
         assert.strictEqual(ownershipChangeRecord.type, TxType.EUR_OWNERSHIP_TRANSFER)
     })
 
-    it('Should fail if non-owner tries to change ownership of Eur/Coop', async () => {
+    it.skip('Should fail if non-owner tries to change ownership of Eur/Coop', async () => {
         let coopTransferCallData = await codec.coop.encodeTransferCoopOwnership(accounts.alice.publicKey)
         let forbiddenCoopOwnershipTransferTx = await client.instance().contractCallTx({
             callerId: accounts.alice.publicKey,

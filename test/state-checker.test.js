@@ -1,9 +1,7 @@
+let { Crypto } = require('@aeternity/aepp-sdk')
 let chai = require('chai');
 let assert = chai.assert;
 
-let grpcServer = require('../grpc/server')
-let supervisor = require('../queue/queue')
-let config = require('../config')
 let codec = require('../ae/codec')
 let cron = require('../supervisor')
 let { TxType, TxState, SupervisorStatus, WalletType, txStateToGrpc } = require('../enums/enums')
@@ -16,23 +14,15 @@ let db = require('./util/db')
 
 describe('DB records recovery test', function() {
 
-    beforeEach(async() => {
-        process.env['DB_SCAN_OLDER_THAN'] = 0
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
     })
 
-    afterEach(async() => {
-        await grpcServer.stop()
-        await supervisor.stop()
-    })
-
-    it('should recover from inconsistent state in database', async () => {  
-        let contractId = config.get().contracts.coop.address
-        let callData = await codec.coop.encodeAddWallet(accounts.bob.publicKey)
+    it('should recover from inconsistent state in database', async () => {
+        let bobWallet = Crypto.generateKeyPair()
+        
+        let contractId = coopInfo.coop_contract
+        let callData = await codec.coop.encodeAddWallet(bobWallet.publicKey)
         let addWalletTx = await clients.owner().contractCallTx({
             callerId: accounts.owner.publicKey,
             contractId: contractId,
@@ -48,7 +38,8 @@ describe('DB records recovery test', function() {
             type: TxType.WALLET_CREATE,
             state: TxState.PENDING,
             supervisor_status: SupervisorStatus.NOT_REQUIRED,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         cron.scanAndProcess()
         await util.waitTxProcessed(addWalletTxHash)

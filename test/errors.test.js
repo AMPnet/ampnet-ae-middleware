@@ -1,4 +1,5 @@
 let chai = require('chai');
+let { Crypto } = require('@aeternity/aepp-sdk')
 let assert = chai.assert;
 
 let grpcClient = require('./grpc/client')
@@ -7,11 +8,8 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
-let config = require('../config')
-let grpcServer = require('../grpc/server')
 let client = require('../ae/client')
 let codec = require('../ae/codec')
-let supervisor = require('../queue/queue')
 let contracts = require('../ae/contracts')
 let { TxType, TxState, SupervisorStatus } = require('../enums/enums')
 
@@ -20,35 +18,24 @@ let ErrorType = err.type
 
 describe('Error handling tests', function() {
 
-    before(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
+    before(async () => { 
+        await db.clearTransactions(adminWalletTx.hash)
 
-        addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey, coopId)
         addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, coopId)
         await util.waitTxProcessed(addBobWalletTxHash)
     })
 
-    after(async() => {
-        delete process.env.GIFT_AMOUNT
-        await grpcServer.stop()
-        await supervisor.stop()
-    })
-
     it('Should fail with correct error message if transaction broadcasted but not signed', async () => {
-        let unsignedTx = await grpcClient.generateAddWalletTx(accounts.jane.publicKey)
-        let errResponse = await grpcClient.postTransaction(unsignedTx)
+        let unsignedTx = await grpcClient.generateAddWalletTx(accounts.jane.publicKey, coopId)
+        let errResponse = await grpcClient.postTransaction(unsignedTx, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
     }) 
 
     it('Should fail with correct error message if invalid contract is called', async () => {
         let randomContractId = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
-        let randomCallData = await codec.org.encodeCreateOrganization()
+        let randomCallData = await codec.org.encodeCreateOrganization(coopInfo.coop_contract)
         let randomContractCallTx = await client.instance().contractCallTx({
             callerId: accounts.bob.publicKey,
             contractId: randomContractId,
@@ -59,7 +46,7 @@ describe('Error handling tests', function() {
         })
         let randomContractCallTxSigned = await clients.bob().signTransaction(randomContractCallTx)
     
-        let errResponse = await grpcClient.postTransaction(randomContractCallTxSigned)
+        let errResponse = await grpcClient.postTransaction(randomContractCallTxSigned, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_INVALID_CONTRACT_CALLED).message)
     })
 
@@ -76,7 +63,7 @@ describe('Error handling tests', function() {
             callData: callData
         })
         let badTxSigned = await clients.bob().signTransaction(badTx.tx)
-        let errResponse = await grpcClient.postTransaction(badTxSigned)
+        let errResponse = await grpcClient.postTransaction(badTxSigned, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.GROUP_INVALID_COOP_ARG).message)
     }) 
 
@@ -100,14 +87,14 @@ describe('Error handling tests', function() {
         })
         let badTxSigned = await clients.bob().signTransaction(badTx.tx)
 
-        let errResponse = await grpcClient.postTransaction(badTxSigned)
+        let errResponse = await grpcClient.postTransaction(badTxSigned, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.PROJ_INVALID_GROUP_ARG).message)
     })
 
     it('Should fail with correct error message if trying to deploy arbitrary Contract as Proj/Org', async () => {
         let source = 'contract HelloWorld = \n\tentrypoint hello_world() = "Hello World!"'
         let compiled = await client.instance().contractCompile(source)
-        let callData = await codec.org.encodeCreateOrganization()
+        let callData = await codec.org.encodeCreateOrganization(coopInfo.coop_contract)
         let deployTx = await client.instance().contractCreateTx({
             ownerId: accounts.bob.publicKey,
             code: compiled.bytecode,
@@ -119,12 +106,12 @@ describe('Error handling tests', function() {
         })
         let deployTxSigned = await clients.bob().signTransaction(deployTx.tx)
         
-        let errResponse = await grpcClient.postTransaction(deployTxSigned)
+        let errResponse = await grpcClient.postTransaction(deployTxSigned, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.MALFORMED_CONTRACT_CODE).message)
     })
 
     it('Should fail with correct message if trying to post transaction but user wallet not registered on Platform', async () => {
-        let callData = await codec.org.encodeCreateOrganization()
+        let callData = await codec.org.encodeCreateOrganization(coopInfo.coop_contract)
         let badTx = await client.instance().contractCreateTx({
             ownerId: accounts.alice.publicKey,
             code: contracts.getOrgCompiled().bytecode,
@@ -136,23 +123,23 @@ describe('Error handling tests', function() {
         })
         let badTxSigned = await clients.alice().signTransaction(badTx.tx)
 
-        let errResponse = await grpcClient.postTransaction(badTxSigned)
+        let errResponse = await grpcClient.postTransaction(badTxSigned, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_NOT_FOUND).message)
     })
 
     it('Should fail if trying to generate addWallet for txHash but transaction with given hash does not exist', async () => {
         let randomTxHash = 'th_vwXLMLZt3Nkog5BrhiCV2wS4qyUFoBtWnaS38zsi4B2xpwTcD'
-        let errResponse = await grpcClient.generateAddWalletTx(randomTxHash)
+        let errResponse = await grpcClient.generateAddWalletTx(randomTxHash, coopId)
         let errResponseParsed = util.parseError(errResponse.details)
         assert.strictEqual(errResponseParsed.message, 'Transaction not found')
     })
 
     it('Should fail if trying to generate addWallet for txHash but transaction with given hash not yet mined', async () => {
-        let tx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey)
+        let tx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey, coopId)
         let txSigned = await clients.owner().signTransaction(tx)
-        let txHash = await grpcClient.postTransaction(txSigned)
+        let txHash = await grpcClient.postTransaction(txSigned, coopId)
 
-        let errResponse = await grpcClient.generateAddWalletTx(txHash)
+        let errResponse = await grpcClient.generateAddWalletTx(txHash, coopId)
         let errResponseParsed = util.parseError(errResponse.details)
         assert.strictEqual(errResponseParsed.message, 'Tx not mined')
     })
@@ -169,7 +156,8 @@ describe('Error handling tests', function() {
             hash: failedHash,
             type: TxType.WALLET_CREATE,
             state: TxState.FAILED,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         let errResponse = await grpcClient.isWalletActive(failedHash)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_FAILED).message)
@@ -181,20 +169,22 @@ describe('Error handling tests', function() {
             hash: pendingHash,
             type: TxType.WALLET_CREATE,
             state: TxState.PENDING,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         let errResponse = await grpcClient.isWalletActive(pendingHash)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_PENDING).message)
     })
 
-    it('Should fial if trying to check isWalletActive for txHash which is not yet auto-funded', async () => {
+    it('Should fail if trying to check isWalletActive for txHash which is not yet auto-funded', async () => {
         let supervisorRequiredHash = "supervisor-required-hash"
         await db.insert({
             hash: supervisorRequiredHash,
             type: TxType.WALLET_CREATE,
             state: TxState.MINED,
             supervisor_status: SupervisorStatus.REQUIRED,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         let errResponse = await grpcClient.isWalletActive(supervisorRequiredHash)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.WALLET_CREATION_PENDING).message)
@@ -206,7 +196,8 @@ describe('Error handling tests', function() {
             hash: investHash,
             type: TxType.INVEST,
             state: TxState.MINED,
-            created_at: new Date()
+            created_at: new Date(),
+            coop_id: coopId
         })
         let errResponse = await grpcClient.isWalletActive(investHash)
         let errResponseParsed = util.parseError(errResponse.details)
@@ -218,25 +209,26 @@ describe('Error handling tests', function() {
         let callData = await codec.coop.encodeAddWallet(accounts.alice.publicKey)
         let tx = await client.instance().contractCallTx({
             callerId : accounts.bob.publicKey,
-            contractId : config.get().contracts.coop.address,
+            contractId : coopInfo.coop_contract,
             amount : 0,
             gas : 10000,
             callData : callData
         })
         let txSigned = await clients.bob().signTransaction(tx)
-        let err = await grpcClient.postTransaction(txSigned)
+        let err = await grpcClient.postTransaction(txSigned, coopId)
         assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Only Platform Manager can make this action!")
     })
 
     it('Transaction that fails immediately after posting should generate descriptive error message', async () => {
-        let addEmptyWalletTx = await grpcClient.generateAddWalletTx(accounts.empty.publicKey)
+        let emptyWallet = Crypto.generateKeyPair()
+        let addEmptyWalletTx = await grpcClient.generateAddWalletTx(emptyWallet.publicKey, coopId)
         let addEmptyWalletTxSigned = await clients.owner().signTransaction(addEmptyWalletTx)
-        let addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
+        let addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned, coopId)
         await util.waitTxProcessed(addEmptyWalletTxHash)
 
-        let callData = await codec.org.encodeCreateOrganization()
+        let callData = await codec.org.encodeCreateOrganization(coopInfo.coop_contract)
         let txResult = await client.instance().contractCreateTx({
-            ownerId: accounts.empty.publicKey,
+            ownerId: emptyWallet.publicKey,
             code: contracts.getOrgCompiled().bytecode,
             deposit: 0,
             amount: 0,
@@ -244,12 +236,12 @@ describe('Error handling tests', function() {
             callData: callData
         })
         let txSigned = await clients.empty().signTransaction(txResult.tx)
-        let err = await grpcClient.postTransaction(txSigned)
-        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Internal error:\n  insufficient_funds\n")
+        let err = await grpcClient.postTransaction(txSigned, coopId)
+        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Out of gasI")
     })
 
     it('Transaction should fail if trying to generate addWallet transaction for wallet that already exists', async () => {
-        let addBobWalletAgainTxErrResponse = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletAgainTxErrResponse = await grpcClient.generateAddWalletTx(accounts.bob.publicKey, coopId)
         assert.strictEqual(addBobWalletAgainTxErrResponse.details, err.generate(ErrorType.WALLET_ALREADY_EXISTS).message)
     })
 

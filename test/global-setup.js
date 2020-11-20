@@ -11,6 +11,9 @@ let util = require('./util/util')
 let db = require('./util/db')
 
 before(async () => {
+    process.env['DB_SCAN_ENABLED'] = "false"
+    process.env['DB_SCAN_OLDER_THAN'] = 0
+
     await grpcServer.start()
     await grpcClient.start()
     await clients.init()
@@ -21,8 +24,10 @@ before(async () => {
 
     coopId = "ampnet-coop-1"
     await grpcClient.createCooperative(coopId, accounts.owner.publicKey)
-    let adminWalletTx = await util.waitWalletExists()
+    adminWalletTx = await util.waitWalletExists()
     await util.waitTxProcessed(adminWalletTx.hash)
+    coopInfo = await db.getCoop(coopId)
+
 })
 
 after(async () => {

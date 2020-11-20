@@ -1,29 +1,15 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let supervisor = require('../queue/queue')
-let grpcServer = require('../grpc/server')
 let { TxType, TxState, WalletType, txTypeToGrpc } = require('../enums/enums')
 
-let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
 let db = require('./util/db')
 
 describe('Fetch transaction info tests', function() {
-
-    beforeEach(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start({}, false)
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-    })
-
-    afterEach(async() => {
-        delete process.env.GIFT_AMOUNT
-        await grpcServer.stop()
-        await supervisor.stop()
+    
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
     })
 
     it('Should be able to fetch transaction info for some tx hash', async () => {
@@ -36,7 +22,8 @@ describe('Fetch transaction info tests', function() {
             wallet: userWallet,
             wallet_type: WalletType.USER,
             created_at: new Date(),
-            processed_at: new Date()
+            processed_at: new Date(),
+            coop_id: coopId
         })
 
         projectWallet = "ak_project_wallet"
@@ -49,7 +36,8 @@ describe('Fetch transaction info tests', function() {
             wallet: projectWallet,
             wallet_type: WalletType.PROJECT,
             created_at: new Date(),
-            processed_at: new Date()
+            processed_at: new Date(),
+            coop_id: coopId
         })
 
         pendingInvestmentHash = "random-hash-2"
@@ -62,7 +50,8 @@ describe('Fetch transaction info tests', function() {
             from_wallet: userWallet,
             to_wallet: projectWallet,
             amount: pendingInvestmentAmount,
-            created_at: pendingInvestmnetDate
+            created_at: pendingInvestmnetDate,
+            coop_id: coopId
         })
 
         minedInvestmentHash = "random-hash-3"
@@ -77,7 +66,8 @@ describe('Fetch transaction info tests', function() {
             to_wallet: projectWallet,
             amount: minedInvestmentAmount,
             created_at: minedInvestmentCreatedAt,
-            processed_at: minedInvestmentDate
+            processed_at: minedInvestmentDate,
+            coop_id: coopId
         })
 
         let txs = await grpcClient.getTransactions(userWalletHash)

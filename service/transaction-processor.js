@@ -507,6 +507,24 @@ async function callSpecialActions(tx) {
             queueClient.publishJobFromTx(tx)
         }
     }
+    if (tx.type === enums.TxType.COOP_OWNERSHIP_TRANSFER) {
+        let newOwner = tx.to_wallet
+        logger.info(`Updating Platform Manager owner address of ${coopInfo.id} to a new owner ${newOwner}`)
+        repo.updateCooperative(coopInfo.id, {
+            coop_owner: newOwner
+        }).then(_ => {
+            logger.info(`Successfully updated Platform Manager of ${coopInfo.id} to ${newOwner}.`)
+        })
+    }
+    if (tx.type === enums.TxType.EUR_OWNERSHIP_TRANSFER) {
+        let newOwner = tx.to_wallet
+        logger.info(`Updating Token Issuer owner address of ${coopInfo.id} to a new owner ${newOwner}`)
+        repo.updateCooperative(coopInfo.id, {
+            eur_owner: newOwner
+        }).then(_ => {
+            logger.info(`Successfully updated Token Issuer of ${coopInfo.id} to ${newOwner}.`)
+        })
+    }
 }
 
 async function getSellOfferInfo(sellOfferContract) {

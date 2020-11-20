@@ -142,19 +142,7 @@ async function getTokenIssuer(call, callback) {
     try {
         logger.debug(`Received request to fetch token issuer wallet. Coop: ${call.request.coop}`)
         let coopInfo = await repo.getCooperative(call.request.coop)
-        let result = await client.instance().contractCallStatic(
-            contracts.eurSource,
-            coopInfo.eur_contract,
-            functions.eur.getOwner,
-            [ ],
-            {
-                callerId: Crypto.generateKeyPair().publicKey
-            }
-        )
-        logger.debug(`Fetched result: %o`, result)
-        let resultDecoded = await result.decode()
-        logger.debug(`Decoded token issuer: ${resultDecoded}`)
-        callback(null, { wallet: resultDecoded })
+        callback(null, { wallet: coopInfo.eur_owner })
     } catch (error) {
         logger.error(`Error while fetching token issuer wallet:\n%o`, err.pretty(error))
         err.handle(error, callback)
@@ -211,7 +199,7 @@ async function allowance(ownerRecord) {
         contracts.eurSource,
         ownerRecord.eur_contract,
         functions.eur.allowance,
-        [ owner, ownerRecord.eur_owner ],
+        [ ownerRecord.wallet, ownerRecord.eur_owner ],
         {
             callerId: Crypto.generateKeyPair().publicKey
         }

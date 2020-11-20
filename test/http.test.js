@@ -1,49 +1,54 @@
 let chai = require('chai')
 let axios = require('axios')
+let { Crypto, Universal: Ae, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 let assert = chai.assert;
 
-let grpcServer = require('../grpc/server')
-let supervisor = require('../queue/queue')
+let config = require('../config')
 
 let grpcClient = require('./grpc/client')
-let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
-let config = require('../config')
-
 describe('HTTP endpoints tests', function() {
 
-    beforeEach(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-    })
-
-    afterEach(async() => {
-        delete process.env.GIFT_AMOUNT
-        await grpcServer.stop()
-        await supervisor.stop()
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
     })
 
     it('Should be able to fetch info for a single project', async () => {
-        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let bobWallet = Crypto.generateKeyPair()
+        
+        let node = await Node({
+            url: config.get().node.url,
+            internalUrl: config.get().node.internalUrl
+        })
+
+        let bobClient = await Ae({
+            nodes: [
+                { name: "node", instance: node } 
+            ],
+            compilerUrl: config.get().node.compilerUrl,
+            accounts: [
+                MemoryAccount({ keypair: bobWallet })
+            ],
+            address: bobWallet.publicKey,
+            networkId: config.get().node.networkId
+        })
+
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(bobWallet.publicKey, coopId)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, coopId)
         await util.waitTxProcessed(addBobWalletTxHash)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
-        let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
-        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
+        let createOrgTxSigned = await bobClient.signTransaction(createOrgTx)
+        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
 
-        let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
+        let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash, coopId)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
-        let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
+        let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned, coopId)
         await util.waitTxProcessed(addOrgWalletTxHash)
 
         let minPerUser = 10000
@@ -58,13 +63,13 @@ describe('HTTP endpoints tests', function() {
             investmentCap,                        // 1000$ investment cap
             endsAt                                // expires in 10 days
         )
-        let createProjTxSigned = await clients.bob().signTransaction(createProjTx)
-        let createProjTxHash = await grpcClient.postTransaction(createProjTxSigned)
+        let createProjTxSigned = await bobClient.signTransaction(createProjTx)
+        let createProjTxHash = await grpcClient.postTransaction(createProjTxSigned, coopId)
         await util.waitTxProcessed(createProjTxHash)
 
-        let addProjWalletTx = await grpcClient.generateAddWalletTx(createProjTxHash)
+        let addProjWalletTx = await grpcClient.generateAddWalletTx(createProjTxHash, coopId)
         let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
-        let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
+        let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addProjWalletTxHash)
 
         let baseUrl = `http://0.0.0.0:${config.get().http.port}`

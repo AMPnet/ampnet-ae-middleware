@@ -39,6 +39,20 @@ async function saveCooperative(coop) {
     })
 }
 
+async function updateCooperative(coopId, updateData) {
+    return new Promise(resolve => {
+        knex('coop')
+            .returning('*')
+            .where({
+                id: coopId
+            })
+            .update(updateData)
+            .then(rows => {
+                resolve(rows)
+            })
+    })
+}
+
 async function addressFromWalletData(walletData) {
     if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) { return aeUtil.enforceAkPrefix(walletData) }
     return (await findByHashOrThrow(walletData)).wallet
@@ -108,6 +122,15 @@ async function findByWalletOrThrow(wallet, coopId) {
                 }
             }
         })
+    })
+}
+
+async function findFirstByWallet(wallet, coopId) {
+    let akWallet = aeUtil.enforceAkPrefix(wallet)
+    return new Promise( (resolve, reject) => {
+        knex('transaction')
+            .where({ wallet: akWallet, coop_id: coopId })
+            .then((rows) => { resolve(rows[0]) })
     })
 }
 
@@ -205,30 +228,31 @@ async function getSupervisorRequiredOlderThan(minutes) {
     })
 }
 
-async function getUserTransactions(wallet) {
+async function getUserTransactions(wallet, coopId) {
     let parsedWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise(resolve => {
-        knex('transaction')
-            .where({ from_wallet: parsedWallet })
-            .orWhere({ to_wallet: parsedWallet })
-            .then(records => {
-                let processedRecords = records.map(r => {
-                    return {
-                        hash: r.hash,
-                        from_wallet: r.from_wallet,
-                        to_wallet: r.to_wallet,
-                        amount: r.amount,
-                        type: r.type,
-                        date: util.dateToUnixEpoch(r.created_at),
-                        state: r.state
-                    }
-                })
-                resolve(processedRecords)
+        knex.raw(`
+            select * from transaction t
+            where t.coop_id='${coopId}' and (t.from_wallet='${parsedWallet}' or t.to_wallet='${parsedWallet}')
+        `).then(result => {
+            let records = result.rows
+            let processedRecords = records.map(r => {
+                return {
+                    hash: r.hash,
+                    from_wallet: r.from_wallet,
+                    to_wallet: r.to_wallet,
+                    amount: r.amount,
+                    type: r.type,
+                    date: util.dateToUnixEpoch(r.created_at),
+                    state: r.state
+                }
             })
+            resolve(processedRecords)
+        })
     })
 }
 
-async function getUserUncanceledInvestments(wallet) {
+async function getUserUncanceledInvestments(wallet, coopId) {
     let parsedWallet = aeUtil.enforceAkPrefix(wallet)
     return new Promise(resolve => {
         knex.raw(`
@@ -237,12 +261,14 @@ async function getUserUncanceledInvestments(wallet) {
                 t.from_wallet='${parsedWallet}' and 
                 t.type='${TxType.INVEST}' and 
                 t.state='${TxState.MINED}' and 
+                t.coop_id='${coopId}' and
                 t.created_at > COALESCE(
                     (
                         select max(created_at) from transaction
                         where 
                             type='${TxType.CANCEL_INVESTMENT}' and 
                             state='${TxState.MINED}' and 
+                            coop_id=t.coop_id and
                             from_wallet=t.to_wallet and 
                             to_wallet=t.from_wallet
                     ),
@@ -254,12 +280,13 @@ async function getUserUncanceledInvestments(wallet) {
     })
 }
 
-async function getUserMarketTransactions(wallet) {
+async function getUserMarketTransactions(wallet, coopId) {
     return new Promise(resolve => {
         knex.raw(`
             select * from transaction t
             where
                 (t.from_wallet='${wallet}' or t.to_wallet='${wallet}') and
+                t.coop_id='${coopId}' and
                 t.type='${TxType.SHARES_SOLD}' and
                 t.state='${TxState.MINED}'
         `).then(result => {
@@ -306,6 +333,7 @@ async function runMigrations() {
 
 module.exports = {
     addressFromWalletData,
+    findFirstByWallet,
     findByHashOrThrow,
     findByWalletOrThrow,
     getWalletTypeOrThrow,
@@ -323,5 +351,6 @@ module.exports = {
     saveHash,
     runMigrations,
     init,
-    getCooperative
+    getCooperative,
+    updateCooperative
 }

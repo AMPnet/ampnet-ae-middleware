@@ -30,7 +30,6 @@ async function start(config) {
     addActivateSellOfferRoute()
     addAcceptSellOfferRoute()
     addAcceptCounterOfferRoute()
-    addGetActiveOffersRoute()
     addGetProjectInfoRoute()
     
     addPostTransactionRoute()

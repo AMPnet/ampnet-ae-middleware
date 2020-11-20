@@ -89,19 +89,7 @@ async function getPlatformManager(call, callback) {
     try {
         logger.debug(`Received request to fetch platform manager wallet for coop ${call.request.coop}.`)
         let coopInfo = await repo.getCooperative(call.request.coop)
-        let result = await client.instance().contractCallStatic(
-            contracts.coopSource,
-            coopInfo.coop_contract,
-            functions.coop.getOwner,
-            [ ],
-            {
-                callerId: Crypto.generateKeyPair().publicKey
-            }
-        )
-        logger.debug(`Received static call result: %o`, result)
-        let resultDecoded = await result.decode()
-        logger.debug(`Fetched platform manager: ${resultDecoded}`)
-        callback(null, { wallet: resultDecoded })
+        callback(null, { wallet: coopInfo.coop_owner })
     } catch (error) {
         logger.error(`Error while fetching platform manager wallet:\n%o`, err.pretty(error))
         err.handle(error, callback)

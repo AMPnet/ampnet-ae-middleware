@@ -2,9 +2,6 @@ let chai = require('chai');
 let assert = chai.assert;
 let { Crypto, Universal, Node, MemoryAccount } = require('@aeternity/aepp-sdk')
 
-let grpcServer = require('../grpc/server')
-let supervisor = require('../queue/queue')
-
 let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
@@ -15,21 +12,10 @@ let db = require('./util/db')
 let config = require('../config')
 
 describe('Auto funding test', function() {
-
-    // beforeEach(async() => {
-    //     process.env['DB_SCAN_ENABLED'] = "false"
-    //     process.env['AUTO_FUND'] = "true"
-    //     await grpcServer.start()
-    //     await grpcClient.start()
-    //     await clients.init()
-    //     await db.init()
-    // })
-
-    // afterEach(async() => {
-    //     await grpcServer.stop()
-    //     await supervisor.stop()
-    //     process.env['AUTO_FUND'] = "false"
-    // })
+    
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
+    })
 
     it("should auto fund wallet when balance goes below threshold (0.3 AE)", async () => {
         let randomWallet = Crypto.generateKeyPair()
@@ -53,9 +39,9 @@ describe('Auto funding test', function() {
         let threshold = aeUtil.toToken(thresholdAe)
         let gift = aeUtil.toToken(0.3)
 
-        let addRandomWalletTx = await grpcClient.generateAddWalletTx(randomWallet.publicKey)
+        let addRandomWalletTx = await grpcClient.generateAddWalletTx(randomWallet.publicKey, coopId)
         let addRandomWalletTxSigned = await clients.owner().signTransaction(addRandomWalletTx)
-        let addRandomWalletTxHash = await grpcClient.postTransaction(addRandomWalletTxSigned)
+        let addRandomWalletTxHash = await grpcClient.postTransaction(addRandomWalletTxSigned, coopId)
         await util.waitTxProcessed(addRandomWalletTxHash)
 
         let balanceBeforeAutoFund = await clients.empty().balance(randomWallet.publicKey)
@@ -66,7 +52,7 @@ describe('Auto funding test', function() {
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addRandomWalletTxHash)
         let createOrgTxSigned = await client.signTransaction(createOrgTx)
-        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
+        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
         await util.sleep(10000)
         let balanceAfterAutoFund = await clients.empty().balance(randomWallet.publicKey)

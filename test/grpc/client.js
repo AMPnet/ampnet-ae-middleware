@@ -241,10 +241,10 @@ module.exports = {
             })
         })
     },
-    getTransactions: async function(walletData) {
+    getTransactions: async function(walletHash) {
         return new Promise(resolve => {
             client.getTransactions({
-                walletData: walletData
+                walletHash: walletHash
             }, (err, result) => {
                 if (err != null) {
                     resolve(err)
@@ -281,9 +281,9 @@ module.exports = {
             })
         })
     },
-    getPlatformManager: async function() {
+    getPlatformManager: async function(coop) {
         return new Promise(resolve => {
-            client.getPlatformManager({}, (err, result) => {
+            client.getPlatformManager({coop: coop}, (err, result) => {
                 if (err != null) {
                     resolve(err)
                 } else {
@@ -292,9 +292,9 @@ module.exports = {
             })
         })
     },
-    getTokenIssuer: async function() {
+    getTokenIssuer: async function(coop) {
         return new Promise(resolve => {
-            client.getTokenIssuer({}, (err, result) => {
+            client.getTokenIssuer({coop: coop}, (err, result) => {
                 if (err != null) {
                     resolve(err)
                 } else {
@@ -325,9 +325,9 @@ module.exports = {
             })
         })
     },
-    getActiveSellOffers: async function() {
+    getActiveSellOffers: async function(coop) {
         return new Promise(resolve => {
-            client.getActiveSellOffers({}, (err, result) => {
+            client.getActiveSellOffers({coop: coop}, (err, result) => {
                 if (err != null) {
                     resolve(err)
                 } else {

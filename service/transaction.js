@@ -74,10 +74,10 @@ async function getPortfolio(call, callback) {
 
         let portfolioMap = new Map()
         
-        let records = await repo.getUserUncanceledInvestments(userWallet)
+        let records = await repo.getUserUncanceledInvestments(userWallet, tx.coop_id)
         let recordsLength = records.length
         for (var i = 0; i < recordsLength; i++) {
-            tx = await repo.findByWalletOrThrow(records[i].to_wallet)
+            tx = await repo.findByWalletOrThrow(records[i].to_wallet, tx.coop_id)
             project = tx.hash
             amount = records[i].amount
             if (portfolioMap.has(project)) { 
@@ -87,7 +87,7 @@ async function getPortfolio(call, callback) {
             }
         }
 
-        let marketRecords = await repo.getUserMarketTransactions(userWallet)
+        let marketRecords = await repo.getUserMarketTransactions(userWallet, tx.coop_id)
         let marketRecordsLength = marketRecords.length
         for (var i = 0; i < marketRecordsLength; i++) {
             info = await getSellOfferData(marketRecords[i])
@@ -162,12 +162,14 @@ async function getTransactionInfo(call, callback) {
 }
 
 async function getTransactions(call, callback) {
-    logger.debug(`Received request to fetch transactions for user with wallet data ${call.request.walletData}`)
     try {
-        let wallet = await repo.addressFromWalletData(call.request.walletData)
+        logger.debug(`Received request to fetch transactions for user with wallet data ${call.request.walletHash}`)
+        let walletTx = await repo.findByHashOrThrow(call.request.walletHash)
+        let wallet = walletTx.wallet
+        let coopId = walletTx.coop_id
         logger.debug(`Address represented by given wallet data: ${wallet}`)
         let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.APPROVE_INVESTMENT, TxType.INVEST, TxType.SHARE_PAYOUT, TxType.CANCEL_INVESTMENT])
-        let transactionsPromisified = (await repo.getUserTransactions(wallet))
+        let transactionsPromisified = (await repo.getUserTransactions(wallet, coopId))
             .filter(r => types.has(r.type))
             .map(r => {
                 switch (r.type) {
@@ -185,10 +187,10 @@ async function getTransactions(call, callback) {
                     case TxType.APPROVE_INVESTMENT:
                     case TxType.INVEST:
                         return new Promise(async (resolve) => {
-                            repo.findByWalletOrThrow(r.to_wallet).then(project => {
+                            repo.findByWalletOrThrow(r.to_wallet, coopId).then(project => {
                                 resolve({
                                     txHash: r.hash,
-                                    fromTxHash: call.request.walletData,
+                                    fromTxHash: call.request.walletHash,
                                     toTxHash: project.hash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
@@ -199,11 +201,11 @@ async function getTransactions(call, callback) {
                         })
                     case TxType.SHARE_PAYOUT:
                         return new Promise(async (resolve) => {
-                            repo.findByWalletOrThrow(r.from_wallet).then(project => {
+                            repo.findByWalletOrThrow(r.from_wallet, coopId).then(project => {
                                 resolve({
                                     txHash: r.hash,
                                     fromTxHash: project.hash,
-                                    toTxHash: call.request.walletData,
+                                    toTxHash: call.request.walletHash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
@@ -213,11 +215,11 @@ async function getTransactions(call, callback) {
                         })
                     case TxType.CANCEL_INVESTMENT:
                         return new Promise(async (resolve) => {
-                            repo.findByWalletOrThrow(r.from_wallet).then(project => {
+                            repo.findByWalletOrThrow(r.from_wallet, coopId).then(project => {
                                 resolve({
                                     txHash: r.hash,
                                     fromTxHash: project.hash,
-                                    toTxHash: call.request.walletData,
+                                    toTxHash: call.request.walletHash,
                                     amount: r.amount,
                                     type: enums.txTypeToGrpc(r.type),
                                     date: r.date,
@@ -241,7 +243,7 @@ async function getInvestmentsInProject(call, callback) {
     try {
         let projectTx = await repo.findByHashOrThrow(call.request.projectTxHash)
         logger.debug(`Project address represented by given hash: ${projectTx.wallet}`)
-        let investments = (await repo.getUserUncanceledInvestments(call.request.fromAddress))
+        let investments = (await repo.getUserUncanceledInvestments(call.request.fromAddress, projectTx.coop_id))
             .filter(tx => {
                 return tx.to_wallet == projectTx.wallet
             })
@@ -302,7 +304,7 @@ async function checkTxCallee(calleeId, coopInfo) {
      * Special case. Allow calling SellOffer without requiring for its
      * wallet to be activated. (SellOffers do not require active wallets)
      */
-    let record = await repo.findByWalletOrThrow(calleeId, coopInfo.id)
+    let record = await repo.findFirstByWallet(calleeId, coopInfo.id)
     if (typeof record !== 'undefined' && record.type == enums.TxType.SELL_OFFER_CREATE) { return }
 
     let walletActive = await isWalletActive(calleeId, coopInfo)
@@ -452,7 +454,7 @@ async function dryRun(txData) {
     let sharesAmount = sharesSoldTx.amount
     let info = sharesSoldTx.input.split(";")
     let projectContract = info[0]
-    let projectHash = (await repo.findByWalletOrThrow(projectContract)).hash
+    let projectHash = (await repo.findByWalletOrThrow(projectContract, sharesSoldTx.coop_id)).hash
     return {
         buyer: buyer,
         seller: seller,

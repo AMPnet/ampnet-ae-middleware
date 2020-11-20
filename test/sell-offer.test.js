@@ -1,72 +1,84 @@
 let axios = require('axios')
-
-let grpcServer = require('../grpc/server')
-let supervisor = require('../queue/queue')
+let { Crypto, Node, Universal: Ae, MemoryAccount } = require('@aeternity/aepp-sdk')
 
 let grpcClient = require('./grpc/client')
-let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 let util = require('./util/util')
-let db = require('./util/db')
 
 let config = require('../config')
 
 describe('Sell offers test', function() {
 
-    beforeEach(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "true"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-    })
+    it.skip('Should be possible to sell owned shares of fully funded project to another cooperative member', async () => {
+        let bobWallet = Crypto.generateKeyPair()
+        let aliceWallet = Crypto.generateKeyPair()
 
-    afterEach(async() => {
-        await grpcServer.stop()
-        await supervisor.stop()
-        process.env['AUTO_FUND'] = "false"
-    })
+        let node = await Node({
+            url: config.get().node.url,
+            internalUrl: config.get().node.internalUrl
+        })
+        let bobClient = await Ae({
+            nodes: [
+                { name: "node", instance: node } 
+            ],
+            compilerUrl: config.get().node.compilerUrl,
+            accounts: [
+                MemoryAccount({ keypair: bobWallet })
+            ],
+            address: bobWallet.publicKey,
+            networkId: config.get().node.networkId
+        })
+        let aliceClient = await Ae({
+            nodes: [
+                { name: "node", instance: node } 
+            ],
+            compilerUrl: config.get().node.compilerUrl,
+            accounts: [
+                MemoryAccount({ keypair: aliceWallet })
+            ],
+            address: aliceWallet.publicKey,
+            networkId: config.get().node.networkId
+        })
 
-    it('Should be possible to sell owned shares of fully funded project to another cooperative member', async () => {
         let baseUrl = `http://0.0.0.0:${config.get().http.port}`
         let createSellOfferUrl = `${baseUrl}/market/create-offer`
         let acceptSellOfferUrl = `${baseUrl}/market/accept-sell-offer`
         let acceptCounterOfferUrl = `${baseUrl}/market/accept-counter-offer`
         let postTransactionUrl = `${baseUrl}/transactions`
 
-        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(bobWallet.publicKey, coopId)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = (await axios.post(postTransactionUrl, {
-            data: addBobWalletTxSigned
+            data: addBobWalletTxSigned,
+            coop: coopId
         })).data.tx_hash
         await util.waitTxProcessed(addBobWalletTxHash)
 
-        let addAliceWalletTx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey)
+        let addAliceWalletTx = await grpcClient.generateAddWalletTx(aliceWallet.publicKey, coopId)
         let addAliceWalletTxSigned = await clients.owner().signTransaction(addAliceWalletTx)
-        let addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned)
+        let addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned, coopId)
         await util.waitTxProcessed(addAliceWalletTxHash)
 
         let mintToBobAmount = 100000
         let mintToBobTx = await grpcClient.generateMintTx(addBobWalletTxHash, mintToBobAmount)
         let mintToBobTxSigned = await clients.owner().signTransaction(mintToBobTx)
-        let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
+        let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned, coopId)
         await util.waitTxProcessed(mintToBobTxHash)
 
         let mintToAliceAmount = 100000
         let mintToAliceTx = await grpcClient.generateMintTx(addAliceWalletTxHash, mintToAliceAmount)
         let mintToAliceTxSigned = await clients.owner().signTransaction(mintToAliceTx)
-        let mintToAliceTxHash = await grpcClient.postTransaction(mintToAliceTxSigned)
+        let mintToAliceTxHash = await grpcClient.postTransaction(mintToAliceTxSigned, coopId)
         await util.waitTxProcessed(mintToAliceTxHash)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
-        let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
-        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
+        let createOrgTxSigned = await bobClient.signTransaction(createOrgTx)
+        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
 
-        let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
+        let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash, coopId)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
-        let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
+        let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned, coopId)
         await util.waitTxProcessed(addOrgWalletTxHash)
 
         let createProjTx = await grpcClient.generateCreateProjectTx(
@@ -77,19 +89,19 @@ describe('Sell offers test', function() {
             100000,                             // 1000$ investment cap
             util.currentTimeWithDaysOffset(10)  // expires in 10 days
         )
-        let createProjTxSigned = await clients.bob().signTransaction(createProjTx)
-        let createProjTxHash = await grpcClient.postTransaction(createProjTxSigned)
+        let createProjTxSigned = await bobClient.signTransaction(createProjTx)
+        let createProjTxHash = await grpcClient.postTransaction(createProjTxSigned, coopId)
         await util.waitTxProcessed(createProjTxHash)
 
-        let addProjWalletTx = await grpcClient.generateAddWalletTx(createProjTxHash)
+        let addProjWalletTx = await grpcClient.generateAddWalletTx(createProjTxHash, coopId)
         let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
-        let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
+        let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addProjWalletTxHash)
 
         let bobInvestmentAmount = 100000
         let investTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
-        let investTxSigned = await clients.bob().signTransaction(investTx)
-        let investTxHash = await grpcClient.postTransaction(investTxSigned)
+        let investTxSigned = await bobClient.signTransaction(investTx)
+        let investTxHash = await grpcClient.postTransaction(investTxSigned, coopId)
         await util.waitTxProcessed(investTxHash)
         
         let sharesToSell = bobInvestmentAmount / 2
@@ -102,8 +114,8 @@ describe('Sell offers test', function() {
                 price: sharesPrice
             }
         })).data.tx
-        let createSellOfferTxSigned = await clients.bob().signTransaction(createSellOfferTx)
-        let createSellOfferTxHash = await grpcClient.postTransaction(createSellOfferTxSigned)
+        let createSellOfferTxSigned = await bobClient.signTransaction(createSellOfferTx)
+        let createSellOfferTxHash = await grpcClient.postTransaction(createSellOfferTxSigned, coopId)
         await util.waitTxProcessed(createSellOfferTxHash)
 
         let acceptSellOfferTx = (await axios.get(acceptSellOfferUrl, {
@@ -113,11 +125,11 @@ describe('Sell offers test', function() {
                 counterOfferPrice: sharesPrice / 2
             }
         })).data.tx
-        let acceptSellOfferTxSigned = await clients.alice().signTransaction(acceptSellOfferTx)
-        let acceptSellOfferTxHash = await grpcClient.postTransaction(acceptSellOfferTxSigned)
+        let acceptSellOfferTxSigned = await aliceClient.signTransaction(acceptSellOfferTx)
+        let acceptSellOfferTxHash = await grpcClient.postTransaction(acceptSellOfferTxSigned, coopId)
         await util.waitTxProcessed(acceptSellOfferTxHash)
 
-        let activeOffers = await grpcClient.getActiveSellOffers()
+        let activeOffers = await grpcClient.getActiveSellOffers(coopId)
         console.log("active offers", activeOffers)
 
         let acceptCounterOfferTx = (await axios.get(acceptCounterOfferUrl, {
@@ -128,17 +140,8 @@ describe('Sell offers test', function() {
             }
         })).data.tx
         let acceptCounterOfferTxSigned = await clients.bob().signTransaction(acceptCounterOfferTx)
-        let acceptCounterOfferTxHash = await grpcClient.postTransaction(acceptCounterOfferTxSigned)
+        let acceptCounterOfferTxHash = await grpcClient.postTransaction(acceptCounterOfferTxSigned, coopId)
         await util.waitTxProcessed(acceptCounterOfferTxHash)
-
-        let allTransactions = await db.getAll()
-        console.log("all transactions", allTransactions)
-
-        let sellerPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
-        console.log("sellerPortfolio", sellerPortfolio)
-
-        let buyerPortfolio = await grpcClient.getPortfolio(addAliceWalletTxHash)
-        console.log("buyerPortfolio", buyerPortfolio)
     })
 
 })

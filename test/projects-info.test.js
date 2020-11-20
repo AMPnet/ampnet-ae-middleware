@@ -1,50 +1,54 @@
+let { Crypto, Node, Universal: Ae, MemoryAccount } = require('@aeternity/aepp-sdk')
 let chai = require('chai');
 let assert = chai.assert;
 
-let supervisor = require('../queue/queue')
-let grpcServer = require('../grpc/server')
+let config = require('../config')
 
 let clients = require('./ae/clients')
 let grpcClient = require('./grpc/client')
-let accounts = require('./ae/accounts')
 let util = require('./util/util')
 let db = require('./util/db')
 
-
 describe('Test fetching information for list of given projects', function() {
 
-    before(async() => {
-        process.env['DB_SCAN_ENABLED'] = "false"
-        process.env['AUTO_FUND'] = "false"
-        await grpcServer.start()
-        await grpcClient.start()
-        await clients.init()
-        await db.init()
-    })
-
-    after(async() => {
-        delete process.env.GIFT_AMOUNT
-        await grpcServer.stop()
-        await supervisor.stop()
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
     })
 
     it('Should be able to fetch info for list of given projects', async () => {
-        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        let bobWallet = Crypto.generateKeyPair()
+        let node = await Node({
+            url: config.get().node.url,
+            internalUrl: config.get().node.internalUrl
+        })
+        let bobClient = await Ae({
+            nodes: [
+                { name: "node", instance: node } 
+            ],
+            compilerUrl: config.get().node.compilerUrl,
+            accounts: [
+                MemoryAccount({ keypair: bobWallet })
+            ],
+            address: bobWallet.publicKey,
+            networkId: config.get().node.networkId
+        })
+
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(bobWallet.publicKey, coopId)
         let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, coopId)
         await util.waitTxProcessed(addBobWalletTxHash)
 
         let bobBalanceBeforeDeposit = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceBeforeDeposit, 0)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
-        let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
-        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
+        let createOrgTxSigned = await bobCLient.signTransaction(createOrgTx)
+        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
 
-        let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
+        let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash, coopId)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
-        let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
+        let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned, coopId)
         await util.waitTxProcessed(addOrgWalletTxHash)
 
         let firstProjMinPerUser = 100
@@ -59,13 +63,13 @@ describe('Test fetching information for list of given projects', function() {
             firstProjInvestmentCap,
             firstProjEndsAt                         
         )
-        let createFirstProjTxSigned = await clients.bob().signTransaction(createFirstProjTx)
-        let createFirstProjTxHash = await grpcClient.postTransaction(createFirstProjTxSigned)
+        let createFirstProjTxSigned = await bobCLient.signTransaction(createFirstProjTx)
+        let createFirstProjTxHash = await grpcClient.postTransaction(createFirstProjTxSigned, coopId)
         await util.waitTxProcessed(createFirstProjTxHash)
         
-        let addFirstProjWalletTx = await grpcClient.generateAddWalletTx(createFirstProjTxHash)
+        let addFirstProjWalletTx = await grpcClient.generateAddWalletTx(createFirstProjTxHash, coopId)
         let addFirstProjWalletTxSigned = await clients.owner().signTransaction(addFirstProjWalletTx)
-        let addFirstProjWalletTxHash = await grpcClient.postTransaction(addFirstProjWalletTxSigned)
+        let addFirstProjWalletTxHash = await grpcClient.postTransaction(addFirstProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addFirstProjWalletTxHash)
 
         let secondProjMinPerUser = 500
@@ -80,13 +84,13 @@ describe('Test fetching information for list of given projects', function() {
             secondProjInvestmentCap,
             secondProjEndsAt
         )
-        let createSecondProjTxSigned = await clients.bob().signTransaction(createSecondProjTx)
-        let createSecondProjTxHash = await grpcClient.postTransaction(createSecondProjTxSigned)
+        let createSecondProjTxSigned = await bobClient.signTransaction(createSecondProjTx)
+        let createSecondProjTxHash = await grpcClient.postTransaction(createSecondProjTxSigned, coopId)
         await util.waitTxProcessed(createSecondProjTxHash)
         
-        let addSecondProjWalletTx = await grpcClient.generateAddWalletTx(createSecondProjTxHash)
+        let addSecondProjWalletTx = await grpcClient.generateAddWalletTx(createSecondProjTxHash, coopId)
         let addSecondProjWalletTxSigned = await clients.owner().signTransaction(addSecondProjWalletTx)
-        let addSecondProjWalletTxHash = await grpcClient.postTransaction(addSecondProjWalletTxSigned)
+        let addSecondProjWalletTxHash = await grpcClient.postTransaction(addSecondProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addSecondProjWalletTxHash)
 
         let projectsInfo = await grpcClient.getProjectsInfo([addFirstProjWalletTxHash, addSecondProjWalletTxHash])        
