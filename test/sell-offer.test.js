@@ -4,12 +4,17 @@ let { Crypto, Node, Universal: Ae, MemoryAccount } = require('@aeternity/aepp-sd
 let grpcClient = require('./grpc/client')
 let clients = require('./ae/clients')
 let util = require('./util/util')
+let db = require('./util/db')
 
 let config = require('../config')
 
 describe('Sell offers test', function() {
 
-    it.skip('Should be possible to sell owned shares of fully funded project to another cooperative member', async () => {
+    before(async () => {
+        await db.clearTransactions(adminWalletTx.hash)
+    })
+
+    it('Should be possible to sell owned shares of fully funded project to another cooperative member', async () => {
         let bobWallet = Crypto.generateKeyPair()
         let aliceWallet = Crypto.generateKeyPair()
 
@@ -139,7 +144,7 @@ describe('Sell offers test', function() {
                 buyerTxHash: addAliceWalletTxHash 
             }
         })).data.tx
-        let acceptCounterOfferTxSigned = await clients.bob().signTransaction(acceptCounterOfferTx)
+        let acceptCounterOfferTxSigned = await bobClient.signTransaction(acceptCounterOfferTx)
         let acceptCounterOfferTxHash = await grpcClient.postTransaction(acceptCounterOfferTxSigned, coopId)
         await util.waitTxProcessed(acceptCounterOfferTxHash)
     })

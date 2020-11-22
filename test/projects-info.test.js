@@ -42,7 +42,7 @@ describe('Test fetching information for list of given projects', function() {
         assert.equal(bobBalanceBeforeDeposit, 0)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
-        let createOrgTxSigned = await bobCLient.signTransaction(createOrgTx)
+        let createOrgTxSigned = await bobClient.signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
 
@@ -63,7 +63,7 @@ describe('Test fetching information for list of given projects', function() {
             firstProjInvestmentCap,
             firstProjEndsAt                         
         )
-        let createFirstProjTxSigned = await bobCLient.signTransaction(createFirstProjTx)
+        let createFirstProjTxSigned = await bobClient.signTransaction(createFirstProjTx)
         let createFirstProjTxHash = await grpcClient.postTransaction(createFirstProjTxSigned, coopId)
         await util.waitTxProcessed(createFirstProjTxHash)
         

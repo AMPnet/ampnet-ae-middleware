@@ -121,6 +121,8 @@ async function findByWalletOrThrow(wallet, coopId) {
                         break
                 }
             }
+        }).catch(err => {
+            logger.warn(`findByWalletOrThrow knex exception: `, err)
         })
     })
 }
