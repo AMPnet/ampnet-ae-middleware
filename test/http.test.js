@@ -14,17 +14,13 @@ describe('HTTP endpoints tests', function() {
 
     before(async () => {
         await db.clearTransactions(adminWalletTx.hash)
-    })
 
-    it('Should be able to fetch info for a single project', async () => {
-        let bobWallet = Crypto.generateKeyPair()
-        
-        let node = await Node({
+        bobWallet = Crypto.generateKeyPair()
+        node = await Node({
             url: config.get().node.url,
             internalUrl: config.get().node.internalUrl
         })
-
-        let bobClient = await Ae({
+        bobClient = await Ae({
             nodes: [
                 { name: "node", instance: node } 
             ],
@@ -35,12 +31,13 @@ describe('HTTP endpoints tests', function() {
             address: bobWallet.publicKey,
             networkId: config.get().node.networkId
         })
-
-        let addBobWalletTx = await grpcClient.generateAddWalletTx(bobWallet.publicKey, coopId)
-        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
-        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, coopId)
+        addBobWalletTx = await grpcClient.generateAddWalletTx(bobWallet.publicKey, coopId)
+        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
+        addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, coopId)
         await util.waitTxProcessed(addBobWalletTxHash)
+    })
 
+    it('Should be able to fetch info for a single project', async () => {
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
         let createOrgTxSigned = await bobClient.signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
@@ -82,5 +79,13 @@ describe('HTTP endpoints tests', function() {
         assert.equal(info.endsAt, endsAt)
         assert.equal(info.totalFundsRaised, 0)
         assert.equal(info.payoutInProcess, false)
+    })
+
+    it('Should be able to fetch wallet balance', async () => {
+        let baseUrl = `http://0.0.0.0:${config.get().http.port}`
+        let url = `${baseUrl}/wallet/${addBobWalletTxHash}/balance`
+        let response = (await axios.get(url)).data
+        assert.strictEqual(response.wallet_hash, addBobWalletTxHash)
+        assert.strictEqual(response.balance, 0)
     })
 })

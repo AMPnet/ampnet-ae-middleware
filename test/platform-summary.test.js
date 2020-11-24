@@ -1,4 +1,4 @@
-let { Crypto, Node, MemoryAccount, Universal: Ae }
+let { Crypto, Node, MemoryAccount, Universal: Ae } = require('@aeternity/aepp-sdk')
 let chai = require('chai')
 let axios = require('axios')
 let assert = chai.assert
@@ -48,7 +48,11 @@ describe('Platform summary', function() {
 
         let summaryUrl = `http://0.0.0.0:${config.get().http.port}/summary`
 
-        let summaryBefore = (await axios.get(summaryUrl)).data
+        let summaryBefore = (await axios.get(summaryUrl, {
+            params: {
+                coop: coopId
+            }
+        })).data
         assert.strictEqual(summaryBefore.number_of_funded_projects, 0)
         assert.strictEqual(summaryBefore.average_project_size, 0)
         assert.strictEqual(summaryBefore.average_funded_project_size, 0)
@@ -77,12 +81,12 @@ describe('Platform summary', function() {
 
         let mintToBobTx = await grpcClient.generateMintTx(addBobWalletTxHash, 100000000)
         let mintToBobTxSigned = await clients.owner().signTransaction(mintToBobTx)
-        let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
+        let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned, coopId)
         await util.waitTxProcessed(mintToBobTxHash)
 
         let mintToAliceTx = await grpcClient.generateMintTx(addAliceWalletTxHash, 100000000)
         let mintToAliceTxSigned = await clients.owner().signTransaction(mintToAliceTx)
-        let mintToAliceTxHash = await grpcClient.postTransaction(mintToAliceTxSigned)
+        let mintToAliceTxHash = await grpcClient.postTransaction(mintToAliceTxSigned, coopId)
         await util.waitTxProcessed(mintToAliceTxHash)
 
         let fundedProjectMinPerUser = 10000
@@ -97,22 +101,22 @@ describe('Platform summary', function() {
             util.currentTimeWithDaysOffset(10) 
         )
         let createFundedProjTxSigned = await bobClient.signTransaction(createFundedProjTx)
-        let createFundedProjTxHash = await grpcClient.postTransaction(createFundedProjTxSigned)
+        let createFundedProjTxHash = await grpcClient.postTransaction(createFundedProjTxSigned, coopId)
         await util.waitTxProcessed(createFundedProjTxHash)
 
-        let addFundedProjWalletTx = await grpcClient.generateAddWalletTx(createFundedProjTxHash)
+        let addFundedProjWalletTx = await grpcClient.generateAddWalletTx(createFundedProjTxHash, coopId)
         let addFundedProjWalletTxSigned = await clients.owner().signTransaction(addFundedProjWalletTx)
-        let addFundedProjWalletTxHash = await grpcClient.postTransaction(addFundedProjWalletTxSigned)
+        let addFundedProjWalletTxHash = await grpcClient.postTransaction(addFundedProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addFundedProjWalletTxHash)
 
         let bobInvestTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addFundedProjWalletTxHash, 30000)
         let bobInvestTxSigned = await bobClient.signTransaction(bobInvestTx)
-        let bobInvestTxHash = await grpcClient.postTransaction(bobInvestTxSigned)
+        let bobInvestTxHash = await grpcClient.postTransaction(bobInvestTxSigned, coopId)
         await util.waitTxProcessed(bobInvestTxHash)
 
         let aliceInvestTx = await grpcClient.generateInvestTx(addAliceWalletTxHash, addFundedProjWalletTxHash, 70000)
         let aliceInvestTxSigned = await aliceClient.signTransaction(aliceInvestTx)
-        let aliceInvestTxHash = await grpcClient.postTransaction(aliceInvestTxSigned)
+        let aliceInvestTxHash = await grpcClient.postTransaction(aliceInvestTxSigned, coopId)
         await util.waitTxProcessed(aliceInvestTxHash)
         
         let nonFundedProjectMinPerUser = 10000
@@ -127,32 +131,32 @@ describe('Platform summary', function() {
             util.currentTimeWithDaysOffset(10) 
         )
         let createNonFundedProjTxSigned = await bobClient.signTransaction(createNonFundedProjTx)
-        let createNonFundedProjTxHash = await grpcClient.postTransaction(createNonFundedProjTxSigned)
+        let createNonFundedProjTxHash = await grpcClient.postTransaction(createNonFundedProjTxSigned, coopId)
         await util.waitTxProcessed(createNonFundedProjTxHash)
 
-        let addNonFundedProjWalletTx = await grpcClient.generateAddWalletTx(createNonFundedProjTxHash)
+        let addNonFundedProjWalletTx = await grpcClient.generateAddWalletTx(createNonFundedProjTxHash, coopId)
         let addNonFundedProjWalletTxSigned = await clients.owner().signTransaction(addNonFundedProjWalletTx)
-        let addNonFundedProjWalletTxHash = await grpcClient.postTransaction(addNonFundedProjWalletTxSigned)
+        let addNonFundedProjWalletTxHash = await grpcClient.postTransaction(addNonFundedProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addNonFundedProjWalletTxHash)
 
         let secondBobInvestTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addNonFundedProjWalletTxHash, 10000)
         let secondBobInvestTxSigned = await bobClient.signTransaction(secondBobInvestTx)
-        let secondBobInvestTxHash = await grpcClient.postTransaction(secondBobInvestTxSigned)
+        let secondBobInvestTxHash = await grpcClient.postTransaction(secondBobInvestTxSigned, coopId)
         await util.waitTxProcessed(secondBobInvestTxHash)
 
         let thirdBobInvestTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addNonFundedProjWalletTxHash, 10000)
         let thirdBobInvestTxSigned = await bobClient.signTransaction(thirdBobInvestTx)
-        let thirdBobInvestTxHash = await grpcClient.postTransaction(thirdBobInvestTxSigned)
+        let thirdBobInvestTxHash = await grpcClient.postTransaction(thirdBobInvestTxSigned, coopId)
         await util.waitTxProcessed(thirdBobInvestTxHash)
         
         let bobCancelTx = await grpcClient.generateCancelInvestmentTx(addBobWalletTxHash, addNonFundedProjWalletTxHash)
         let bobCancelTxSigned = await bobClient.signTransaction(bobCancelTx)
-        let bobCancelTxHash = await grpcClient.postTransaction(bobCancelTxSigned)
+        let bobCancelTxHash = await grpcClient.postTransaction(bobCancelTxSigned, coopId)
         await util.waitTxProcessed(bobCancelTxHash)
 
         let secondAliceInvestTx = await grpcClient.generateInvestTx(addAliceWalletTxHash, addNonFundedProjWalletTxHash, 20000)
         let secondAliceInvestTxSigned = await aliceClient.signTransaction(secondAliceInvestTx)
-        let secondAliceInvestTxHash = await grpcClient.postTransaction(secondAliceInvestTxSigned)
+        let secondAliceInvestTxHash = await grpcClient.postTransaction(secondAliceInvestTxSigned, coopId)
         await util.waitTxProcessed(secondAliceInvestTxHash)
 
         let randomProjectMinPerUser = 10000
@@ -167,12 +171,12 @@ describe('Platform summary', function() {
             util.currentTimeWithDaysOffset(10) 
         )
         let createRandomProjTxSigned = await bobClient.signTransaction(createRandomProjTx)
-        let createRandomProjTxHash = await grpcClient.postTransaction(createRandomProjTxSigned)
+        let createRandomProjTxHash = await grpcClient.postTransaction(createRandomProjTxSigned, coopId)
         await util.waitTxProcessed(createRandomProjTxHash)
 
-        let addRandomProjWalletTx = await grpcClient.generateAddWalletTx(createRandomProjTxHash)
+        let addRandomProjWalletTx = await grpcClient.generateAddWalletTx(createRandomProjTxHash, coopId)
         let addRandomProjWalletTxSigned = await clients.owner().signTransaction(addRandomProjWalletTx)
-        let addRandomProjWalletTxHash = await grpcClient.postTransaction(addRandomProjWalletTxSigned)
+        let addRandomProjWalletTxHash = await grpcClient.postTransaction(addRandomProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addRandomProjWalletTxHash)
 
         let unactivatedProjectMinPerUser = 10000
@@ -187,13 +191,18 @@ describe('Platform summary', function() {
             util.currentTimeWithDaysOffset(10) 
         )
         let createUnactivatedProjTxSigned = await bobClient.signTransaction(createUnactivatedProjTx)
-        let createUnactivatedProjTxHash = await grpcClient.postTransaction(createUnactivatedProjTxSigned)
+        let createUnactivatedProjTxHash = await grpcClient.postTransaction(createUnactivatedProjTxSigned, coopId)
         await util.waitTxProcessed(createUnactivatedProjTxHash)
 
         let allRecords = await db.getAll()
         console.log("all records", allRecords)
 
-        let summary = (await axios.get(summaryUrl)).data
+        let summary = (await axios.get(summaryUrl, {
+            params: {
+                coop: coopId
+            }
+        })).data
+        console.log("summary data", summary)
         assert.strictEqual(summary.number_of_funded_projects, 1)
         assert.strictEqual(summary.average_project_size, 150000)
         assert.strictEqual(summary.average_funded_project_size, 100000)

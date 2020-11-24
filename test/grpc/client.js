@@ -303,9 +303,9 @@ module.exports = {
             })
         })
     },
-    generateTransferTokenIssuerOwnershipTx: async function(newOwnerWallet) {
+    generateTransferTokenIssuerOwnershipTx: async function(newOwnerWallet, coop) {
         return new Promise(resolve => {
-            client.generateTransferTokenIssuerOwnershipTx({ newOwnerWallet }, (err, result) => {
+            client.generateTransferTokenIssuerOwnershipTx({ newOwnerWallet, coop }, (err, result) => {
                 if (err != null) {
                     resolve(err)
                 } else {
@@ -314,9 +314,9 @@ module.exports = {
             })
         })
     },
-    generateTransferPlatformManagerOwnershipTx: async function(newOwnerWallet) {
+    generateTransferPlatformManagerOwnershipTx: async function(newOwnerWallet, coop) {
         return new Promise(resolve => {
-            client.generateTransferPlatformManagerOwnershipTx({ newOwnerWallet }, (err, result) => {
+            client.generateTransferPlatformManagerOwnershipTx({ newOwnerWallet, coop }, (err, result) => {
                 if (err != null) {
                     resolve(err)
                 } else {

@@ -27,10 +27,18 @@ before(async () => {
     adminWalletTx = await util.waitWalletExists()
     await util.waitTxProcessed(adminWalletTx.hash)
     coopInfo = await db.getCoop(coopId)
-
 })
+
+async function changeOwner(newOwner) {
+    accounts.owner = newOwner
+    coopInfo = await db.getCoop(coopId)
+    adminWalletTx = (await db.getBy({ wallet: newOwner.publicKey }))[0]
+    await clients.setOwner(newOwner)
+}
 
 after(async () => {
     await grpcServer.stop()
     await walletSvcMock.stop()
 })
+
+module.exports = { changeOwner }

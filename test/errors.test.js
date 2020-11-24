@@ -1,5 +1,5 @@
 let chai = require('chai');
-let { Crypto } = require('@aeternity/aepp-sdk')
+let { Crypto, Node, MemoryAccount, Universal: Ae } = require('@aeternity/aepp-sdk')
 let assert = chai.assert;
 
 let grpcClient = require('./grpc/client')
@@ -11,6 +11,7 @@ let db = require('./util/db')
 let client = require('../ae/client')
 let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
+let config = require('../config')
 let { TxType, TxState, SupervisorStatus } = require('../enums/enums')
 
 let err = require('../error/errors')
@@ -217,27 +218,6 @@ describe('Error handling tests', function() {
         let txSigned = await clients.bob().signTransaction(tx)
         let err = await grpcClient.postTransaction(txSigned, coopId)
         assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Only Platform Manager can make this action!")
-    })
-
-    it('Transaction that fails immediately after posting should generate descriptive error message', async () => {
-        let emptyWallet = Crypto.generateKeyPair()
-        let addEmptyWalletTx = await grpcClient.generateAddWalletTx(emptyWallet.publicKey, coopId)
-        let addEmptyWalletTxSigned = await clients.owner().signTransaction(addEmptyWalletTx)
-        let addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned, coopId)
-        await util.waitTxProcessed(addEmptyWalletTxHash)
-
-        let callData = await codec.org.encodeCreateOrganization(coopInfo.coop_contract)
-        let txResult = await client.instance().contractCreateTx({
-            ownerId: emptyWallet.publicKey,
-            code: contracts.getOrgCompiled().bytecode,
-            deposit: 0,
-            amount: 0,
-            gas: 0,
-            callData: callData
-        })
-        let txSigned = await clients.empty().signTransaction(txResult.tx)
-        let err = await grpcClient.postTransaction(txSigned, coopId)
-        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Out of gasI")
     })
 
     it('Transaction should fail if trying to generate addWallet transaction for wallet that already exists', async () => {

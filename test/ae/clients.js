@@ -11,7 +11,7 @@ let janeClient
 let emptyClient
 
 async function init() {
-    let node = await Node({
+    node = await Node({
         url: config.get().node.url,
         internalUrl: config.get().node.internalUrl
     })
@@ -77,11 +77,26 @@ async function init() {
     })
 }
 
+async function setOwner(newOwner) {
+    ownerClient = await Ae({
+        nodes: [
+            { name: "node", instance: node } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: newOwner })
+        ],
+        address: newOwner.publicKey,
+        networkId: config.get().node.networkId
+    })
+}
+
 module.exports = {
     init,
     owner: function() { return ownerClient },
     bob: function() { return bobClient },
     alice: function() { return aliceClient },
     jane: function() { return janeClient },
-    empty: function() { return emptyClient }
+    empty: function() { return emptyClient },
+    setOwner
 }

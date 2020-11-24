@@ -237,11 +237,14 @@ describe('Happy path scenario', function() {
         assert.strictEqual(bobTransactions.length, 5)
         
         let bobTransactionsDeposit = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
-        assert.equal(bobTransactionsDeposit.from)
+        assert.strictEqual(bobTransactionsDeposit.fromTxHash, coopInfo.eur_contract)
+        assert.strictEqual(bobTransactionsDeposit.toTxHash, addBobWalletTxHash)
         assert.equal(bobTransactionsDeposit.amount, mintToBobAmount)
         assert.exists(bobTransactionsDeposit.date)
         assert.equal(bobTransactionsDeposit.state, enums.txStateToGrpc(enums.TxState.MINED))
         let bobTransactionsWithdraw = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.WITHDRAW) })[0]
+        assert.strictEqual(bobTransactionsWithdraw.fromTxHash, addBobWalletTxHash)
+        assert.strictEqual(bobTransactionsWithdraw.toTxHash, coopInfo.eur_contract)
         assert.equal(bobTransactionsWithdraw.amount, withdrawFromBobAmount)
         assert.exists(bobTransactionsWithdraw.date)
         assert.equal(bobTransactionsWithdraw.state, enums.txStateToGrpc(enums.TxState.MINED))

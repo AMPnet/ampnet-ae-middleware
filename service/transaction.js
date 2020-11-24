@@ -174,10 +174,23 @@ async function getTransactions(call, callback) {
             .map(r => {
                 switch (r.type) {
                     case TxType.DEPOSIT:
+                        return new Promise(resolve => {
+                            resolve({
+                                txHash: r.hash,
+                                fromTxHash: util.enforceCtPrefix(r.from_wallet),
+                                toTxHash: call.request.walletHash,
+                                amount: r.amount,
+                                type: enums.txTypeToGrpc(r.type),
+                                date: r.date,
+                                state: enums.txStateToGrpc(r.state)
+                            })
+                        })
                     case TxType.WITHDRAW:
                         return new Promise(resolve => {
                             resolve({
                                 txHash: r.hash,
+                                fromTxHash: call.request.walletHash,
+                                toTxHash: util.enforceCtPrefix(r.to_wallet),
                                 amount: r.amount,
                                 type: enums.txTypeToGrpc(r.type),
                                 date: r.date,

@@ -1,7 +1,7 @@
+let { Crypto } = require('@aeternity/aepp-sdk')
 let chai = require('chai');
 let assert = chai.assert;
 
-let config = require('../config')
 let client = require('../ae/client')
 let codec = require('../ae/codec')
 let { TxType, TxState, SupervisorStatus } = require('../enums/enums')
@@ -11,6 +11,7 @@ let grpcClient = require('./grpc/client')
 let accounts = require('./ae/accounts')
 let util = require('./util/util')
 let db = require('./util/db')
+let globalSetup = require('./global-setup')
 
 describe('Ownership transfer tests', function() {
 
@@ -18,67 +19,79 @@ describe('Ownership transfer tests', function() {
         await db.clearTransactions(adminWalletTx.hash)
     })
 
-    it.skip("Should be able to change Coop ownership", async () => {
-        let changeOwnershipTx = await grpcClient.generateTransferPlatformManagerOwnershipTx(accounts.bob.publicKey)
-        let changeOwnershipTxSigned = await clients.owner().signTransaction(changeOwnershipTx)
-        let changeOwnershipTxHash = await grpcClient.postTransaction(changeOwnershipTxSigned)
-        await util.waitTxProcessed(changeOwnershipTxHash)
+    it("Should be able to change Coop and Eur ownership", async () => {
+        let newOwner = Crypto.generateKeyPair()
+        
+        let addNewOwnerWalletTx = await grpcClient.generateAddWalletTx(newOwner.publicKey, coopId)
+        let addNewOwnerWalletTxSigned = await clients.owner().signTransaction(addNewOwnerWalletTx)
+        let addNewOwnerWalletTxHash = await grpcClient.postTransaction(addNewOwnerWalletTxSigned, coopId)
+        await util.waitTxProcessed(addNewOwnerWalletTxHash)
 
-        let fetchedCoopOwner = await grpcClient.getPlatformManager()
-        assert.equal(fetchedCoopOwner, accounts.bob.publicKey)
+        let changeCoopOwnershipTx = await grpcClient.generateTransferPlatformManagerOwnershipTx(newOwner.publicKey, coopId)
+        let changeCoopOwnershipTxSigned = await clients.owner().signTransaction(changeCoopOwnershipTx)
+        let changeCoopOwnershipTxHash = await grpcClient.postTransaction(changeCoopOwnershipTxSigned, coopId)
+        await util.waitTxProcessed(changeCoopOwnershipTxHash)
 
-        let ownershipChangeRecord = (await db.getBy({
-            hash: changeOwnershipTxHash
+        let fetchedCoopOwner = await grpcClient.getPlatformManager(coopId)
+        assert.equal(fetchedCoopOwner, newOwner.publicKey)
+
+        let coopOwnershipChangeRecord = (await db.getBy({
+            hash: changeCoopOwnershipTxHash
         }))[0]
-        assert.strictEqual(ownershipChangeRecord.from_wallet, accounts.owner.publicKey)
-        assert.strictEqual(ownershipChangeRecord.to_wallet, accounts.bob.publicKey)
-        assert.strictEqual(ownershipChangeRecord.state, TxState.MINED)
-        assert.strictEqual(ownershipChangeRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
-        assert.strictEqual(ownershipChangeRecord.type, TxType.COOP_OWNERSHIP_TRANSFER)
+        assert.strictEqual(coopOwnershipChangeRecord.from_wallet, accounts.owner.publicKey)
+        assert.strictEqual(coopOwnershipChangeRecord.to_wallet, newOwner.publicKey)
+        assert.strictEqual(coopOwnershipChangeRecord.state, TxState.MINED)
+        assert.strictEqual(coopOwnershipChangeRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
+        assert.strictEqual(coopOwnershipChangeRecord.type, TxType.COOP_OWNERSHIP_TRANSFER)
+
+        let changeEurOwnershipTx = await grpcClient.generateTransferTokenIssuerOwnershipTx(newOwner.publicKey, coopId)
+        let changeEurOwnershipTxSigned = await clients.owner().signTransaction(changeEurOwnershipTx)
+        let changeEurOwnershipTxHash = await grpcClient.postTransaction(changeEurOwnershipTxSigned, coopId)
+        await util.waitTxProcessed(changeEurOwnershipTxHash)
+
+        let fetchedEurOwner = await grpcClient.getTokenIssuer(coopId)
+        assert.equal(fetchedEurOwner, newOwner.publicKey)
+
+        let eurOwnershipChangeRecord = (await db.getBy({
+            hash: changeEurOwnershipTxHash
+        }))[0]
+        assert.strictEqual(eurOwnershipChangeRecord.from_wallet, accounts.owner.publicKey)
+        assert.strictEqual(eurOwnershipChangeRecord.to_wallet, newOwner.publicKey)
+        assert.strictEqual(eurOwnershipChangeRecord.state, TxState.MINED)
+        assert.strictEqual(eurOwnershipChangeRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
+        assert.strictEqual(eurOwnershipChangeRecord.type, TxType.EUR_OWNERSHIP_TRANSFER)
+
+        await globalSetup.changeOwner(newOwner)
     })
 
-    it.skip("Should be able to change Eur ownership", async () => {
-        let changeOwnershipTx = await grpcClient.generateTransferTokenIssuerOwnershipTx(accounts.bob.publicKey)
-        let changeOwnershipTxSigned = await clients.owner().signTransaction(changeOwnershipTx)
-        let changeOwnershipTxHash = await grpcClient.postTransaction(changeOwnershipTxSigned)
-        await util.waitTxProcessed(changeOwnershipTxHash)
+    it('Should fail if non-owner tries to change ownership of Eur/Coop', async () => {
+        let addAliceWalletTx = await grpcClient.generateAddWalletTx(accounts.alice.publicKey, coopId)
+        let addAliceWalletTxSigned = await clients.owner().signTransaction(addAliceWalletTx)
+        let addAliceWalletTxHash = await grpcClient.postTransaction(addAliceWalletTxSigned, coopId)
+        await util.waitTxProcessed(addAliceWalletTxHash)
 
-        let fetchedEurOwner = await grpcClient.getTokenIssuer()
-        assert.equal(fetchedEurOwner, accounts.bob.publicKey)
-
-        let ownershipChangeRecord = (await db.getBy({
-            hash: changeOwnershipTxHash
-        }))[0]
-        assert.strictEqual(ownershipChangeRecord.from_wallet, accounts.owner.publicKey)
-        assert.strictEqual(ownershipChangeRecord.to_wallet, accounts.bob.publicKey)
-        assert.strictEqual(ownershipChangeRecord.state, TxState.MINED)
-        assert.strictEqual(ownershipChangeRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
-        assert.strictEqual(ownershipChangeRecord.type, TxType.EUR_OWNERSHIP_TRANSFER)
-    })
-
-    it.skip('Should fail if non-owner tries to change ownership of Eur/Coop', async () => {
         let coopTransferCallData = await codec.coop.encodeTransferCoopOwnership(accounts.alice.publicKey)
         let forbiddenCoopOwnershipTransferTx = await client.instance().contractCallTx({
             callerId: accounts.alice.publicKey,
-            contractId: config.get().contracts.coop.address,
+            contractId: coopInfo.coop_contract,
             amount: 0,
             gas: 10000,
             callData: coopTransferCallData
         })
         let forbiddenCoopOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenCoopOwnershipTransferTx)
-        let forbiddenCoopOwnership = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned)
+        let forbiddenCoopOwnership = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned, coopId)
         assert.equal(forbiddenCoopOwnership.details, "50 > Only Platform Manager can make this action!")
 
         let eurTransferCallData = await codec.eur.encodeTransferEurOwnership(accounts.alice.publicKey)
         let forbiddenEurOwnershipTransferTx = await client.instance().contractCallTx({
             callerId: accounts.alice.publicKey,
-            contractId: config.get().contracts.eur.address,
+            contractId: coopInfo.eur_contract,
             amount: 0,
             gas: 10000,
             callData: eurTransferCallData
         })
         let forbiddenEurOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenEurOwnershipTransferTx)
-        let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned)
+        let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned, coopId)
         assert.equal(forbiddenEurOwnership.details, "50 > Only Token Issuer can make this action!")
     })
 
