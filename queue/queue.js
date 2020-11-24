@@ -12,9 +12,6 @@ const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
 const txProcessor = require('../service/transaction-processor')
 const config = require('../config')
-const coop = require('../service/coop')
-const { eur } = require('../ae/codec')
-const { result } = require('lodash')
 
 let supervisorQueue
 let txProcessorQueue 
@@ -74,11 +71,19 @@ async function supervisorQueueJobHandler(job) {
         let coopId = job.data.coopId
         logger.info(`SUPERVISOR-QUEUE: Creating cooperative with id ${coopId} and owner ${adminWallet}`)
         
-        let coopInstance = await clients.supervisor().getContractInstance(contracts.coopSource)
+        let coopInstance = await clients.supervisor().getContractInstance(contracts.coopSource, {
+            opts: {
+                abiVersion: 3
+            }
+        })
         let coop = await coopInstance.deploy()
         logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coop.address}`)
     
-        let eurInstance = await clients.supervisor().getContractInstance(contracts.eurSource)
+        let eurInstance = await clients.supervisor().getContractInstance(contracts.eurSource, {
+            opts: {
+                abiVersion: 3
+            }
+        })
         let eur = await eurInstance.deploy([coop.address])
         logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eur.address}`)
     
