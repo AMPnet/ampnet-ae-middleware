@@ -1,10 +1,6 @@
 let path = require('path')
 
-let { Universal: Ae, MemoryAccount, Node } = require('@aeternity/aepp-sdk')
-
-let contracts = require('../../ae/contracts')
 let { Environment, ServiceEnv } = require('../../enums/enums')
-let logger = require('../../logger')(module)
 
 function get() {
     process.env.ENV = valueOrDefault(process.env.ENV, ServiceEnv.DEV)
@@ -28,7 +24,6 @@ function get() {
         env: process.env.NODE_ENV,
         node: node,
         supervisor: supervisorKeypair,
-        //contracts: contracts,
         grpc: grpc,
         walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
         http: http,
@@ -100,97 +95,6 @@ function getSupervisorKeypair() {
         case Environment.LOCAL: return localKeypair
         case Environment.TESTNET: return testnetKeypair
         case Environment.MAINNET: throw new Error("When deploying to mainnet, supervisor keypair should be provided as environment vars!")
-    }
-}
-
-async function getContracts(node, supervisorKeypair) {
-    let nodeInstance = await Node({
-        url: node.url,
-        internalUrl: node.internalUrl
-    })
-    client = await Ae({
-        nodes: [
-            { name: "node", instance: nodeInstance } 
-        ],
-        compilerUrl: node.compilerUrl,
-        accounts: [
-            MemoryAccount({ keypair: supervisorKeypair })
-        ],
-        address: supervisorKeypair.publicKey,
-        networkId: node.networkId
-    })
-    if (process.env.COOP_ADDRESS !== undefined && process.env.EUR_ADDRESS !== undefined) {
-        logger.info("Base contracts pre-deployed.")
-        logger.info(`Coop: ${process.env.COOP_ADDRESS}`)
-        logger.info(`EUR: ${process.env.EUR_ADDRESS}`)
-        coopInstance = await client.getContractInstance(contracts.coopSource, {
-            contractAddress: process.env.COOP_ADDRESS
-        })
-        coopOwner = await (await coopInstance.call('owner', [])).decode()
-        eurInstance = await client.getContractInstance(contracts.eurSource, {
-            contractAddress: process.env.EUR_ADDRESS
-        })
-        eurOwner = await (await eurInstance.call('owner', [])).decode()
-        logger.info(`Fetched Coop owner: ${coopOwner}`)
-        logger.info(`Fetched EUR owner: ${eurOwner}`)
-        return {
-            coop: {
-                address: process.env.COOP_ADDRESS,
-                owner: async () => {
-                    let result = await coopInstance.call('owner', [], { callStatic: true })
-                    return result.decode()
-                }
-            },
-            eur: {
-                address: process.env.EUR_ADDRESS,
-                owner: async () => {
-                    let result = await eurInstance.call('owner', [], { callStatic: true })
-                    return result.decode()
-                }
-            }
-        }
-    } else {
-        logger.info("Base contracts not deployed. Starting deployment.")
-        
-        coopInstance = await client.getContractInstance(contracts.coopSource)
-        coop = await coopInstance.deploy()
-        logger.info(`Coop deployed at ${coop.address}`)
-
-        eurInstance = await client.getContractInstance(contracts.eurSource)
-        eur = await eurInstance.deploy([coop.address])
-        logger.info(`EUR deployed at ${eur.address}`)
-
-        await coopInstance.call('set_token', [eur.address])
-        logger.info(`EUR token registered in Coop contract`)
- 
-        if (process.env.COOP_OWNER !== undefined) {
-            logger.info(`Transferring Coop contract ownership to ${process.env.COOP_OWNER}`)
-            await coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
-            logger.info(`Ownership transferred.`)
-        }
-
-        if (process.env.EUR_OWNER !== undefined) {
-            logger.info(`Transferring EUR contract ownership to ${process.env.EUR_OWNER}`)
-            await eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
-            logger.info(`Ownership transferred.`)
-        }
-
-        return {
-            coop: {
-                address: coop.address,
-                owner: async () => {
-                    let result = await coopInstance.call('owner', [], { callStatic: true })
-                    return result.decode()
-                }
-            },
-            eur: {
-                address: eur.address,
-                owner: async () => {
-                    let result = await eurInstance.call('owner', [], { callStatic: true })
-                    return result.decode()
-                }
-            }
-        }
     }
 }
 
