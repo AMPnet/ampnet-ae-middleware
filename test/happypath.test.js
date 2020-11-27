@@ -486,7 +486,7 @@ describe('Happy path scenario', function() {
         assert.equal(revenueSharePayoutTxRecord.amount, revenueToPayout / 2)
         assert.strictEqual(revenueSharePayoutTxRecord.coop_id, coopId)
 
-        assert.strictEqual(bobWalletUpdates, 22)
+        assert.strictEqual(bobWalletUpdates, 23)
         socket.terminate()
     })
 

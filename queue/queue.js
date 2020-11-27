@@ -12,6 +12,7 @@ const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
 const txProcessor = require('../service/transaction-processor')
 const config = require('../config')
+const ws = require('../ws/server')
 
 let supervisorQueue
 let txProcessorQueue 
@@ -168,7 +169,9 @@ async function autoFunderJobCompleteHandler(job) {
         return
     }
     logger.info(`FUNDER-QUEUE: Job ${job.id} completed!`)
-    
+    for (wallet of job.data.wallets) {
+        ws.notifiySubscribers(wallet)
+    }
     repo.update({
         hash: jobData.originTxHash
     },

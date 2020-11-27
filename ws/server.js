@@ -113,4 +113,4 @@ async function stop() {
     return ws.close()
 }
 
-module.exports = { start, stop, notifySubscribersForTransaction }
+module.exports = { start, stop, notifySubscribersForTransaction, notifiySubscribers }
