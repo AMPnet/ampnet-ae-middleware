@@ -33,6 +33,8 @@ contract EUR =
 
   entrypoint balance_of(who: address) : int = lookup_by_address(who, state.balances, 0)
 
+  entrypoint balances() : map(address, int) = state.balances
+
   entrypoint allowance(owner: address, spender: address) : int = Map.lookup_default((owner, spender), state.allowed, 0)
 
   stateful entrypoint claim_ownership(newOwner: address) =

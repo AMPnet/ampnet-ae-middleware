@@ -6,6 +6,7 @@ let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
 let queueClient = require('../queue/queueClient')
+let cache = require('../cache/redis')
 let { Crypto } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
@@ -66,19 +67,28 @@ async function walletActive(call, callback) {
     try {
         let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
         logger.debug(`Address represented by given hash: ${tx.wallet}; Coop: ${tx.coop_id}`)
-        let result = await client.instance().contractCallStatic(
-            contracts.coopSource, 
-            tx.coop_contract,
-            functions.coop.isWalletActive, 
-            [ tx.wallet ],
-            {
-                callerId: Crypto.generateKeyPair().publicKey
+        let walletActiveResult = await cache.walletActive(
+            tx.coop_id,
+            tx.wallet,
+            async () => {
+                let result = await client.instance().contractCallStatic(
+                    contracts.coopSource, 
+                    tx.coop_contract,
+                    functions.coop.isWalletActive, 
+                    [ tx.wallet ],
+                    {
+                        callerId: Crypto.generateKeyPair().publicKey
+                    }
+                )
+                logger.debug(`Received static call result: %o`, result)
+                let resultDecoded = await result.decode()
+                return {
+                    active: resultDecoded
+                }
             }
         )
-        logger.debug(`Received static call result: %o`, result)
-        let resultDecoded = await result.decode()
-        logger.debug(`Wallet active: ${resultDecoded}`)
-        callback(null, { active: resultDecoded })
+        logger.debug(`Wallet active result: %o`, walletActiveResult)
+        callback(null, walletActiveResult)
     } catch (error) {
         logger.error(`Error fetching wallet active status \n%o`, err.pretty(error))
         err.handle(error, callback)

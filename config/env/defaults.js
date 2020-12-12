@@ -182,7 +182,8 @@ function getDb() {
 function getRedis() {
     return {
         host: valueOrDefault(process.env.REDIS_HOST, '127.0.0.1'),
-        port: Number(valueOrDefault(process.env.REDIS_PORT, 6379))
+        port: Number(valueOrDefault(process.env.REDIS_PORT, 6379)),
+        cacheTimeoutSeconds: Number(valueOrDefault(process.env.CACHE_TIMEOUT_SECONDS, 180))
     }
 }
 

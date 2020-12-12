@@ -95,6 +95,7 @@ let functions = {
         mint: "mint",
         allowance: "allowance",
         balanceOf: "balance_of",
+        balances: "balances",
         burnFrom: "burn",
         approve: "approve",
         getOwner: "owner",

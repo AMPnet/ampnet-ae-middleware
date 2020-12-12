@@ -4,7 +4,9 @@ let contracts = require('../ae/contracts')
 let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
+let commonUtil = require('../util/util')
 let err = require('../error/errors')
+let cache = require('../cache/redis')
 let { Crypto } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
@@ -177,20 +179,31 @@ async function getBalance(walletHash) {
     logger.debug(`Received request to fetch balance of wallet with txHash ${walletHash}`)
     let tx = await repo.findByHashOrThrow(walletHash)
     logger.debug(`Address represented by given hash: ${tx.wallet}`)
-    let result = await client.instance().contractCallStatic(
-        contracts.eurSource,
-        tx.eur_contract,
-        functions.eur.balanceOf,
-        [ tx.wallet ],
-        {
-            callerId: Crypto.generateKeyPair().publicKey
+    let balancesResult = await cache.balances(
+        tx.coop_id,
+        async () => {
+            let result = await client.instance().contractCallStatic(
+                contracts.eurSource,
+                tx.eur_contract,
+                functions.eur.balances,
+                [ ],
+                {
+                    callerId: Crypto.generateKeyPair().publicKey
+                }
+            )
+            let resultDecoded = await result.decode()
+            logger.debug(`Fetched total of ${resultDecoded.length} balance entries.`)
+            return commonUtil.arrayToJson(resultDecoded)
         }
     )
-    logger.debug(`Fetched result: %o`, result)
-    let resultDecoded = await result.decode()
-    let resultInEur = util.tokenToEur(resultDecoded)
-    logger.debug(`Successfully decoded balance: ${resultInEur}`)
-    return resultInEur
+    if (tx.wallet in balancesResult) {
+        let balance = balancesResult[tx.wallet]
+        logger.debug(`Wallet ${tx.wallet} exists in balances response - wallet balance: ${balance}`)
+        return util.tokenToEur(balance)
+    } else {
+        logger.debug(`Wallet ${tx.walelt} does not exist in balances response - wallet balance: 0`)
+        return 0
+    }
 }
 
 async function allowance(ownerRecord) {

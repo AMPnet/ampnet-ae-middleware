@@ -54,8 +54,16 @@ async function updateCooperative(coopId, updateData) {
 }
 
 async function addressFromWalletData(walletData) {
-    if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) { return aeUtil.enforceAkPrefix(walletData) }
-    return (await findByHashOrThrow(walletData)).wallet
+    let walletTx
+    if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) {
+        walletTx = await findByWalletOrThrow(walletData)
+    } else {
+        walletTx = await findByHashOrThrow(walletData)
+    }
+    return {
+        coopId: walletTx.coop_id,
+        wallet: aeUtil.enforceAkPrefix(walletTx.wallet)
+    }
 }
 
 async function findByHashOrThrow(txHash) {

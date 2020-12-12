@@ -6,6 +6,7 @@ let util = require('../ae/util')
 let err = require('../error/errors')
 let functions = require('../enums/enums').functions
 let config = require('../config')
+let cache = require('../cache/redis')
 let logger = require('../logger')(module)
 let { Crypto } = require('@aeternity/aepp-sdk')
 
@@ -120,69 +121,38 @@ async function startRevenueSharesPayout(call, callback) {
     }
 }
 
-async function getProjectsInfo(call, callback) {
-    try {
-        logger.debug(`Received request to fetch statuses for projects: ${call.request.projectTxHashes}`)
-        let walletToHashMap = new Map()
-        let projectWallets = await Promise.all(
-            call.request.projectTxHashes.map(async (projectTxHash) => {
-                return new Promise((resolve, reject) => {
-                    repo.findByHashOrThrow(projectTxHash).then(tx => { 
-                        walletToHashMap.set(tx.wallet, projectTxHash)
-                        resolve(tx.wallet) 
-                    }).catch(error => {
-                        reject(error)
-                    })
-                })
-            })
-        )        
-        logger.debug(`Addresses represented by given hashes: ${projectWallets}`)
-
-        let projectInfoResults = await Promise.all(
-            projectWallets.map(wallet => {
-                return new Promise((resolve, reject) => {
-                    getProjectInfo(wallet).then(info => {
-                        resolve({
-                            projectTxHash: walletToHashMap.get(wallet),
-                            ...info
-                        })
-                    }).catch(err =>
-                        reject(err)
-                    )
-                })
-            })
-        )
-        logger.debug(`Projects info response fetched \n%o`, projectInfoResults)
-        callback(null, { projects: projectInfoResults })
-    } catch(error) {
-        logger.error(`Error while fetching statuses for given projects list \n%o`, err.pretty(error))
-        err.handle(error, callback)
-    }
-}
-
 async function getInvestmentDetails(projectTxHash, investorTxHash) {
     logger.debug(`Received request to fetch investment details.`)
-    let investorWallet = (await repo.findByHashOrThrow(investorTxHash)).wallet
+    let investorWalletTx = await repo.findByHashOrThrow(investorTxHash) 
+    let investorWallet = investorWalletTx.wallet
     logger.debug(`Investor wallet: ${investorWallet}`)
     let projectWallet = (await repo.findByHashOrThrow(projectTxHash)).wallet
-    logger.debug(`Project: ${projectWallet}`) 
-    let result = await client.instance().contractCallStatic(
-        contracts.projSource,
-        util.enforceCtPrefix(projectWallet),
-        functions.proj.getInvestmentDetails,
-        [ investorWallet ],
-        {
-            callerId: Crypto.generateKeyPair().publicKey
+    logger.debug(`Project: ${projectWallet}`)
+    let investmentDetailsResult = await cache.getInvestmentDetails(
+        investorWalletTx.coop_id,
+        projectWallet,
+        investorWallet,
+        async () => {
+            let result = await client.instance().contractCallStatic(
+                contracts.projSource,
+                util.enforceCtPrefix(projectWallet),
+                functions.proj.getInvestmentDetails,
+                [ investorWallet ],
+                {
+                    callerId: Crypto.generateKeyPair().publicKey
+                }
+            )
+            let decodedResult = await result.decode()
+            return {
+                walletBalance: util.tokenToEur(decodedResult[0]),
+                amountInvested: util.tokenToEur(decodedResult[1]),
+                totalFundsRaised: util.tokenToEur(decodedResult[2]),
+                investmentCancelable: decodedResult[3],
+                payoutInProcess: decodedResult[4]
+            }
         }
     )
-    let decodedResult = await result.decode()
-    return {
-        walletBalance: util.tokenToEur(decodedResult[0]),
-        amountInvested: util.tokenToEur(decodedResult[1]),
-        totalFundsRaised: util.tokenToEur(decodedResult[2]),
-        investmentCancelable: decodedResult[3],
-        payoutInProcess: decodedResult[4]
-    }
+    return investmentDetailsResult
 }
 
 async function checkSharePayoutPreconditions(caller, project, revenue) {
@@ -224,28 +194,37 @@ async function activateSellOffer(fromTxHash, sellOfferTxHash) {
 
 async function getProjectInfo(wallet) {
     logger.debug(`Fetching info for project ${wallet}`)
-    var contract = await repo.addressFromWalletData(wallet)
-    let result = await client.instance().contractCallStatic(
-        contracts.projSource,
-        util.enforceCtPrefix(contract),
-        functions.proj.getInfo,
-        [ ],
-        {
-            callerId: Crypto.generateKeyPair().publicKey
+    let walletData = await repo.addressFromWalletData(wallet)
+    let contract = walletData.wallet
+    let coopId = walletData.coopId
+    let projectInfoResult = await cache.getProjectInfo(
+        coopId,
+        contract,
+        async () => {
+            let result = await client.instance().contractCallStatic(
+                contracts.projSource,
+                util.enforceCtPrefix(contract),
+                functions.proj.getInfo,
+                [ ],
+                {
+                    callerId: Crypto.generateKeyPair().publicKey
+                }
+            )
+            logger.debug(`Fetched result: %o`, result)
+            let decoded = await result.decode()
+            logger.debug(`Decoded project info: %o`, decoded)
+            return {
+                minPerUserInvestment: util.tokenToEur(decoded[0]),
+                maxPerUserInvestment: util.tokenToEur(decoded[1]),
+                investmentCap: util.tokenToEur(decoded[2]),
+                endsAt: decoded[3],
+                totalFundsRaised: util.tokenToEur(decoded[4]),
+                payoutInProcess: decoded[5],
+                balance: util.tokenToEur(decoded[6])
+            }
         }
     )
-    logger.debug(`Fetched result: %o`, result)
-    let decoded = await result.decode()
-    logger.debug(`Decoded project info: %o`, )
-    return {
-        minPerUserInvestment: util.tokenToEur(decoded[0]),
-        maxPerUserInvestment: util.tokenToEur(decoded[1]),
-        investmentCap: util.tokenToEur(decoded[2]),
-        endsAt: decoded[3],
-        totalFundsRaised: util.tokenToEur(decoded[4]),
-        payoutInProcess: decoded[5],
-        balance: util.tokenToEur(decoded[6])
-    }
+    return projectInfoResult
 }
 
 module.exports = { 
@@ -254,7 +233,6 @@ module.exports = {
     cancelInvestment,
     getInvestmentDetails,
     startRevenueSharesPayout, 
-    getProjectsInfo,
     activateSellOffer,
     getProjectInfo
 }

@@ -7,6 +7,7 @@ const util = require('../ae/util')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
 const queueClient = require('../queue/queueClient')
+const cache = require('../cache/redis')
 const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
 const coop = require('./coop')
@@ -30,16 +31,22 @@ async function process(hash) {
     if (info.returnType == 'ok') {
         logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
         transactions = await handleTransactionMined(hash)
-        if (transactions.length > 0 && transactions[0].originated_from !== null) {
-            let originHash = transactions[0].originated_from
-            repo.update(
-                { hash: originHash },
-                {
-                    supervisor_status: enums.SupervisorStatus.PROCESSED
-                }
-            ).then(_ => {
-                logger.info(`Updated origin transaction (${originHash}) supervisor state to processed.`)
-            })
+        if (transactions.length > 0) {
+            // Reset cache for cooperative behind this transaction because tx was mined successfully
+            await cache.invalidateCacheForCooperative(transactions[0].coop_id)
+
+            // Update origin transaction state if this transaction was triggered as a special call
+            if (transactions[0].originated_from !== null) {
+                let originHash = transactions[0].originated_from
+                repo.update(
+                    { hash: originHash },
+                    {
+                        supervisor_status: enums.SupervisorStatus.PROCESSED
+                    }
+                ).then(_ => {
+                    logger.info(`Updated origin transaction (${originHash}) supervisor state to processed.`)
+                })
+            }
         }
     } else {
         logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)

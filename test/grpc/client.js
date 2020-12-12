@@ -254,19 +254,6 @@ module.exports = {
             })
         })
     },
-    getProjectsInfo: async function(txHashes) {
-        return new Promise(resolve => {
-            client.getProjectsInfo({
-                projectTxHashes: txHashes
-            }, (err, result) => {
-                if (err != null) {
-                    resolve(err)
-                } else {
-                    resolve(result.projects)
-                }
-            })
-        })
-    },
     getInvestmentsInProject: async function(fromAddress, projectTxHash) {
         return new Promise(resolve => {
             client.getInvestmentsInProject({

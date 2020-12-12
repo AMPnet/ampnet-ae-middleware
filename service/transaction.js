@@ -127,8 +127,8 @@ async function getTransactionInfo(call, callback) {
             })
         } else {
             logger.debug(`Received request to fetch info for transaction with hash ${hash}. From: ${from} To: ${to}`)
-            let fromWallet = await repo.addressFromWalletData(from)
-            let toWallet = await repo.addressFromWalletData(to)
+            let fromWallet = (await repo.addressFromWalletData(from)).wallet
+            let toWallet = (await repo.addressFromWalletData(to)).wallet
             records = await repo.get({ 
                 hash: hash,
                 from_wallet: fromWallet,

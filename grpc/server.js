@@ -37,6 +37,9 @@ let repo = require('../persistence/repository')
 // client
 let client = require('../ae/client')
 
+// cache
+let cache = require('../cache/redis')
+
 // contracts
 let contracts = require('../ae/contracts')
 
@@ -112,7 +115,6 @@ module.exports = {
             getTransactionInfo: txSvc.getTransactionInfo,
             getPortfolio: txSvc.getPortfolio,
             getTransactions: txSvc.getTransactions,
-            getProjectsInfo: projSvc.getProjectsInfo,
             getInvestmentsInProject: txSvc.getInvestmentsInProject,
             generateCancelInvestmentTx: projSvc.cancelInvestment,
             generateApproveProjectWithdrawTx: projSvc.approveWithdraw,
@@ -137,12 +139,16 @@ module.exports = {
 
         // Start db consistency cronjob
         cron.start()
+
+        // Initialize Redis cache
+        cache.init()
     },
     stop: async function() {
         cron.stop()
         await httpServer.stop()
         await wsServer.stop()
         await queue.stop()
+        await cache.stop()
         return grpcServer.forceShutdown()
     }
 }

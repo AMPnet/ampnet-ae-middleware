@@ -14,6 +14,8 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
+let contracts = require('../ae/contracts')
+
 describe('Happy path scenario', function() {
 
     before(async () => {
@@ -110,7 +112,7 @@ describe('Happy path scenario', function() {
         let mintToBobTxSigned = await clients.owner().signTransaction(mintToBobTx)
         let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned, coopId)
         await util.waitTxProcessed(mintToBobTxHash)
-
+        
         let mintToAliceAmount = 10000
         let mintToAliceTx = await grpcClient.generateMintTx(addAliceWalletTxHash, mintToAliceAmount)
         let mintToAliceTxSigned = await clients.owner().signTransaction(mintToAliceTx)
