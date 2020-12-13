@@ -61,7 +61,6 @@ async function initWalletServiceGrpcClient() {
     let protoPath = path.resolve(__dirname, '../proto/wallet_service.proto')
     let protoDefinition = protoLoader.loadSync(protoPath)
     let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.walletservice.proto
-    console.log("wallet svc grpc", config.get().walletServiceGrpc)
     walletServiceGrpcClient = await new packageDefinition.WalletService(config.get().walletServiceGrpc, grpc.credentials.createInsecure());
 }
 
