@@ -66,13 +66,22 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
     }
 }
 
+function generateAborted(message) {
+    return new grpcErrors.AbortedError(message)
+}
+
 function handle(error, callback) {
     if (typeof error.response !== 'undefined') {
         callback(generate(type.AEPP_SDK_ERROR, error.response.data.reason), null)
     } else if (typeof error.decodedError !== 'undefined') {
-        callback(generate(type.PRECONDITION_FAILED_ERROR, filterMessage(error.decodedError)), null)
+        let filtered = filterMessage(error.decodedError)
+        if (isErrorFormatValid(filtered)) {
+            callback(generateAborted(filtered), null)
+        } else {
+            callback(generate(type.PRECONDITION_FAILED_ERROR, filtered), null)
+        }
     } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
-        if (errorCodeExists(error.message)) {
+        if (isErrorFormatValid(error.message) || errorCodeExists(error.message)) {
             callback(error, null)
         } else {
             if (error.code === 'TX_VERIFICATION_ERROR' && typeof error.errorData.validation !== 'undefined') {
@@ -108,6 +117,11 @@ function errorCodeExists(message) {
     return Object.values(type).indexOf(code) > -1
 }
 
+function isErrorFormatValid(str) {
+    let parts = str.split(">")
+    return parts.length === 2
+}
+
 function isBase64(str) {
     return Buffer.from(str, 'base64').toString('base64') === str
 }
@@ -131,4 +145,4 @@ function filterMessage(str) {
     }
 }
 
-module.exports = { generate, type, handle, decode, pretty }
+module.exports = { generate, generateAborted, type, handle, decode, pretty, isErrorFormatValid }

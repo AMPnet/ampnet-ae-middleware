@@ -36,10 +36,10 @@ contract SellOffer =
 
         require(
             project.is_completely_funded(),
-            "#Can not place sell offer. Associated project not funded completely.#")
+            "#658 > Can not place sell offer. Associated project not funded completely.#")
         require(
             project.get_investment(Call.origin) >= shares,
-            "#Can not place sell offer. Not enough shares to sell.#")
+            "#659 > Can not place sell offer. Not enough shares to sell.#")
         
         project.activate_sell_offer_beta(shares)
         Chain.event(SellOfferCreated)
@@ -59,10 +59,10 @@ contract SellOffer =
         let seller = Contract.creator
         require(
             !state.settled,
-            "#Error: sell offer already settled.#")
+            "#660 > Sell offer already settled.#")
         require(
             counterOfferPrice =< buyerBalance,
-            "#Error: insufficient funds.#")
+            "#661 > Insufficient funds.#")
         if (counterOfferPrice >= state.price)
             state.token.transfer_from(buyer, seller, state.price)
             state.project.transfer_shares(seller, buyer, state.shares)
@@ -79,13 +79,13 @@ contract SellOffer =
     stateful entrypoint accept_counter_offer(buyer: address) =
         require(
             Call.origin == Contract.creator,
-            "#Error: only seller can accept counter offer.#")
+            "#662 > Only seller can accept counter offer.#")
         require(
             !state.settled,
-            "#Error: sell offer already settled.#")
+            "#660 > Sell offer already settled.#")
         require(
             Map.member(buyer, state.counterOffers),
-            "#Error: tried to accept non-existing counter offer.#")
+            "#663 > Tried to accept non-existing counter offer.#")
         let price = state.counterOffers[buyer]
         let seller = Contract.creator
         state.token.transfer_from(buyer, seller, price)
@@ -96,10 +96,10 @@ contract SellOffer =
     stateful entrypoint cancel_offer() =
         require(
             Call.origin == Contract.creator,
-            "#Error: only seller can cancel offer.#")
+            "#664 > Only seller can cancel offer.#")
         require(
             !state.settled,
-            "#Error: can not cancel offer. Offer already settled.#")
+            "#660 > Sell offer already settled.#")
         put(state{ settled = true })
         Chain.event(SellOfferCanceled)
 

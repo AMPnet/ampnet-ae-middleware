@@ -22,8 +22,8 @@ contract Coop =
           claimOwnershipEnabled = false }
     
     stateful entrypoint claim_ownership(newOwner: address) =
-        require(state.claimOwnershipEnabled, "#Error: claim ownership feature is disabled. Aborting.#")
-        require(!state.claimOwnershipCalled, "#Error: trying to claim ownership more than once. Aborting.#")
+        require(state.claimOwnershipEnabled, "#600 > Claim ownership feature is disabled. Aborting.#")
+        require(!state.claimOwnershipCalled, "#601 > Trying to claim ownership more than once. Aborting.#")
         put(state{
             owner = newOwner,
             claimOwnershipCalled = true })
@@ -55,7 +55,7 @@ contract Coop =
 
     entrypoint token() : TokenInterface = 
         switch (state.token)
-            None => abort("#Token not initalized!#")
+            None => abort("#602 > Token not initalized!#")
             Some(token) => token
 
     stateful function recursive_wallets_add(wallets: list(address)) : int =
@@ -66,4 +66,4 @@ contract Coop =
             [] => 0
 
     function only_owner() =
-        require(Call.origin == state.owner, "#Only Platform Manager can make this action!#")
+        require(Call.origin == state.owner, "#603 > Only Platform Manager can make this action!#")

@@ -14,7 +14,7 @@ contract Organization =
     stateful entrypoint init(coop: CoopInterface) : state =
         require(
             coop.is_wallet_active(Call.origin),
-            "#Can not create organization. Creator must be registered platform user with activated wallet.#")
+            "#618 > Can not create organization. Creator must be registered platform user with activated wallet.#")
         Chain.event(OrganizationCreated)
         { coop = coop,
           owner = Call.origin, 
@@ -23,7 +23,7 @@ contract Organization =
     stateful entrypoint add_member(member: address) =
         only_owner()
         only_active_organization()
-        only_active_wallet(member, "#Member to be added to organization has to be registered platform user with active wallet.#")
+        only_active_wallet(member, "#619 > Member to be added to organization has to be registered platform user with active wallet.#")
         put(state{ members[member] = false })
     
     stateful entrypoint confirm_membership() =
@@ -32,10 +32,10 @@ contract Organization =
 
         let approval = Map.lookup(Call.origin, state.members)
         switch(approval)
-            None => abort("#Trying to accept organization invite which does not exist!#")
+            None => abort("#620 > Trying to accept organization invite which does not exist!#")
             Some(membershipConfirmed) =>
                 if (membershipConfirmed)
-                    abort("#Trying to accept organization invite but it was already accepted!#")
+                    abort("#621 > Trying to accept organization invite but it was already accepted!#")
                 else
                     put(state{ members[Call.origin] = true })
     
@@ -48,10 +48,10 @@ contract Organization =
     entrypoint is_member(member: address) = state.members[member = false]
 
     function only_owner() =
-        require(Call.origin == state.owner, "#Only organization owner can make this action!#")
+        require(Call.origin == state.owner, "#622 > Only organization owner can make this action!#")
 
     function only_active_wallet(wallet: address, errorMsg: string) =
-        let message = if (errorMsg == "") "#Only registered platform member with active wallet can make this action.#" else errorMsg
+        let message = if (errorMsg == "") "#623 > Only registered platform member with active wallet can make this action.#" else errorMsg
         require(
             state.coop.is_wallet_active(wallet),
             message)
@@ -59,4 +59,4 @@ contract Organization =
     function only_active_organization() =
         require(
             state.coop.is_wallet_active(Contract.address),
-            "#In order to make this action organization must have active wallet!#")
+            "#624 > In order to make this action organization must have active wallet!#")

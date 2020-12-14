@@ -14,7 +14,7 @@ let txProcessor = require('./transaction-processor')
 let queueClient = require('../queue/queueClient')
 let ErrorType = err.type
 
-let { TxState, TxType } = require('../enums/enums')
+let { TxType } = require('../enums/enums')
 const coop = require('./coop')
 
 async function postTransactionGrpc(call, callback) {
@@ -430,7 +430,11 @@ async function dryRun(txData) {
                 logger.debug(`Error detected while dryRunning transaction!`)
                 let errorMessage = await err.decode(callObj)
                 logger.debug(`Decoded error message: ${errorMessage}`)
-                throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
+                if (err.isErrorFormatValid(errorMessage)) {
+                    throw err.generateAborted(errorMessage)
+                } else {
+                    throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
+                }
             } else if (callObj.returnType === "ok") {
                 logger.debug(`No errors detected while dryRunning transaction! Transaction is safe for broadcasting.`)
                 return callObj

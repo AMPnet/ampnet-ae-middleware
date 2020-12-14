@@ -217,7 +217,7 @@ describe('Error handling tests', function() {
         })
         let txSigned = await clients.bob().signTransaction(tx)
         let err = await grpcClient.postTransaction(txSigned, coopId)
-        assert.strictEqual(err.message, "9 FAILED_PRECONDITION: 50 > Only Platform Manager can make this action!")
+        assert.strictEqual(err.message, "10 ABORTED: 603 > Only Platform Manager can make this action!")
     })
 
     it('Transaction should fail if trying to generate addWallet transaction for wallet that already exists', async () => {

@@ -80,7 +80,7 @@ describe('Ownership transfer tests', function() {
         })
         let forbiddenCoopOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenCoopOwnershipTransferTx)
         let forbiddenCoopOwnership = await grpcClient.postTransaction(forbiddenCoopOwnershipTransferTxSigned, coopId)
-        assert.equal(forbiddenCoopOwnership.details, "50 > Only Platform Manager can make this action!")
+        assert.equal(forbiddenCoopOwnership.details, "603 > Only Platform Manager can make this action!")
 
         let eurTransferCallData = await codec.eur.encodeTransferEurOwnership(accounts.alice.publicKey)
         let forbiddenEurOwnershipTransferTx = await client.instance().contractCallTx({
@@ -92,7 +92,7 @@ describe('Ownership transfer tests', function() {
         })
         let forbiddenEurOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenEurOwnershipTransferTx)
         let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned, coopId)
-        assert.equal(forbiddenEurOwnership.details, "50 > Only Token Issuer can make this action!")
+        assert.equal(forbiddenEurOwnership.details, "616 > Only Token Issuer can make this action!")
     })
 
 })
