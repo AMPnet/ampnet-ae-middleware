@@ -30,6 +30,7 @@ let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
 let sellOfferSvc = require('../service/selloffer')
+const walletServiceGrpcClient = require('../grpc/wallet-service')
 
 // repository
 let repo = require('../persistence/repository')
@@ -142,6 +143,9 @@ module.exports = {
 
         // Initialize Redis cache
         cache.init()
+
+        // Initialize Wallet Service gRPC client
+        await walletServiceGrpcClient.init()
     },
     stop: async function() {
         cron.stop()

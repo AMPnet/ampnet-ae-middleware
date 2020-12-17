@@ -1,7 +1,4 @@
 const Queue = require('bull')
-const path = require('path')
-const protoLoader = require('@grpc/proto-loader')
-const grpc = require('grpc')
 const { Crypto } = require('@aeternity/aepp-sdk')
 
 const clients = require('../ae/client')
@@ -13,13 +10,12 @@ const enums = require('../enums/enums')
 const txProcessor = require('../service/transaction-processor')
 const config = require('../config')
 const ws = require('../ws/server')
+const walletServiceGrpcClient = require('../grpc/wallet-service')
 
 let supervisorQueue
 let txProcessorQueue 
 let autoFunderQueueServer
 let autoFunderQueueClient
-
-let walletServiceGrpcClient
 
 async function init() {
     let redisConfig = {
@@ -52,16 +48,6 @@ async function init() {
 
     queueClient.init(autoFunderQueueServer, txProcessorQueue, supervisorQueue)
     logger.info("Queue Client initialized successfully!")
-
-    await initWalletServiceGrpcClient()
-    logger.info("Wallet Service GRPC Client initialized successfully!")
-}
-
-async function initWalletServiceGrpcClient() {
-    let protoPath = path.resolve(__dirname, '../proto/wallet_service.proto')
-    let protoDefinition = protoLoader.loadSync(protoPath)
-    let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.walletservice.proto
-    walletServiceGrpcClient = await new packageDefinition.WalletService(config.get().walletServiceGrpc, grpc.credentials.createInsecure());
 }
 
 async function supervisorQueueJobHandler(job) {
@@ -129,18 +115,7 @@ async function supervisorQueueJobHandler(job) {
 
         queueClient.publishJobFromTx(adminWalletCreateTx)
 
-        walletServiceGrpcClient.activateWallet({
-            address: adminWallet,
-            coop: coopId,
-            hash: activateAdminWalletResult.hash
-        }, (err, result) => {
-            if (err != null) {
-                logger.error(`SUPERVISOR-QUEUE: Error while calling activateWallet GRPC route: %o`, err)
-                throw err
-            } else {
-                logger.info(`SUPERVISOR-QUEUE: Activate Wallet called on GRPC Wallet Service for coop ${coopId}`)
-            }
-        })
+        walletServiceGrpcClient.activateWallet(adminWallet, coopId, activateAdminWalletResult.hash)
     } catch(error) {
         logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
         throw new Error(error)
