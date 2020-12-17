@@ -7,6 +7,7 @@ let assert = chai.assert
 let enums = require('../enums/enums')
 let aeUtil = require('../ae/util')
 let config = require('../config')
+let  projSvc = require('../service/project')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
@@ -142,13 +143,17 @@ describe('Happy path scenario', function() {
         let bobBalanceAfterWithdraw = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterWithdraw, mintToBobAmount - withdrawFromBobAmount)
 
+        let minPerUser = 10000
+        let maxPerUser = 100000
+        let cap = 200000
+        let endsAt = util.currentTimeWithDaysOffset(10)
         let createProjTx = await grpcClient.generateCreateProjectTx(
             addBobWalletTxHash,
             addOrgWalletTxHash,
-            10000,                              // min 100$ per user
-            100000,                             // max 1000$ per user
-            200000,                             // 2000$ investment cap
-            util.currentTimeWithDaysOffset(10)  // expires in 10 days
+            minPerUser,                             // min 100$ per user
+            maxPerUser,                             // max 1000$ per user
+            cap,                                    // 2000$ investment cap
+            endsAt                                  // expires in 10 days
         )
         let createProjTxSigned = await bobClient.signTransaction(createProjTx)
         let createProjTxHash = await grpcClient.postTransaction(createProjTxSigned, coopId)
@@ -158,6 +163,16 @@ describe('Happy path scenario', function() {
         let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
         let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned, coopId)
         await util.waitTxProcessed(addProjWalletTxHash)
+
+        let projDetailsUsingHttpUrl = `http://0.0.0.0:${config.get().http.port}/projects/${addProjWalletTxHash}`
+        let projDetailsUsingHttp = (await axios.get(projDetailsUsingHttpUrl)).data
+        assert.equal(projDetailsUsingHttp.minPerUserInvestment, minPerUser)
+        assert.equal(projDetailsUsingHttp.maxPerUserInvestment, maxPerUser)
+        assert.equal(projDetailsUsingHttp.investmentCap, cap)
+        assert.equal(projDetailsUsingHttp.endsAt, endsAt)
+        assert.equal(projDetailsUsingHttp.totalFundsRaised, 0)
+        assert.equal(projDetailsUsingHttp.payoutInProcess, false)
+        assert.equal(projDetailsUsingHttp.balance, 0)
 
         let aliceInvestmentAmount = mintToAliceAmount
         let aliceInvestTx = await grpcClient.generateInvestTx(addAliceWalletTxHash, addProjWalletTxHash, aliceInvestmentAmount)
@@ -414,6 +429,15 @@ describe('Happy path scenario', function() {
         assert.strictEqual(addProjWalletTxRecord.wallet, newProjWallet)
         assert.strictEqual(addProjWalletTxRecord.wallet_type, WalletType.PROJECT)
         assert.strictEqual(addProjWalletTxRecord.coop_id, coopId)
+
+        let projDetailsUsingService = await projSvc.getProjectInfoByWallet(addProjWalletTxRecord.wallet, addProjWalletTxRecord.coop_id)
+        assert.equal(projDetailsUsingService.minPerUserInvestment, minPerUser)
+        assert.equal(projDetailsUsingService.maxPerUserInvestment, maxPerUser)
+        assert.equal(projDetailsUsingService.investmentCap, cap)
+        assert.equal(projDetailsUsingService.endsAt, endsAt)
+        assert.equal(projDetailsUsingService.totalFundsRaised, cap)
+        assert.equal(projDetailsUsingService.payoutInProcess, false)
+        assert.equal(projDetailsUsingService.balance, 0)
 
         let approveAliceInvestmentTxRecord = (await db.getBy({hash: aliceInvestTxHash}))[0]
         assert.strictEqual(approveAliceInvestmentTxRecord.from_wallet, aliceWallet.publicKey)

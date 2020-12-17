@@ -192,18 +192,15 @@ async function activateSellOffer(fromTxHash, sellOfferTxHash) {
     return tx
 }
 
-async function getProjectInfo(wallet) {
+async function getProjectInfoByWallet(wallet, coopId) {
     logger.debug(`Fetching info for project ${wallet}`)
-    let walletData = await repo.addressFromWalletData(wallet)
-    let contract = walletData.wallet
-    let coopId = walletData.coopId
     let projectInfoResult = await cache.getProjectInfo(
         coopId,
-        contract,
+        wallet,
         async () => {
             let result = await client.instance().contractCallStatic(
                 contracts.projSource,
-                util.enforceCtPrefix(contract),
+                util.enforceCtPrefix(wallet),
                 functions.proj.getInfo,
                 [ ],
                 {
@@ -227,6 +224,14 @@ async function getProjectInfo(wallet) {
     return projectInfoResult
 }
 
+async function getProjectInfoByHash(txHash) {
+    logger.debug(`Fetching info for project with hash ${txHash}`)
+    let walletTx = await repo.findByHashOrThrow(txHash)
+    let wallet = walletTx.wallet
+    let coopId = walletTx.coop_id
+    return getProjectInfoByWallet(wallet, coopId)
+}
+
 module.exports = { 
     createProject,
     approveWithdraw,
@@ -234,5 +239,6 @@ module.exports = {
     getInvestmentDetails,
     startRevenueSharesPayout, 
     activateSellOffer,
-    getProjectInfo
+    getProjectInfoByHash,
+    getProjectInfoByWallet
 }

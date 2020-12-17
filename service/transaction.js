@@ -115,33 +115,35 @@ async function getPortfolio(call, callback) {
 
 async function getTransactionInfo(call, callback) {
     try {
+        function checkRecordsExist(recordsList) {
+            if (recordsList.length == 0) {
+                let error = err.generate(ErrorType.TX_NOT_FOUND)
+                logger.error(`Error while fetching transaction info: \n%o`, error)
+                err.handle(error, callback)
+                return
+            }
+        }
+
         let hash = call.request.txHash
         let from = call.request.from
         let to = call.request.to
 
-        let records
-        if (from === undefined || to === undefined || from === "" || to === "") {
-            logger.debug(`Received request to fetch info for transaction with hash ${hash}.`)
-            records = await repo.get({ 
-                hash: hash
-            })
-        } else {
-            logger.debug(`Received request to fetch info for transaction with hash ${hash}. From: ${from} To: ${to}`)
-            let fromWallet = (await repo.addressFromWalletData(from)).wallet
-            let toWallet = (await repo.addressFromWalletData(to)).wallet
-            records = await repo.get({ 
-                hash: hash,
-                from_wallet: fromWallet,
-                to_wallet: toWallet
-            })
-        }
+        logger.debug(`Received request to fetch info for transaction with hash ${hash}.`)
+        if (from) { logger.debug(`From: ${from}`) }
+        if (to)   { logger.debug(`From: ${to}`) }
 
-        if (records.length == 0) {
-            let error = err.generate(ErrorType.TX_NOT_FOUND)
-            logger.error(`Error while fetching transaction info: \n%o`, error)
-            err.handle(error, callback)
-            return
+        let records = await repo.get({
+            hash: hash
+        })
+        checkRecordsExist(records)
+
+        let coopId = records[0].coop_id
+        if (from && to) {
+            let fromWallet = (await repo.addressFromWalletData(from, coopId)).wallet
+            let toWallet = (await repo.addressFromWalletData(to, coopId)).wallet
+            records = records.filter(r => (r.from_wallet === fromWallet && r.to_wallet === toWallet))
         }
+        checkRecordsExist(records)
 
         let info = {
             txHash: records[0].hash,

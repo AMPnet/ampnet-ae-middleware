@@ -52,7 +52,7 @@ contract Project =
     stateful entrypoint init(
         organization: OrgInterface, 
         minInvestmentPerUser: int,
-        maxInvestmentPerUSer: int,
+        maxInvestmentPerUser: int,
         investmentCap: int,
         endsAt: int
         ) : state =
@@ -63,12 +63,21 @@ contract Project =
         require(
             organization.is_verified(),
             "#626 > Organization must have an active wallet before it can create new project for funding.#")
+        require(
+            minInvestmentPerUser > 0,
+            "#665 > Min user investment has to be greater than 0.#")
+        require(
+            maxInvestmentPerUser >= minInvestmentPerUser,
+            "#666 > Max user investment has to be greater than or equal to min user investment.#")
+        require(
+            investmentCap >= maxInvestmentPerUser,
+            "#667 > Investment cap has to be greater than or equal to max user investment.#")
         
         Chain.event(ProjectCreated)
 
         { organization = organization,
           minInvestmentPerUser = minInvestmentPerUser,
-          maxInvestmentPerUser = maxInvestmentPerUSer,
+          maxInvestmentPerUser = maxInvestmentPerUser,
           investmentCap = investmentCap,
           endsAt = endsAt,
           canCancelInvestmentUnconditionally = false,
@@ -191,7 +200,7 @@ contract Project =
         recursive_revenue_batch_payout(fromIndex, toIndex, revenue)
         state.payoutInProcess
 
-    entrypoint get_project_info() : (int * int * int * int * int * bool * int) = (state.minInvestmentPerUser, state.maxInvestmentPerUser, state.investmentCap, state.endsAt, state.totalFundsRaised, state.payoutInProcess, _balance())
+    entrypoint get_project_info() : (int * int * int * int * int * bool * int) = (_min_per_user(), state.maxInvestmentPerUser, state.investmentCap, state.endsAt, state.totalFundsRaised, state.payoutInProcess, _balance())
 
     entrypoint get_investment_details(investor: address) : (int * int * int * bool * bool) =
         let walletBalance = state.organization.coop().token().balance_of(investor)
@@ -269,16 +278,12 @@ contract Project =
             "#639 > User's investment will surpass maximum per user investment for this project. Aborting.#")
 
         require(
-            usersNewTotalInvestment >= state.minInvestmentPerUser,
+            usersNewTotalInvestment >= _min_per_user(),
             "#640 > User's investment does not meet required minimum per user investment for this project. Aborting.#")
         
         require(
             projectNewTotalInvestment =< state.investmentCap,
             "#641 > User's investment will make total funds raised greater than project's investment cap. Aborting.#")
-
-        require(
-            projectRemainingTotalInvestment == 0 || projectRemainingTotalInvestment >= state.minInvestmentPerUser,
-            "#642 > User's investment will leave tiny fraction of project non-funded. Enlarge your investment. Aborting.#")
 
         require(
             !has_funding_expired(),
@@ -351,5 +356,12 @@ contract Project =
             investments[to = 0] @ investment = investment + amount, 
             investments[from] @ investment = investment - amount,
             allowed[(from, caller)] @ approvedForTransfer = approvedForTransfer - amount })
+
+    function _min_per_user(): int =
+        let gap = state.investmentCap - state.totalFundsRaised
+        if (gap == 0 || gap >= state.minInvestmentPerUser)
+            state.minInvestmentPerUser
+        else
+            gap
 
     function _balance() = state.organization.coop().token().balance_of(Contract.address)

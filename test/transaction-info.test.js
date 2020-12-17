@@ -31,7 +31,7 @@ describe('Fetch transaction info tests', function() {
         assert.equal(info.state, txStateToGrpc(TxState.MINED))
         assert.equal(info.type, txTypeToGrpc(TxType.WALLET_CREATE))
 
-        let infoUsingHash = await grpcClient.getTransactionInfo(addBobWalletTxHash, adminWalletTx.hash, addBobWalletTxHash)
+        let infoUsingHash = await grpcClient.getTransactionInfo(addBobWalletTxHash, adminWalletTx.hash, bobWallet.publicKey)
         assert.equal(infoUsingHash.txHash, addBobWalletTxHash)
         assert.equal(infoUsingHash.fromTxHash, adminWalletTx.hash)
         assert.equal(infoUsingHash.toTxHash, addBobWalletTxHash)

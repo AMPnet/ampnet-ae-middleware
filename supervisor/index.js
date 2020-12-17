@@ -95,7 +95,7 @@ async function handleSupervisorRequiredRecords() {
                     case TxState.MINED:
                         if (tx.type === TxType.START_REVENUE_PAYOUT) {
                             logger.warn(`DB-SCANNER: Last revenue share payout transaction was mined successfully. Checking if more revenue share payout calls is required before finalizing job...`)
-                            projectService.getProjectInfo(tx.to_wallet).then(info => {
+                            projectService.getProjectInfoByWallet(tx.to_wallet, tx.coop_id).then(info => {
                                 if (info.payoutInProcess) {
                                     logger.warn(`DB-SCANNER: Revenue share payout was not finalized. One or more batches were not processed. Sending origin transaction to tx processor queue again...`)
                                     queueClient.publishTxProcessJob(hash)

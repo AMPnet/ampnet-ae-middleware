@@ -163,7 +163,7 @@ function addAcceptCounterOfferRoute() {
 
 function addGetProjectInfoRoute() {
     expr.get('/projects/:projectHash', async (req, res) => {
-        let info = await projSvc.getProjectInfo(req.params.projectHash)
+        let info = await projSvc.getProjectInfoByHash(req.params.projectHash)
         res.json({
             projectHash: req.params.projectHash,
             ...info

@@ -53,10 +53,10 @@ async function updateCooperative(coopId, updateData) {
     })
 }
 
-async function addressFromWalletData(walletData) {
+async function addressFromWalletData(walletData, coopId) {
     let walletTx
     if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) {
-        walletTx = await findByWalletOrThrow(walletData)
+        walletTx = await findByWalletOrThrow(walletData, coopId)
     } else {
         walletTx = await findByHashOrThrow(walletData)
     }
