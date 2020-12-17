@@ -10,7 +10,7 @@ const queueClient = require('../queue/queueClient')
 const cache = require('../cache/redis')
 const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
-const coop = require('./coop')
+const walletServiceGrpcClient = require('../grpc/wallet-service')
 
 /**
  * Updates record states for given transaction hash, after transaction has been mined or failed.
@@ -522,6 +522,7 @@ async function callSpecialActions(tx) {
         }).then(_ => {
             logger.info(`Successfully updated Platform Manager of ${coopInfo.id} to ${newOwner}.`)
         })
+        walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
         ws.notifySubscribersForTransaction(tx)
     }
     if (tx.type === enums.TxType.EUR_OWNERSHIP_TRANSFER) {
@@ -532,6 +533,7 @@ async function callSpecialActions(tx) {
         }).then(_ => {
             logger.info(`Successfully updated Token Issuer of ${coopInfo.id} to ${newOwner}.`)
         })
+        walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
         ws.notifySubscribersForTransaction(tx)
     }
 }
