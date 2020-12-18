@@ -53,19 +53,6 @@ async function updateCooperative(coopId, updateData) {
     })
 }
 
-async function addressFromWalletData(walletData, coopId) {
-    let walletTx
-    if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) {
-        walletTx = await findByWalletOrThrow(walletData, coopId)
-    } else {
-        walletTx = await findByHashOrThrow(walletData)
-    }
-    return {
-        coopId: walletTx.coop_id,
-        wallet: aeUtil.enforceAkPrefix(walletTx.wallet)
-    }
-}
-
 async function findByHashOrThrow(txHash) {
     return new Promise((resolve, reject) => {
         knex('transaction')
@@ -342,7 +329,6 @@ async function runMigrations() {
 }
 
 module.exports = {
-    addressFromWalletData,
     findFirstByWallet,
     findByHashOrThrow,
     findByWalletOrThrow,

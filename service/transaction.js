@@ -4,7 +4,6 @@ let client = require('../ae/client')
 let repo = require('../persistence/repository')
 let enums = require('../enums/enums')
 let contracts = require('../ae/contracts')
-let config = require('../config')
 let logger = require('../logger')(module)
 let codec = require('../ae/codec')
 let util = require('../ae/util')
@@ -15,7 +14,6 @@ let queueClient = require('../queue/queueClient')
 let ErrorType = err.type
 
 let { TxType } = require('../enums/enums')
-const coop = require('./coop')
 
 async function postTransactionGrpc(call, callback) {
     postTransaction(call.request.data, call.request.coop, function(err, result) {
@@ -124,6 +122,15 @@ async function getTransactionInfo(call, callback) {
             }
         }
 
+        async function addressFromWalletData(walletData) {
+            if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) {
+                return util.enforceAkPrefix(walletData)
+            } else {
+                walletTx = await findByHashOrThrow(walletData)
+                return walletTx.wallet
+            }
+        }
+
         let hash = call.request.txHash
         let from = call.request.from
         let to = call.request.to
@@ -137,10 +144,9 @@ async function getTransactionInfo(call, callback) {
         })
         checkRecordsExist(records)
 
-        let coopId = records[0].coop_id
         if (from && to) {
-            let fromWallet = (await repo.addressFromWalletData(from, coopId)).wallet
-            let toWallet = (await repo.addressFromWalletData(to, coopId)).wallet
+            let fromWallet = await addressFromWalletData(from)
+            let toWallet = await addressFromWalletData(to)
             records = records.filter(r => (r.from_wallet === fromWallet && r.to_wallet === toWallet))
         }
         checkRecordsExist(records)

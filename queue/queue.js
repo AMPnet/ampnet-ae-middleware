@@ -118,7 +118,6 @@ async function supervisorQueueJobHandler(job) {
         walletServiceGrpcClient.activateWallet(adminWallet, coopId, activateAdminWalletResult.hash)
     } catch(error) {
         logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
-        throw new Error(error)
     }
 }
 
