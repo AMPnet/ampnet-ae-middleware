@@ -126,7 +126,7 @@ async function getTransactionInfo(call, callback) {
             if (walletData.startsWith("ak_") || walletData.startsWith("ct_")) {
                 return util.enforceAkPrefix(walletData)
             } else {
-                walletTx = await findByHashOrThrow(walletData)
+                walletTx = await repo.findByHashOrThrow(walletData)
                 return walletTx.wallet
             }
         }
