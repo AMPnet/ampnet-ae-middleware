@@ -1,0 +1,85 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package com.ampnet.mailservice.proto;
+
+// User = User UUID
+
+message MailConfirmationRequest {
+  string email = 1;
+  string token = 2;
+  string coop = 3;
+  string language = 4;
+}
+
+message OrganizationInvitationRequest {
+  repeated string emails = 1;
+  string organization = 2;
+  string sender_email = 3;
+  string coop = 4;
+  string language = 5;
+}
+
+message DepositRequest {
+  string user = 1;
+  uint64 amount = 2;
+}
+
+message DepositInfoRequest {
+  string user = 1;
+  bool minted = 2;
+}
+
+message WithdrawRequest {
+  string user = 1;
+  uint64 amount = 2;
+}
+
+message WithdrawInfoRequest {
+  string user = 1;
+  bool burned = 2;
+}
+
+message ResetPasswordRequest {
+  string email = 1;
+  string token = 2;
+  string coop = 3;
+  string language = 4;
+}
+
+message NewWalletRequest {
+  WalletType type = 1;
+  string coop = 2;
+  string activation_data = 3;
+}
+
+message ActivatedWalletRequest {
+  WalletType type = 1;
+  string wallet_owner = 2;
+  string activation_data = 3;
+}
+
+message ProjectFullyFundedRequest {
+  string activation_data = 1;
+}
+
+message Empty {
+}
+
+enum WalletType {
+  USER = 0;
+  PROJECT = 1;
+  ORGANIZATION = 2;
+}
+
+service MailService {
+  rpc SendMailConfirmation(MailConfirmationRequest) returns (Empty);
+  rpc SendOrganizationInvitation(OrganizationInvitationRequest) returns (Empty);
+  rpc SendDepositRequest(DepositRequest) returns (Empty);
+  rpc SendWithdrawInfo(WithdrawInfoRequest) returns (Empty);
+  rpc SendWithdrawRequest(WithdrawRequest) returns (Empty);
+  rpc SendDepositInfo(DepositInfoRequest) returns (Empty);
+  rpc SendResetPassword(ResetPasswordRequest) returns (Empty);
+  rpc SendNewWalletMail(NewWalletRequest) returns (Empty);
+  rpc SendWalletActivated(ActivatedWalletRequest) returns (Empty);
+  rpc SendProjectFullyFunded(ProjectFullyFundedRequest) returns (Empty);
+}

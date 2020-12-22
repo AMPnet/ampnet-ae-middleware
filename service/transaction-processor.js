@@ -11,6 +11,8 @@ const cache = require('../cache/redis')
 const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
 const walletServiceGrpcClient = require('../grpc/wallet-service')
+const projectService = require('./project')
+const mailServiceGrpcClient = require('../grpc/mail-service')
 
 /**
  * Updates record states for given transaction hash, after transaction has been mined or failed.
@@ -535,6 +537,12 @@ async function callSpecialActions(tx) {
         })
         walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
         ws.notifySubscribersForTransaction(tx)
+    }
+    if (tx.type === enums.TxType.INVEST) {
+        let projectInfo = await projectService.getProjectInfoByWallet(tx.to_wallet, tx.coop_id)
+        if (projectInfo.investmentCap === projectInfo.totalFundsRaised) {
+            mailServiceGrpcClient.sendProjectFullyFunded(tx.to_wallet)
+        }
     }
 }
 

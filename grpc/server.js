@@ -31,6 +31,7 @@ let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
 let sellOfferSvc = require('../service/selloffer')
 const walletServiceGrpcClient = require('../grpc/wallet-service')
+const mailServiceGrpcClient = require('../grpc/mail-service')
 
 // repository
 let repo = require('../persistence/repository')
@@ -146,6 +147,9 @@ module.exports = {
 
         // Initialize Wallet Service gRPC client
         await walletServiceGrpcClient.init()
+
+        // Initialize Mail Service gRPC client
+        await mailServiceGrpcClient.init()
     },
     stop: async function() {
         cron.stop()
