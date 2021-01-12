@@ -521,9 +521,9 @@ async function callSpecialActions(tx) {
             coop_owner: newOwner
         }).then(_ => {
             logger.info(`Successfully updated Platform Manager of ${coopInfo.id} to ${newOwner}.`)
+            walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
+            ws.notifySubscribersForTransaction(tx)
         })
-        walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
-        ws.notifySubscribersForTransaction(tx)
     }
     if (tx.type === enums.TxType.EUR_OWNERSHIP_TRANSFER) {
         let newOwner = tx.to_wallet
@@ -532,9 +532,9 @@ async function callSpecialActions(tx) {
             eur_owner: newOwner
         }).then(_ => {
             logger.info(`Successfully updated Token Issuer of ${coopInfo.id} to ${newOwner}.`)
+            walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
+            ws.notifySubscribersForTransaction(tx)
         })
-        walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
-        ws.notifySubscribersForTransaction(tx)
     }
 }
 
