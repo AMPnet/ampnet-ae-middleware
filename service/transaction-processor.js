@@ -540,10 +540,12 @@ async function callSpecialActions(tx) {
     }
     if (tx.type === enums.TxType.INVEST) {
         const projectInfo = await projectService.getProjectInfoByWallet(tx.to_wallet, tx.coop_id)
-        const walletActivateTx = await repo.findByWalletOrThrow(tx.to_wallet, tx.coop_id)
+        const projectWalletActivateTx = await repo.findByWalletOrThrow(tx.to_wallet, tx.coop_id)
         if (projectInfo.investmentCap === projectInfo.totalFundsRaised) {
-            mailServiceGrpcClient.sendProjectFullyFunded(walletActivateTx.hash)
+            mailServiceGrpcClient.sendProjectFullyFunded(projectWalletActivateTx.hash)
         }
+        const userWalletActivateTx = await repo.findByWalletOrThrow(tx.from_wallet, tx.coop_id)
+        mailServiceGrpcClient.sendSuccessfullyInvested(userWalletActivateTx.hash, projectWalletActivateTx.hash, tx.amount)
     }
 }
 

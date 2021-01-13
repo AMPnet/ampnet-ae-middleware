@@ -62,6 +62,12 @@ message ProjectFullyFundedRequest {
   string activation_data = 1;
 }
 
+message SuccessfullyInvestedRequest {
+  string wallet_hash_from = 1;
+  string wallet_hash_to = 2;
+  string amount = 3;
+}
+
 message Empty {
 }
 
@@ -82,4 +88,5 @@ service MailService {
   rpc SendNewWalletMail(NewWalletRequest) returns (Empty);
   rpc SendWalletActivated(ActivatedWalletRequest) returns (Empty);
   rpc SendProjectFullyFunded(ProjectFullyFundedRequest) returns (Empty);
+  rpc SendSuccessfullyInvested(SuccessfullyInvestedRequest) returns (Empty);
 }

@@ -31,7 +31,8 @@ async function initMailServer() {
         packageName: 'com.ampnet.mailservice.proto',
         serviceName: 'MailService',
         rules: [
-            { method: "sendProjectFullyFunded", input: ".*", output: { } }
+            { method: "sendProjectFullyFunded", input: ".*", output: { } },
+            { method: "sendSuccessfullyInvested", input: ".*", output: { } }
         ]
     })
     mailGrpcMockServer.listen(config.get().mailServiceGrpc)
