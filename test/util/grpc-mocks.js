@@ -34,7 +34,7 @@ async function initMailServer() {
             { method: "sendProjectFullyFunded", input: ".*", output: { } }
         ]
     })
-    mailG.listen(config.get().mailServiceGrpc)
+    mailGrpcMockServer.listen(config.get().mailServiceGrpc)
 }
 
 async function stop() {
