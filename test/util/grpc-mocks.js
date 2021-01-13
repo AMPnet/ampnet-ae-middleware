@@ -3,8 +3,14 @@ const path = require('path')
 const config = require('../../config')
 
 let walletGrpcMockServer
+let mailGrpcMockServer
 
 async function init() {
+    await initWalletServer()
+    await initMailServer()
+}
+
+async function initWalletServer() {
     let protoPath = path.resolve(__dirname, '../../proto/wallet_service.proto');
     walletGrpcMockServer = createMockServer({
         protoPath: protoPath,
@@ -18,8 +24,22 @@ async function init() {
     walletGrpcMockServer.listen(config.get().walletServiceGrpc)
 }
 
+async function initMailServer() {
+    let protoPath = path.resolve(__dirname, '../../proto/mail_service.proto');
+    mailGrpcMockServer = createMockServer({
+        protoPath: protoPath,
+        packageName: 'com.ampnet.mailservice.proto',
+        serviceName: 'MailService',
+        rules: [
+            { method: "sendProjectFullyFunded", input: ".*", output: { } }
+        ]
+    })
+    mailGrpcMockServer.listen(config.get().mailServiceGrpc)
+}
+
 async function stop() {
-    return walletGrpcMockServer.close(true)
+    await walletGrpcMockServer.close(true)
+    await mailGrpcMockServer.close(true)
 }
 
 module.exports = { init, stop }

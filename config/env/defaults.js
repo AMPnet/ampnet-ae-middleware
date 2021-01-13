@@ -26,6 +26,7 @@ function get() {
         supervisor: supervisorKeypair,
         grpc: grpc,
         walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
+        mailServiceGrpc: valueOrDefault(process.env.MAIL_SERVICE_GRPC_URL, "0.0.0.0:50052"),
         http: http,
         ws: ws,
         db: db,

@@ -2,7 +2,7 @@ let grpcServer = require('../grpc/server')
 let queue = require('../queue/queue')
 
 let grpcClient = require('./grpc/client')
-let walletSvcMock = require('./util/walletSvcGrpc')
+let grpcMocks = require('./util/grpc-mocks')
 
 let clients = require('./ae/clients')
 let accounts = require('./ae/accounts')
@@ -18,7 +18,7 @@ before(async () => {
     await grpcClient.start()
     await clients.init()
     await db.init()
-    await walletSvcMock.init()
+    await grpcMocks.init()
     await queue.clearAll()
     await db.clearAll()
 
@@ -38,7 +38,8 @@ async function changeOwner(newOwner) {
 
 after(async () => {
     await grpcServer.stop()
-    await walletSvcMock.stop()
+    await grpcMocks.stop()
 })
 
 module.exports = { changeOwner }
+
