@@ -19,7 +19,7 @@
     "grpc": "^1.24.3",
     "grpc-errors": "^1.1.4",
     "grpc-middleware": "^1.1.0",
-    "knex": "^0.21.12",
+    "knex": "^0.21.16",
     "lodash": "^4.17.20",
     "pg": "^8.5.0",
     "prom-client": "^12.0.0",
