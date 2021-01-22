@@ -201,7 +201,7 @@ async function getBalance(walletHash) {
         logger.debug(`Wallet ${tx.wallet} exists in balances response - wallet balance: ${balance}`)
         return util.tokenToEur(balance)
     } else {
-        logger.debug(`Wallet ${tx.walelt} does not exist in balances response - wallet balance: 0`)
+        logger.debug(`Wallet ${tx.wallet} does not exist in balances response - wallet balance: 0`)
         return 0
     }
 }

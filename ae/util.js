@@ -17,6 +17,10 @@ function transactionExists(hash) {
        })
     })
 }
+async function waitNextBlock(afterHash) {
+    let tx = await client.instance().getTxInfo(afterHash)
+    return client.instance().awaitHeight(tx.height + 3)
+}
 
 function enforceAkPrefix(address) {
     if (address.startsWith("ct_")) { return address.replace("ct_", "ak_") }
@@ -62,6 +66,7 @@ function toAe(amount) {
 
 module.exports = {
     transactionExists,
+    waitNextBlock,
     enforceAkPrefix,
     enforceCtPrefix,
     eurToToken,

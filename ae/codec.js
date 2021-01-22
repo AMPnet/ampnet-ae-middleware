@@ -1,4 +1,3 @@
-let config = require('../config')
 let client = require('./client')
 let contracts = require('./contracts')
 let functions = require('../enums/enums').functions
