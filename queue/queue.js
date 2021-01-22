@@ -1,6 +1,7 @@
 const Queue = require('bull')
 const { Crypto } = require('@aeternity/aepp-sdk')
 
+const aeUtil = require('../ae/util')
 const clients = require('../ae/client')
 const contracts = require('../ae/contracts')
 const queueClient = require('./queueClient')
@@ -52,38 +53,44 @@ async function init() {
 
 async function supervisorQueueJobHandler(job) {
     try {
+        async function displayNonce(publicKey) {
+            let nonce = await clients.instance().getAccountNonce(publicKey)
+            logger.info(`SUPERVISOR-QUEUE: Nonce is now ${nonce}`)
+        }
+
         logger.info(`SUPERVISOR-QUEUE: Processing job with queue id ${job.id}`)
         let adminWallet = job.data.adminWallet
         let coopId = job.data.coopId
+        let supervisorPublicKey = config.get().supervisor.publicKey
+
         logger.info(`SUPERVISOR-QUEUE: Creating cooperative with id ${coopId} and owner ${adminWallet}`)
+        await displayNonce(supervisorPublicKey)
         
-        let coopInstance = await clients.supervisor().getContractInstance(contracts.coopSource, {
-            opts: {
-                abiVersion: 3
-            }
-        })
+        let coopInstance = await clients.supervisor().getContractInstance(contracts.coopSource)
         let coop = await coopInstance.deploy()
         logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coop.address}`)
-    
-        let eurInstance = await clients.supervisor().getContractInstance(contracts.eurSource, {
-            opts: {
-                abiVersion: 3
-            }
-        })
+        await displayNonce(supervisorPublicKey)
+
+        let eurInstance = await clients.supervisor().getContractInstance(contracts.eurSource)
         let eur = await eurInstance.deploy([coop.address])
         logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eur.address}`)
-    
+        await displayNonce(supervisorPublicKey)
+
         await coopInstance.call('set_token', [eur.address])
         logger.info(`SUPERVISOR-QUEUE: EUR token registered in Coop contract`)
-    
+        await displayNonce(supervisorPublicKey)
+
         let activateAdminWalletResult = await coopInstance.call('add_wallet', [ adminWallet ])
         logger.info(`SUPERVISOR-QUEUE: Admin wallet activated. Hash: ${activateAdminWalletResult.hash}`)
-    
+        await displayNonce(supervisorPublicKey)
+
         await coopInstance.call('transfer_ownership', [ adminWallet ])
         logger.info(`SUPERVISOR-QUEUE: Coop ownership transferred to admin wallet.`)
-    
+        await displayNonce(supervisorPublicKey)
+
         await eurInstance.call('transfer_ownership', [ adminWallet ])
         logger.info(`SUPERVISOR-QUEUE: EUR ownership transferred to admin wallet.`)
+        await displayNonce(supervisorPublicKey)
 
         await repo.saveCooperative({
             id: coopId,
@@ -117,7 +124,12 @@ async function supervisorQueueJobHandler(job) {
 
         walletServiceGrpcClient.activateWallet(adminWallet, coopId, activateAdminWalletResult.hash)
     } catch(error) {
-        logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
+        if (error.verifyTx) {
+            let verificationResult = await error.verifyTx()
+            logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, verificationResult)
+        } else {
+            logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
+        }
     }
 }
 

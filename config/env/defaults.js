@@ -45,8 +45,8 @@ function getNodeUrl() {
     if (process.env.NODE_URL !== undefined) { return process.env.NODE_URL }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "http://localhost:3013/"
-        case Environment.TESTNET: return "https://sdk-testnet.aepps.com/"
-        case Environment.MAINNET: return "https://sdk-mainnet.aepps.com"
+        case Environment.TESTNET: return "https://testnet.aeternity.io/"
+        case Environment.MAINNET: return "https://mainnet.aeternity.io/"
     }
 }
 
@@ -54,8 +54,8 @@ function getNodeInternalUrl() {
     if (process.env.NODE_INTERNAL_URL !== undefined) { return process.env.NODE_INTERNAL_URL }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return "http://localhost:3113/"
-        case Environment.TESTNET: return "https://sdk-testnet.aepps.com"
-        case Environment.MAINNET: return "https://sdk-mainnet.aepps.com"
+        case Environment.TESTNET: return "https://testnet.aeternity.io/"
+        case Environment.MAINNET: return "https://mainnet.aeternity.io/"
     }
 }
  

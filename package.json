@@ -2,7 +2,7 @@
   "name": "node-grpc-middleware",
   "version": "0.0.55",
   "dependencies": {
-    "@aeternity/aepp-sdk": "7.6.0",
+    "@aeternity/aepp-sdk": "7.7.0",
     "@grpc/proto-loader": "^0.5.5",
     "@hpidcock/node-grpc-interceptors": "0.0.9",
     "async": "^3.2.0",

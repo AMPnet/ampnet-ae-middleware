@@ -1,4 +1,4 @@
-let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract, Universal, Node } = require('@aeternity/aepp-sdk')
+let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract, Universal, Node, Crypto } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
 
@@ -16,16 +16,17 @@ async function init() {
         nodes: [{ name: "node", instance: aeNode }]
     })
 
+    let instanceKeypair = Crypto.generateKeyPair()
     aeInstance = await ContractWithAE({
         nodes: [
             { name: "node", instance: aeNode } 
         ],
+        keypair: instanceKeypair,
         compilerUrl: config.get().node.compilerUrl,
-        keypair: config.get().supervisor,
         accounts: [
-            MemoryAccount({ keypair: config.get().supervisor })
+            MemoryAccount({ keypair: instanceKeypair })
         ],
-        address: config.get().supervisor.publicKey,
+        address: instanceKeypair.publicKey,
         networkId: config.get().networkId
     })
 
