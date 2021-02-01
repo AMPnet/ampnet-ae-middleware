@@ -23,7 +23,7 @@ describe('Happy path scenario', function() {
         await db.clearTransactions(adminWalletTx.hash)
     })
 
-    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {   
+    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let bobWallet = Crypto.generateKeyPair()
         let aliceWallet = Crypto.generateKeyPair()
         let janeWallet = Crypto.generateKeyPair()

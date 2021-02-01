@@ -59,7 +59,7 @@ contract EUR =
   stateful entrypoint approve(spender: address, value: int) : bool = 
     let caller = Call.caller
     only_coop_user(caller, "#606 > Wallet not activated. Activate your wallet before approving funds withdrawal.#")
-    require(value > 0, "#607 > Amount of funds to be approved for withdrawal must be grater than 0.#")
+    require(value >= 0, "#607 > Amount of funds to be approved for withdrawal must be grater than 0.#")
     // require(spender != #0, "Invalid spender address")
 
     put(state{ allowed[(caller, spender)] = value })

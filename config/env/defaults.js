@@ -11,7 +11,8 @@ function get() {
         compilerUrl: getCompilerUrl(),
         networkId: getNetworkId()
     }
-    let supervisorKeypair = getSupervisorKeypair()
+    let coopDeployer = getCoopDeployer()
+    let eurDeployer = getEurDeployer()
     let grpc = getGrpc()
     let http = getHttp()
     let ws = getWs()
@@ -23,7 +24,8 @@ function get() {
         serviceEnv: process.env.ENV,
         env: process.env.NODE_ENV,
         node: node,
-        supervisor: supervisorKeypair,
+        coopDeployer: coopDeployer,
+        eurDeployer: eurDeployer,
         grpc: grpc,
         walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
         mailServiceGrpc: valueOrDefault(process.env.MAIL_SERVICE_GRPC_URL, "0.0.0.0:50052"),
@@ -77,25 +79,47 @@ function getNetworkId() {
     }
 }
 
-function getSupervisorKeypair() {
+function getCoopDeployer() {
     let localKeypair = {
-        publicKey: "ak_2mwRmUeYmfuW93ti9HMSUJzCk1EYcQEfikVSzgo6k2VghsWhgU",
-        secretKey: "bb9f0b01c8c9553cfbaf7ef81a50f977b1326801ebf7294d1c2cbccdedf27476e9bbf604e611b5460a3b3999e9771b6f60417d73ce7c5519e12f7e127a1225ca"
+        publicKey: "ak_B9BENA4p6hxcfpmbBr8iJEcnQacPjcSwpT2C1n4XxSbKL7aWt",
+        secretKey: "414833cf1f3b659af9c7509e58d8efdd55e189a058d9fe6c54d3c8029d2c0de51706bcc56c75cf55e0a3b25085bbdfc928bc893fc2972393c76e40bbfe8f9480"
     }
     let testnetKeypair = {
-        publicKey: "ak_2rTfmU3BQHohJvLPoHzRKWijgqbFi4dwYmzVjyqgQrQAQmkhr6",
-        secretKey: "2826a2b18d1bb2530341eb28e4e582613cd9d0687e7681c89a34159f39d554c3f40028b9aa6ee6fbcb53135799866edf08b8eb838fe9e56d9691d0963951358f"
+        publicKey: "ak_B9BENA4p6hxcfpmbBr8iJEcnQacPjcSwpT2C1n4XxSbKL7aWt",
+        secretKey: "414833cf1f3b659af9c7509e58d8efdd55e189a058d9fe6c54d3c8029d2c0de51706bcc56c75cf55e0a3b25085bbdfc928bc893fc2972393c76e40bbfe8f9480"
     }
-    if (process.env.SUPERVISOR_PUBLIC_KEY !== undefined && process.env.SUPERVISOR_PRIVATE_KEY !== undefined) {
+    if (process.env.COOP_DEPLOYER_PUBLIC_KEY !== undefined && process.env.COOP_DEPLOYER_PRIVATE_KEY !== undefined) {
         return {
-            publicKey: process.env.SUPERVISOR_PUBLIC_KEY,
-            secretKey: process.env.SUPERVISOR_PRIVATE_KEY
+            publicKey: process.env.COOP_DEPLOYER_PUBLIC_KEY,
+            secretKey: process.env.COOP_DEPLOYER_PRIVATE_KEY
         }
     }
     switch (process.env.NODE_ENV) {
         case Environment.LOCAL: return localKeypair
         case Environment.TESTNET: return testnetKeypair
-        case Environment.MAINNET: throw new Error("When deploying to mainnet, supervisor keypair should be provided as environment vars!")
+        case Environment.MAINNET: throw new Error("When deploying to mainnet, coop deployer keypair should be provided as environment vars!")
+    }
+}
+
+function getEurDeployer() {
+    let localKeypair = {
+        publicKey: "ak_s1tyKgKzEkXkVadanZjnhLKyhjmGbZCdpKQYXFCCSsNkAsopz",
+        secretKey: "a5fd61634de4eea80c1a3f56c2c3ed46b5611a8f1b5ea595f03131f9b5b0b3407190f23750db52115127392f93ca36671775ea9e62369eb35ebbcdc07041c1f3"
+    }
+    let testnetKeypair = {
+        publicKey: "ak_s1tyKgKzEkXkVadanZjnhLKyhjmGbZCdpKQYXFCCSsNkAsopz",
+        secretKey: "a5fd61634de4eea80c1a3f56c2c3ed46b5611a8f1b5ea595f03131f9b5b0b3407190f23750db52115127392f93ca36671775ea9e62369eb35ebbcdc07041c1f3"
+    }
+    if (process.env.EUR_DEPLOYER_PUBLIC_KEY !== undefined && process.env.EUR_DEPLOYER_PRIVATE_KEY !== undefined) {
+        return {
+            publicKey: process.env.EUR_DEPLOYER_PUBLIC_KEY,
+            secretKey: process.env.EUR_DEPLOYER_PRIVATE_KEY
+        }
+    }
+    switch (process.env.NODE_ENV) {
+        case Environment.LOCAL: return localKeypair
+        case Environment.TESTNET: return testnetKeypair
+        case Environment.MAINNET: throw new Error("When deploying to mainnet, eur deployer keypair should be provided as environment vars!")
     }
 }
 

@@ -29,16 +29,28 @@ async function init() {
         address: instanceKeypair.publicKey,
         networkId: config.get().networkId
     })
-
-    aeSupervisor = await Universal({
+    
+    coopDeployerInstance = await Universal({
         nodes: [
             { name: "node", instance: aeNode } 
         ],
         compilerUrl: config.get().node.compilerUrl,
         accounts: [
-            MemoryAccount({ keypair: config.get().supervisor })
+            MemoryAccount({ keypair: config.get().coopDeployer })
         ],
-        address: config.get().supervisor.publicKey,
+        address: config.get().coopDeployer.publicKey,
+        networkId: config.get().networkId
+    })
+
+    eurDeployerInstance = await Universal({
+        nodes: [
+            { name: "node", instance: aeNode } 
+        ],
+        compilerUrl: config.get().node.compilerUrl,
+        accounts: [
+            MemoryAccount({ keypair: config.get().eurDeployer })
+        ],
+        address: config.get().eurDeployer.publicKey,
         networkId: config.get().networkId
     })
 }
@@ -47,8 +59,12 @@ function instance() {
     return aeInstance
 }
 
-function supervisor() {
-    return aeSupervisor
+function coopDeployer() {
+    return coopDeployerInstance
+}
+
+function eurDeployer() {
+    return eurDeployerInstance
 }
 
 function node() {
@@ -62,7 +78,8 @@ function chainNode() {
 module.exports = {
     init,
     instance,
-    supervisor,
+    coopDeployer,
+    eurDeployer,
     node,
     chainNode
 }

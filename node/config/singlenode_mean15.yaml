@@ -28,8 +28,6 @@ mining:
     beneficiary: "ak_twR4h7dEcUtc2iSEDv8kB7UFJJDGiEDQCXr85C3fYF8FdVdyo"
     beneficiary_reward_delay: 2
     autostart: true
-    expected_mine_rate: 500
-    micro_block_cycle: 100
     cuckoo:
         edge_bits: 15
         miners:

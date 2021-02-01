@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "./node_modules/mocha/bin/mocha --timeout 2000000"
+    "test": "MAIL_SERVICE_GRPC_URL=xyz ./node_modules/mocha/bin/mocha --timeout 2000000"
   },
   "devDependencies": {
     "axios": "^0.21.0",
