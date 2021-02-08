@@ -13,4 +13,8 @@ function arrayToJson(array) {
     return resultJson
 }
 
-module.exports = { dateToUnixEpoch, arrayToJson }
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+module.exports = { dateToUnixEpoch, arrayToJson, sleep }
