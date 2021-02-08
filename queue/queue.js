@@ -74,27 +74,27 @@ async function supervisorQueueJobHandler(job) {
         let eurDeployerBaseNonce = await clients.instance().getAccountNonce(eurDeployerPublicKey)
         
         let coopInstance = await clients.coopDeployer().getContractInstance(contracts.coopSource)
-        let coop = await coopInstance.deploy()
+        let coop = await coopInstance.deploy([], opt = { nonce: coopDeployerBaseNonce })
         logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coop.address}`)
         coopDeployerBaseNonce = await awaitNonce(coopDeployerPublicKey, coopDeployerBaseNonce + 1)
 
         let eurInstance = await clients.eurDeployer().getContractInstance(contracts.eurSource)
-        let eur = await eurInstance.deploy([coop.address])
+        let eur = await eurInstance.deploy([coop.address], opt = { nonce: eurDeployerBaseNonce })
         logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eur.address}`)
         eurDeployerBaseNonce = await awaitNonce(eurDeployerPublicKey, eurDeployerBaseNonce + 1)
 
-        await coopInstance.call('set_token', [eur.address])
+        await coopInstance.call('set_token', [eur.address], opt = { nonce: coopDeployerBaseNonce })
         logger.info(`SUPERVISOR-QUEUE: EUR token registered in Coop contract`)
         coopDeployerBaseNonce = await awaitNonce(coopDeployerPublicKey, coopDeployerBaseNonce + 1)
 
-        let activateAdminWalletResult = await coopInstance.call('add_wallet', [ adminWallet ])
+        let activateAdminWalletResult = await coopInstance.call('add_wallet', [ adminWallet ], opt = { nonce: coopDeployerBaseNonce })
         logger.info(`SUPERVISOR-QUEUE: Admin wallet activated. Hash: ${activateAdminWalletResult.hash}`)
         coopDeployerBaseNonce = await awaitNonce(coopDeployerPublicKey, coopDeployerBaseNonce + 1)
 
-        await coopInstance.call('transfer_ownership', [ adminWallet ])
+        await coopInstance.call('transfer_ownership', [ adminWallet ], opt = { nonce: coopDeployerBaseNonce })
         logger.info(`SUPERVISOR-QUEUE: Coop ownership transferred to admin wallet.`)
 
-        await eurInstance.call('transfer_ownership', [ adminWallet ])
+        await eurInstance.call('transfer_ownership', [ adminWallet ], opt = { nonce: eurDeployerBaseNonce })
         logger.info(`SUPERVISOR-QUEUE: EUR ownership transferred to admin wallet.`)
 
         await repo.saveCooperative({
