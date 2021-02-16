@@ -1,8 +1,8 @@
 const ampqlib = require('amqplib')
 let config = require('../config')
 
-const QUEUE_MAIL_PROJECT_FULLY_FUNDED = 'mail.project.fully.funded'
-const QUEUE_MAIL_SUCCESSFULLY_INVESTED = 'mail.project.successfully.invested'
+const QUEUE_MAIL_PROJECT_FULLY_FUNDED = 'mail.middleware.project-funded'
+const QUEUE_MAIL_SUCCESSFULLY_INVESTED = 'mail.middleware.project-invested'
 
 async function sendMessage(queue, message) {
     const amqp_url = config.get().amqp
