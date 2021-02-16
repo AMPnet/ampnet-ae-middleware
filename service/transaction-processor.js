@@ -12,7 +12,6 @@ const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
 const walletServiceGrpcClient = require('../grpc/wallet-service')
 const projectService = require('./project')
-const mailServiceGrpcClient = require('../grpc/mail-service')
 const amqp = require('../amqp/amqp')
 
 /**
