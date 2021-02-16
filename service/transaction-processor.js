@@ -13,6 +13,7 @@ const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternit
 const walletServiceGrpcClient = require('../grpc/wallet-service')
 const projectService = require('./project')
 const mailServiceGrpcClient = require('../grpc/mail-service')
+const amqp = require('../amqp/amqp')
 
 /**
  * Updates record states for given transaction hash, after transaction has been mined or failed.
@@ -542,10 +543,21 @@ async function callSpecialActions(tx) {
         const projectInfo = await projectService.getProjectInfoByWallet(tx.to_wallet, tx.coop_id)
         const projectWalletActivateTx = await repo.findByWalletOrThrow(tx.to_wallet, tx.coop_id)
         if (projectInfo.investmentCap === projectInfo.totalFundsRaised) {
-            mailServiceGrpcClient.sendProjectFullyFunded(projectWalletActivateTx.hash)
+            await amqp.sendMessage(amqp.QUEUE_MAIL_PROJECT_FULLY_FUNDED, { txHash:projectWalletActivateTx.hash })
+                .then(_ => { logger.info('Project fully funded mail sent into queue')
+            }).catch(err => {
+                logger.warn(`Error while sending s: %o`, err)
+            })
         }
         const userWalletActivateTx = await repo.findByWalletOrThrow(tx.from_wallet, tx.coop_id)
-        mailServiceGrpcClient.sendSuccessfullyInvested(userWalletActivateTx.hash, projectWalletActivateTx.hash, tx.amount)
+        amqp.sendMessage(
+            amqp.QUEUE_MAIL_SUCCESSFULLY_INVESTED,
+            {userWalletTxHash: userWalletActivateTx.hash, projectWalletTxHash: projectWalletActivateTx.hash, amount: tx.amount}
+        ).then(_ => {
+            logger.info('Successfully invested mail sent into queue')
+        }).catch(err => {
+            logger.warn(`Error while sending s: %o`, err)
+        })
     }
 }
 

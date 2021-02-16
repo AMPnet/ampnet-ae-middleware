@@ -5,6 +5,7 @@
     "@aeternity/aepp-sdk": "7.7.0",
     "@grpc/proto-loader": "^0.5.5",
     "@hpidcock/node-grpc-interceptors": "0.0.9",
+    "amqplib": "^0.6.0",
     "async": "^3.2.0",
     "bignumber.js": "^9.0.1",
     "bull": "^3.18.1",

@@ -14,6 +14,7 @@ function get() {
     let coopDeployer = getCoopDeployer()
     let eurDeployer = getEurDeployer()
     let grpc = getGrpc()
+    let amqp = valueOrDefault(process.env.AMQP_URL, 'amqp://user:password@localhost')
     let http = getHttp()
     let ws = getWs()
     let db = getDb()
@@ -27,6 +28,7 @@ function get() {
         coopDeployer: coopDeployer,
         eurDeployer: eurDeployer,
         grpc: grpc,
+        amqp: amqp,
         walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
         mailServiceGrpc: valueOrDefault(process.env.MAIL_SERVICE_GRPC_URL, "0.0.0.0:50052"),
         http: http,
