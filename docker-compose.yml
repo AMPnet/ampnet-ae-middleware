@@ -49,3 +49,11 @@ services:
       - redis
     ports:
       - 8130:8130
+
+  rabbitmq:
+    image: rabbitmq:3.8-alpine
+    ports:
+      - 5672:5672
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
