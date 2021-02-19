@@ -1,7 +1,6 @@
 let { Crypto } = require('@aeternity/aepp-sdk')
 let { BigNumber } = require('bignumber.js')
 let fromExponential = require('from-exponential')
-
 let client = require('./client')
 
 const tokenFactor = 1000000000000000000 // 10e18 (1 eur = 100 * 10^18 tokens)

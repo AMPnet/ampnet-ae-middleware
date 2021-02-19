@@ -12,8 +12,18 @@ function init() {
     knex = require('knex')(config.get().db)
 }
 
+async function getCooperatives(filter) {
+    return new Promise(resolve => {
+        knex('coop')
+            .where(filter)
+            .then(records => {
+                resolve(records)
+            })
+    })
+}
+
 async function getCooperative(coopId) {
-    return new Promise((resolve, rejecet) => {
+    return new Promise((resolve, reject) => {
         knex('coop')
             .where({ id: coopId })
             .then(rows => {
@@ -348,5 +358,6 @@ module.exports = {
     runMigrations,
     init,
     getCooperative,
+    getCooperatives,
     updateCooperative
 }
