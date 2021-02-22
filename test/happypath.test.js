@@ -199,7 +199,6 @@ describe('Happy path scenario', function() {
         let aliceCancelInvestmentTxHash = await grpcClient.postTransaction(aliceCancelInvestmentTxSigned, coopId)
         await util.waitTxProcessed(aliceCancelInvestmentTxHash)
 
-
         let aliceBalanceAfterCancelInvestment = await grpcClient.getBalance(addAliceWalletTxHash)
         assert.equal(aliceBalanceAfterCancelInvestment, mintToAliceAmount)
         
