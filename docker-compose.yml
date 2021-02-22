@@ -16,7 +16,7 @@ services:
       - 6379:6379
 
   ae-node:
-    image: aeternity/aeternity:v5.5.4
+    image: aeternity/aeternity:v5.8.0
     environment:
       AETERNITY_CONFIG: /home/aeternity/aeternity.yaml
     volumes:
