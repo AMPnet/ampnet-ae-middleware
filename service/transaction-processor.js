@@ -542,7 +542,7 @@ async function callSpecialActions(tx) {
         const projectInfo = await projectService.getProjectInfoByWallet(tx.to_wallet, tx.coop_id)
         const projectWalletActivateTx = await repo.findByWalletOrThrow(tx.to_wallet, tx.coop_id)
         if (projectInfo.investmentCap === projectInfo.totalFundsRaised) {
-            await amqp.sendMessage(amqp.QUEUE_MAIL_PROJECT_FULLY_FUNDED, { txHash:projectWalletActivateTx.hash })
+            await amqp.sendMessage(amqp.QUEUE_MAIL_PROJECT_FULLY_FUNDED, { tx_hash: projectWalletActivateTx.hash })
                 .then(_ => { logger.info('Project fully funded mail sent into queue')
             }).catch(err => {
                 logger.warn(`Error while sending s: %o`, err)
@@ -551,7 +551,7 @@ async function callSpecialActions(tx) {
         const userWalletActivateTx = await repo.findByWalletOrThrow(tx.from_wallet, tx.coop_id)
         amqp.sendMessage(
             amqp.QUEUE_MAIL_SUCCESSFULLY_INVESTED,
-            {userWalletTxHash: userWalletActivateTx.hash, projectWalletTxHash: projectWalletActivateTx.hash, amount: tx.amount}
+            { user_wallet_tx_hash: userWalletActivateTx.hash, project_wallet_tx_hash: projectWalletActivateTx.hash, amount: tx.amount }
         ).then(_ => {
             logger.info('Successfully invested mail sent into queue')
         }).catch(err => {

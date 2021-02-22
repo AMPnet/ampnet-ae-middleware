@@ -3,6 +3,7 @@ let axios = require('axios')
 let { Crypto, Node, Universal: Ae, MemoryAccount } = require('@aeternity/aepp-sdk')
 let WebSocket = require('ws')
 let assert = chai.assert
+let expect = chai.expect
 
 let enums = require('../enums/enums')
 let aeUtil = require('../ae/util')
@@ -16,11 +17,13 @@ let util = require('./util/util')
 let db = require('./util/db')
 
 let contracts = require('../ae/contracts')
+let amqpUtil = require('./util/amqp-util')
 
 describe('Happy path scenario', function() {
 
     before(async () => {
         await db.clearTransactions(adminWalletTx.hash)
+        await amqpUtil.init()
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
@@ -195,6 +198,7 @@ describe('Happy path scenario', function() {
         let aliceCancelInvestmentTxSigned = await aliceClient.signTransaction(aliceCancelInvestmentTx)
         let aliceCancelInvestmentTxHash = await grpcClient.postTransaction(aliceCancelInvestmentTxSigned, coopId)
         await util.waitTxProcessed(aliceCancelInvestmentTxHash)
+
 
         let aliceBalanceAfterCancelInvestment = await grpcClient.getBalance(addAliceWalletTxHash)
         assert.equal(aliceBalanceAfterCancelInvestment, mintToAliceAmount)
@@ -514,6 +518,18 @@ describe('Happy path scenario', function() {
 
         assert.strictEqual(bobWalletUpdates, 23)
         socket.terminate()
-    })
 
+        // Verify AMQP messages
+        let projectFullyFundedMessages = amqpUtil.getProjectFullyFundedMessages()
+        const messageSent = amqpUtil.createFullyFundedMessage(addProjWalletTxHash)
+        expect(projectFullyFundedMessages).to.have.lengthOf(1)
+        expect(projectFullyFundedMessages).to.have.members([messageSent])
+
+        let successfullyInvestedMessages = amqpUtil.getSuccessfullyInvestedMessages()
+        const aliceMessage = amqpUtil.createSuccessfullyInvestedMessage(addAliceWalletTxHash, addProjWalletTxHash, aliceInvestmentAmount)
+        const bobMessage = amqpUtil.createSuccessfullyInvestedMessage(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
+        const janeMessage = amqpUtil.createSuccessfullyInvestedMessage(addJaneWalletTxHash, addProjWalletTxHash, janeInvestmentAmount)
+        expect(successfullyInvestedMessages).to.have.lengthOf(3)
+        expect(successfullyInvestedMessages).to.have.members([aliceMessage, bobMessage, janeMessage])
+    })
 })
