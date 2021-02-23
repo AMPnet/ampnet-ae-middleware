@@ -1,7 +1,6 @@
 const Queue = require('bull')
-const { Crypto } = require('@aeternity/aepp-sdk')
+const { Crypto, TxBuilder } = require('@aeternity/aepp-sdk')
 
-const util  = require('../util/util')
 const clients = require('../ae/client')
 const contracts = require('../ae/contracts')
 const queueClient = require('./queueClient')
@@ -53,54 +52,50 @@ async function init() {
 
 async function supervisorQueueJobHandler(job) {
     try {
-        async function awaitNonce(publicKey, targetNonce) {
-            let nonce = await clients.instance().getAccountNonce(publicKey)
-            logger.info(`SUPERVISOR-QUEUE: ${publicKey} nonce is now ${nonce}`)
-            if (nonce >= targetNonce) { return nonce }
-            else {
-                await util.sleep(500)
-                return awaitNonce(publicKey, targetNonce)
-            }
-        }
-
         logger.info(`SUPERVISOR-QUEUE: Processing job with queue id ${job.id}`)
         let adminWallet = job.data.adminWallet
         let coopId = job.data.coopId
-        let coopDeployerPublicKey = config.get().coopDeployer.publicKey
-        let eurDeployerPublicKey = config.get().eurDeployer.publicKey
 
         logger.info(`SUPERVISOR-QUEUE: Creating cooperative with id ${coopId} and owner ${adminWallet}`)
-        let coopDeployerBaseNonce = await clients.instance().getAccountNonce(coopDeployerPublicKey)
-        let eurDeployerBaseNonce = await clients.instance().getAccountNonce(eurDeployerPublicKey)
-        
-        let coopInstance = await clients.coopDeployer().getContractInstance(contracts.coopSource)
-        let coop = await coopInstance.deploy([], opt = { nonce: coopDeployerBaseNonce })
-        logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coop.address}`)
-        coopDeployerBaseNonce = await awaitNonce(coopDeployerPublicKey, coopDeployerBaseNonce + 1)
+        let existingCooperatives = await repo.getCooperatives({
+            id: job.data.coopId
+        })
+        if (existingCooperatives.length > 0) {
+            logger.warn(`SUPERVISOR-QUEUE: Failed to create cooperative, ${job.data.coopId} already exists!`)
+            return
+        }
 
-        let eurInstance = await clients.eurDeployer().getContractInstance(contracts.eurSource)
-        let eur = await eurInstance.deploy([coop.address], opt = { nonce: eurDeployerBaseNonce })
-        logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eur.address}`)
-        eurDeployerBaseNonce = await awaitNonce(eurDeployerPublicKey, eurDeployerBaseNonce + 1)
+        let coopInstance = await clients.deployer().getContractInstance(contracts.coopSource)
+        let coopDeployResult = await executeUntilNonceOk(() => coopInstance.deploy([ ]))
+        logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coopDeployResult.contractId}`)
 
-        await coopInstance.call('set_token', [eur.address], opt = { nonce: coopDeployerBaseNonce })
+        let eurInstance = await clients.deployer().getContractInstance(contracts.eurSource)
+        let eurDeployResult = await executeUntilNonceOk(() => eurInstance.deploy([coopDeployResult.contractId]))
+        logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eurDeployResult.contractId}`)
+
+        let coopInstanceDeployed = await clients.deployer().getContractInstance(contracts.coopSource, {
+            contractAddress: coopDeployResult.contractId
+        })
+        let eurInstanceDeployed = await clients.deployer().getContractInstance(contracts.eurSource, {
+            contractAddress: eurDeployResult.contractId
+        })
+
+        await executeUntilNonceOk(() => coopInstanceDeployed.call('set_token', [eurDeployResult.contractId]))
         logger.info(`SUPERVISOR-QUEUE: EUR token registered in Coop contract`)
-        coopDeployerBaseNonce = await awaitNonce(coopDeployerPublicKey, coopDeployerBaseNonce + 1)
 
-        let activateAdminWalletResult = await coopInstance.call('add_wallet', [ adminWallet ], opt = { nonce: coopDeployerBaseNonce })
+        let activateAdminWalletResult = await executeUntilNonceOk(() => coopInstanceDeployed.call('add_wallet', [ adminWallet ]))
         logger.info(`SUPERVISOR-QUEUE: Admin wallet activated. Hash: ${activateAdminWalletResult.hash}`)
-        coopDeployerBaseNonce = await awaitNonce(coopDeployerPublicKey, coopDeployerBaseNonce + 1)
 
-        await coopInstance.call('transfer_ownership', [ adminWallet ], opt = { nonce: coopDeployerBaseNonce })
+        await executeUntilNonceOk(() => coopInstanceDeployed.call('transfer_ownership', [ adminWallet ]))
         logger.info(`SUPERVISOR-QUEUE: Coop ownership transferred to admin wallet.`)
 
-        await eurInstance.call('transfer_ownership', [ adminWallet ], opt = { nonce: eurDeployerBaseNonce })
+        await executeUntilNonceOk(() => eurInstanceDeployed.call('transfer_ownership', [ adminWallet ]))
         logger.info(`SUPERVISOR-QUEUE: EUR ownership transferred to admin wallet.`)
 
         await repo.saveCooperative({
             id: coopId,
-            coop_contract: coop.address,
-            eur_contract: eur.address,
+            coop_contract: coopDeployResult.contractId,
+            eur_contract: eurDeployResult.contractId,
             coop_owner: adminWallet,
             eur_owner: adminWallet
         })
@@ -109,9 +104,9 @@ async function supervisorQueueJobHandler(job) {
         let workerWallet = Crypto.generateKeyPair()
         let adminWalletCreateTx = {
             hash: activateAdminWalletResult.hash,
-            from_wallet: activateAdminWalletResult.result.callerId,
+            from_wallet: activateAdminWalletResult.callerId,
             to_wallet: adminWallet,
-            input: activateAdminWalletResult.txData.tx.callData,
+            input: activateAdminWalletResult.callData,
             supervisor_status: enums.SupervisorStatus.REQUIRED,
             type: enums.TxType.WALLET_CREATE,
             wallet: adminWallet,
@@ -126,7 +121,6 @@ async function supervisorQueueJobHandler(job) {
         logger.info(`SUPERVISOR-QUEUE: Admin wallet creation transaction info saved.`)
 
         queueClient.publishJobFromTx(adminWalletCreateTx)
-
         walletServiceGrpcClient.activateWallet(adminWallet, coopId, activateAdminWalletResult.hash)
     } catch(error) {
         if (error.verifyTx) {
@@ -166,6 +160,76 @@ async function autoFunderJobCompleteHandler(job) {
         hash: jobData.originTxHash
     },
     { supervisor_status: enums.SupervisorStatus.PROCESSED })
+}
+
+function executeUntilNonceOk(aeRunnable, maxCalls = 100) {
+    return new Promise((resolve, reject) => {
+        if (maxCalls === 0) {
+            logger.warn(`NONCE-EXECUTOR: Reached max calls. Giving up.`)
+            reject(new Error("NONCE-EXECUTOR: Waiting for Ae call execution timed out.")) 
+        }
+        else {
+            aeRunnable()
+            .then(response => { 
+                logger.info(`NONCE-EXECUTOR: Call executed successfully!`)
+                let additionalInfo = {
+                    hash: (response.hash ? response.hash : response.transaction),
+                    callData: ((response.txData && response.txData.tx) ? response.txData.tx.callData : undefined)
+                }
+                resolve({
+                    ...response.result,
+                    ...additionalInfo
+                })
+            })
+            .catch(err => {
+                if (err.verifyTx) {
+                    err.verifyTx().then(async verificationResult => {
+                        if (Array.isArray(verificationResult.validation)) {
+                            if (verificationResult.validation.length === 0 || (verificationResult.validation[0].txKey && verificationResult.validation[0].txKey === 'nonce')) {
+                                let hash = TxBuilder.buildTxHash(err.rawTx)
+                                logger.warn(`NONCE-EXECUTOR: Nonce issue detected. Will attempt to wait for for transaction, hash is ${hash}`)
+                                clients.instance().poll(hash, { blocks: 50 })
+                                    .then(pollResult => {
+                                        if (pollResult.returnType === 'ok') { 
+                                            let pollResultProcessed = {
+                                                hash: pollResult.hash,
+                                                callerId: pollResult.callerId,
+                                                contractId: pollResult.contractId,
+                                                callData: pollResult.tx.callData
+                                            }
+                                            resolve(pollResultProcessed)  
+                                        }
+                                        else {
+                                            logger.warn(`NONCE-EXECUTOR: Attempt to wait for transaction failed. Executing recursive call...`)
+                                            executeUntilNonceOk(aeRunnable, maxCalls - 1)
+                                                .then(resolve)
+                                                .catch(reject)
+                                        }
+                                    }).catch(_ => {
+                                        logger.warn(`NONCE-EXECUTOR: Attempt to wait for transaction failed. Executing recursive call...`)
+                                        executeUntilNonceOk(aeRunnable, maxCalls - 1)
+                                            .then(resolve)
+                                            .catch(reject)
+                                    })
+                            } else {
+                                logger.warn(`NONCE-EXECUTOR: Detected issue not related to nonce. Giving up...`)
+                                reject(err)
+                            }
+                        } else {
+                            logger.warn(`NONCE-EXECUTOR: Detected issue not related to nonce. Giving up...`)
+                            reject(err)
+                        }
+                    }).catch(_ => {
+                        logger.warn(`NONCE-EXECUTOR: Detected an issue but verifyTx() failed. Giving up...`)
+                        reject(err)
+                    })
+                } else {
+                    logger.warn(`NONCE-EXECUTOR: Detected an issue but verifyTx() function not provided. Giving up...`)
+                    reject(err)
+                }
+            })
+        }
+    })
 }
 
 async function stop() {

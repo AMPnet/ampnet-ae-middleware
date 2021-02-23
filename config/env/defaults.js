@@ -11,8 +11,7 @@ function get() {
         compilerUrl: getCompilerUrl(),
         networkId: getNetworkId()
     }
-    let coopDeployer = getCoopDeployer()
-    let eurDeployer = getEurDeployer()
+    let deployer = getDeployer()
     let grpc = getGrpc()
     let amqp = valueOrDefault(process.env.AMQP_URL, 'amqp://user:password@localhost')
     let http = getHttp()
@@ -25,8 +24,7 @@ function get() {
         serviceEnv: process.env.ENV,
         env: process.env.NODE_ENV,
         node: node,
-        coopDeployer: coopDeployer,
-        eurDeployer: eurDeployer,
+        deployer: deployer,
         grpc: grpc,
         amqp: amqp,
         walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
@@ -81,7 +79,7 @@ function getNetworkId() {
     }
 }
 
-function getCoopDeployer() {
+function getDeployer() {
     let localKeypair = {
         publicKey: "ak_B9BENA4p6hxcfpmbBr8iJEcnQacPjcSwpT2C1n4XxSbKL7aWt",
         secretKey: "414833cf1f3b659af9c7509e58d8efdd55e189a058d9fe6c54d3c8029d2c0de51706bcc56c75cf55e0a3b25085bbdfc928bc893fc2972393c76e40bbfe8f9480"
@@ -100,28 +98,6 @@ function getCoopDeployer() {
         case Environment.LOCAL: return localKeypair
         case Environment.TESTNET: return testnetKeypair
         case Environment.MAINNET: throw new Error("When deploying to mainnet, coop deployer keypair should be provided as environment vars!")
-    }
-}
-
-function getEurDeployer() {
-    let localKeypair = {
-        publicKey: "ak_s1tyKgKzEkXkVadanZjnhLKyhjmGbZCdpKQYXFCCSsNkAsopz",
-        secretKey: "a5fd61634de4eea80c1a3f56c2c3ed46b5611a8f1b5ea595f03131f9b5b0b3407190f23750db52115127392f93ca36671775ea9e62369eb35ebbcdc07041c1f3"
-    }
-    let testnetKeypair = {
-        publicKey: "ak_s1tyKgKzEkXkVadanZjnhLKyhjmGbZCdpKQYXFCCSsNkAsopz",
-        secretKey: "a5fd61634de4eea80c1a3f56c2c3ed46b5611a8f1b5ea595f03131f9b5b0b3407190f23750db52115127392f93ca36671775ea9e62369eb35ebbcdc07041c1f3"
-    }
-    if (process.env.EUR_DEPLOYER_PUBLIC_KEY !== undefined && process.env.EUR_DEPLOYER_PRIVATE_KEY !== undefined) {
-        return {
-            publicKey: process.env.EUR_DEPLOYER_PUBLIC_KEY,
-            secretKey: process.env.EUR_DEPLOYER_PRIVATE_KEY
-        }
-    }
-    switch (process.env.NODE_ENV) {
-        case Environment.LOCAL: return localKeypair
-        case Environment.TESTNET: return testnetKeypair
-        case Environment.MAINNET: throw new Error("When deploying to mainnet, eur deployer keypair should be provided as environment vars!")
     }
 }
 
