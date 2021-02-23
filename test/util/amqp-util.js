@@ -47,7 +47,7 @@ function getSuccessfullyInvestedMessages() {
 function createSuccessfullyInvestedMessage(user_wallet_tx_hash, project_wallet_tx_hash, amount) {
     return JSON.stringify(
         { user_wallet_tx_hash: user_wallet_tx_hash, project_wallet_tx_hash: project_wallet_tx_hash, amount: amount.toString() }
-        )
+    )
 }
 
 function createFullyFundedMessage(tx_hash) {
