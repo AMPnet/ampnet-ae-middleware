@@ -194,7 +194,7 @@ function configureHealthAndMetrics() {
     prometheus.collectDefaultMetrics()
     expr.get('/prometheus', (req, res) => {
         res.set('Content-Type', prometheus.register.contentType)
-        res.end(prometheus.register.metrics())
+        res.send(prometheus.register.metrics())
     })
 }
 
