@@ -1,5 +1,5 @@
 const amqplib = require('amqplib')
-let config = require('../config')
+const config = require('../config')
 
 const QUEUE_MAIL_PROJECT_FULLY_FUNDED = 'mail.middleware.project-funded'
 const QUEUE_MAIL_SUCCESSFULLY_INVESTED = 'mail.middleware.project-invested'

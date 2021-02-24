@@ -2,38 +2,31 @@ const amqplib = require('amqplib')
 const config = require('../../config')
 const {QUEUE_MAIL_SUCCESSFULLY_INVESTED, QUEUE_MAIL_PROJECT_FULLY_FUNDED} = require("../../amqp/amqp");
 
-let connection
-let channel
 let projectFullyFundedMessages = []
 let successfullyInvestedMessages = []
 
 async function init() {
-    await createChannel()
-    await handleChannel(QUEUE_MAIL_SUCCESSFULLY_INVESTED, (msg) => {
-        successfullyInvestedMessages.push(msg.content.toString())
+    const amqp_url = config.get().amqp
+    const connection = await amqplib.connect(amqp_url)
+    const channel = await connection.createChannel()
+    await handleChannel(channel, QUEUE_MAIL_SUCCESSFULLY_INVESTED, (msg) => {
+        successfullyInvestedMessages.push(msg)
     });
-    await handleChannel(QUEUE_MAIL_PROJECT_FULLY_FUNDED, (msg) => {
-        projectFullyFundedMessages.push(msg.content.toString())
+    await handleChannel(channel, QUEUE_MAIL_PROJECT_FULLY_FUNDED, (msg) => {
+        projectFullyFundedMessages.push(msg)
     });
 }
 
-async function handleChannel(queue, handle) {
-    await channel.assertQueue(queue, {
+async function handleChannel(channel, queue, handle) {
+    channel.purgeQueue(queue);
+    channel.assertQueue(queue, {
         durable: true
-    })
+    });
     channel.consume(queue, (msg) => {
-        handle(msg);
+        handle(msg.content.toString());
     }, {
         noAck: true
     });
-}
-
-async function createChannel () {
-    const amqp_url = config.get().amqp
-    connection = await amqplib.connect(amqp_url)
-    channel = await connection.createChannel()
-    await channel.purgeQueue(QUEUE_MAIL_SUCCESSFULLY_INVESTED)
-    await channel.purgeQueue(QUEUE_MAIL_PROJECT_FULLY_FUNDED)
 }
 
 function getProjectFullyFundedMessages() {
