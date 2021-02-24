@@ -65,19 +65,33 @@ async function supervisorQueueJobHandler(job) {
             return
         }
 
-        let coopInstance = await clients.deployer().getContractInstance(contracts.coopSource)
+        let coopInstance = await clients.deployer().getContractInstance(contracts.coopSource, {
+            opt: {
+                verify: false
+            }
+        })
         let coopDeployResult = await executeUntilNonceOk(() => coopInstance.deploy([ ]))
         logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coopDeployResult.contractId}`)
 
-        let eurInstance = await clients.deployer().getContractInstance(contracts.eurSource)
+        let eurInstance = await clients.deployer().getContractInstance(contracts.eurSource, {
+            opt: {
+                verify: false
+            }
+        })
         let eurDeployResult = await executeUntilNonceOk(() => eurInstance.deploy([coopDeployResult.contractId]))
         logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eurDeployResult.contractId}`)
 
         let coopInstanceDeployed = await clients.deployer().getContractInstance(contracts.coopSource, {
-            contractAddress: coopDeployResult.contractId
+            contractAddress: coopDeployResult.contractId,
+            opt: {
+                verify: false
+            }
         })
         let eurInstanceDeployed = await clients.deployer().getContractInstance(contracts.eurSource, {
-            contractAddress: eurDeployResult.contractId
+            contractAddress: eurDeployResult.contractId,
+            opt: {
+                verify: false
+            }
         })
 
         await executeUntilNonceOk(() => coopInstanceDeployed.call('set_token', [eurDeployResult.contractId]))
@@ -188,7 +202,7 @@ function executeUntilNonceOk(aeRunnable, maxCalls = 100) {
                             if (verificationResult.validation.length === 0 || (verificationResult.validation[0].txKey && verificationResult.validation[0].txKey === 'nonce')) {
                                 let hash = TxBuilder.buildTxHash(err.rawTx)
                                 logger.warn(`NONCE-EXECUTOR: Nonce issue detected. Will attempt to wait for for transaction, hash is ${hash}`)
-                                clients.instance().poll(hash, { blocks: 50 })
+                                clients.instance().poll(hash, { blocks: 10 })
                                     .then(pollResult => {
                                         if (pollResult.returnType === 'ok') { 
                                             let pollResultProcessed = {
