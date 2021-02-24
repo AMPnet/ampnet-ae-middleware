@@ -531,4 +531,9 @@ describe('Happy path scenario', function() {
         expect(successfullyInvestedMessages).to.have.lengthOf(3)
         expect(successfullyInvestedMessages).to.have.members([aliceMessage, bobMessage, janeMessage])
     })
+
+    after(async () => {
+        await amqpUtil.stop()
+    })
+    
 })

@@ -3,5 +3,21 @@
 
 Middlware layer for communication with Aeternity Blockchain.
 
+## Running tests
+
+### All the tests:
+
+```shell
+docker-compose up -d
+npm test
+```
+
+### Single-test:
+
+```shell
+docker-compose up -d
+npm test --file ./test/global-setup.js ./test/happypath.test.js
+```
+
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FAMPnet%2Fampnet-ae-middleware.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FAMPnet%2Fampnet-ae-middleware?ref=badge_large)

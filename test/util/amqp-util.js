@@ -2,12 +2,14 @@ const amqplib = require('amqplib')
 const config = require('../../config')
 const {QUEUE_MAIL_SUCCESSFULLY_INVESTED, QUEUE_MAIL_PROJECT_FULLY_FUNDED} = require("../../amqp/amqp");
 
+let connection
+
 let projectFullyFundedMessages = []
 let successfullyInvestedMessages = []
 
 async function init() {
     const amqp_url = config.get().amqp
-    const connection = await amqplib.connect(amqp_url)
+    connection = await amqplib.connect(amqp_url)
     const channel = await connection.createChannel()
     await handleChannel(channel, QUEUE_MAIL_SUCCESSFULLY_INVESTED, (msg) => {
         successfullyInvestedMessages.push(msg)
@@ -17,16 +19,20 @@ async function init() {
     });
 }
 
+async function stop() {
+    return connection.close()
+}
+
 async function handleChannel(channel, queue, handle) {
-    channel.purgeQueue(queue);
-    channel.assertQueue(queue, {
+    await channel.assertQueue(queue, {
         durable: true
-    });
-    channel.consume(queue, (msg) => {
+    })
+    await channel.purgeQueue(queue)
+    return channel.consume(queue, (msg) => {
         handle(msg.content.toString());
     }, {
         noAck: true
-    });
+    })
 }
 
 function getProjectFullyFundedMessages() {
@@ -49,6 +55,7 @@ function createFullyFundedMessage(tx_hash) {
 
 module.exports = {
     init,
+    stop,
     getProjectFullyFundedMessages,
     getSuccessfullyInvestedMessages,
     createSuccessfullyInvestedMessage,
