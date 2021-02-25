@@ -115,5 +115,4 @@ describe('Ownership transfer tests', function() {
     after(async () => {
         await amqpUtil.stop()
     })
-
 })

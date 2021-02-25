@@ -59,7 +59,6 @@ function clearAllMessages() {
     updateCoopRolesMessages = []
     successfullyInvestedMessages = []
     projectFullyFundedMessages = []
-
 }
 
 function createSuccessfullyInvestedMessage(user_wallet_tx_hash, project_wallet_tx_hash, amount) {
