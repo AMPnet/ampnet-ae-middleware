@@ -13,8 +13,8 @@ let config = require('../config')
 let logger = require('../logger')(module)
 
 async function mint(call, callback) {
-    logger.debug(`Received request to generate minting of ${call.request.amount} tokens to wallet with txHash ${call.request.toTxHash}`)
     try {
+        logger.info(`Received request to generate minting of ${call.request.amount} tokens to wallet with txHash ${call.request.toTxHash}`)
         let record = await repo.findByHashOrThrow(call.request.toTxHash)
         logger.debug(`Address represented by given hash: ${record.wallet}`)
         let callData = await codec.eur.encodeMint(record.wallet, util.eurToToken(call.request.amount))
@@ -26,7 +26,7 @@ async function mint(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated mint transaction: ${tx}`)
+        logger.info(`Successfully generated mint transaction!`)
         callback(null, { tx: tx })
     } catch (error) {
         logger.error(`Error while generating mint transaction \n%o`, err.pretty(error))
@@ -35,8 +35,8 @@ async function mint(call, callback) {
 }
 
 async function approveWithdraw(call, callback) {
-    logger.debug(`Received request to generate withdraw approval of ${call.request.amount} tokens from wallet with txHash ${call.request.fromTxHash}`)
     try {
+        logger.info(`Received request to generate withdraw approval of ${call.request.amount} tokens from wallet with txHash ${call.request.fromTxHash}`)
         let record = await repo.findByHashOrThrow(call.request.fromTxHash)
         logger.debug(`Address represented by given hash: ${record.wallet}`)
         let amount = util.eurToToken(call.request.amount)
@@ -49,7 +49,7 @@ async function approveWithdraw(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated approve withdraw transaction: ${tx}`)
+        logger.info(`Successfully generated approve withdraw transaction!`)
         callback(null, { tx: tx })
     } catch (error) {
         logger.error(`Error while withdraw approve transaction \n%o`, err.pretty(error))
@@ -58,8 +58,8 @@ async function approveWithdraw(call, callback) {
 }
 
 async function burnFrom(call, callback) {
-    logger.debug(`Received request to generate burning of tokens from wallet with txHash ${call.request.burnFromTxHash}`)
     try {
+        logger.info(`Received request to generate burning of tokens from wallet with txHash ${call.request.burnFromTxHash}`)
         let record = await repo.findByHashOrThrow(call.request.burnFromTxHash)
         logger.debug(`Address represented by given hash: ${record.wallet}`)
         let amount = await allowance(record)
@@ -73,7 +73,7 @@ async function burnFrom(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated burn transaction: ${tx}`)
+        logger.info(`Successfully generated burn transaction!`)
         callback(null, { tx: tx })
     } catch (error) {
         logger.error(`Error while generating burn transaction \n%o`, err.pretty(error))
@@ -94,7 +94,7 @@ async function balance(call, callback) {
 
 async function invest(call, callback) {
     try {
-        logger.debug(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${call.request.amount}`)
+        logger.info(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${call.request.amount}`)
         let investorRecord = await repo.findByHashOrThrow(call.request.fromTxHash) 
         let investor = investorRecord.wallet
         logger.debug(`Investor address: ${investor}`)
@@ -111,7 +111,7 @@ async function invest(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated invest tx: ${tx}`)
+        logger.info(`Successfully generated invest tx!`)
         callback(null, { tx: tx })
     } catch (error) {
         logger.error(`Error while generating invest transaction \n%o`, err.pretty(error))
@@ -120,7 +120,7 @@ async function invest(call, callback) {
 }
 
 async function acceptSellOffer(fromTxHash, sellOfferTxHash, counterOfferPrice) {
-    logger.debug(`Received request to generate acceptSellOffer transaction. CallerHash: ${fromTxHash}; SellOfferHash: ${sellOfferTxHash}; CounterOfferPrice: ${counterOfferPrice}`)
+    logger.info(`Received request to generate acceptSellOffer transaction. CallerHash: ${fromTxHash}; SellOfferHash: ${sellOfferTxHash}; CounterOfferPrice: ${counterOfferPrice}`)
     let buyerRecord = await repo.findByHashOrThrow(fromTxHash)
     let buyer = buyerRecord.wallet
     logger.debug(`Buyer wallet: ${buyer}`)
@@ -136,14 +136,15 @@ async function acceptSellOffer(fromTxHash, sellOfferTxHash, counterOfferPrice) {
         gas: config.get().contractCallGasAmount,
         callData: callData
     })
-    logger.debug(`Successfully generated acceptSellOffer tx: ${tx}`)
+    logger.info(`Successfully generated acceptSellOffer tx!`)
     return tx
 }
 
 async function getTokenIssuer(call, callback) {
     try {
-        logger.debug(`Received request to fetch token issuer wallet. Coop: ${call.request.coop}`)
+        logger.info(`Received request to fetch token issuer wallet. Coop: ${call.request.coop}`)
         let coopInfo = await repo.getCooperative(call.request.coop)
+        logger.info(`Successfully fetched token issuer wallet: ${coopInfo.eur_owner}`)
         callback(null, { wallet: coopInfo.eur_owner })
     } catch (error) {
         logger.error(`Error while fetching token issuer wallet:\n%o`, err.pretty(error))
@@ -153,7 +154,7 @@ async function getTokenIssuer(call, callback) {
 
 async function transferOwnership(call, callback) {
     try {
-        logger.debug(`Received request to generate token issuer ownership transaction. New owner: ${call.request.newOwnerWallet}; Coop: ${call.request.coop}`)
+        logger.info(`Received request to generate token issuer ownership transaction. New owner: ${call.request.newOwnerWallet}; Coop: ${call.request.coop}`)
         let callData = await codec.eur.encodeTransferEurOwnership(call.request.newOwnerWallet)
         logger.debug(`Encoded call data: ${callData}`)
         let coopInfo = await repo.getCooperative(call.request.coop)
@@ -164,7 +165,7 @@ async function transferOwnership(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug('Successfully generated transferOwnership transaction \n%o', tx)
+        logger.info('Successfully generated transferOwnership transaction!')
         callback(null, { tx: tx })
     } catch(error) {
         logger.error(`Error while generating token issuer ownership change transaction:\n%o`, err.pretty(error))
@@ -176,7 +177,7 @@ async function transferOwnership(call, callback) {
 // HELPER FUNCTIONS
 
 async function getBalance(walletHash) {
-    logger.debug(`Received request to fetch balance of wallet with txHash ${walletHash}`)
+    logger.info(`Received request to fetch balance of wallet with txHash ${walletHash}`)
     let tx = await repo.findByHashOrThrow(walletHash)
     logger.debug(`Address represented by given hash: ${tx.wallet}`)
     let balancesResult = await cache.balances(
@@ -198,10 +199,10 @@ async function getBalance(walletHash) {
     )
     if (tx.wallet in balancesResult) {
         let balance = balancesResult[tx.wallet]
-        logger.debug(`Wallet ${tx.wallet} exists in balances response - wallet balance: ${balance}`)
+        logger.info(`Wallet ${tx.wallet} exists in balances response - wallet balance: ${balance}`)
         return util.tokenToEur(balance)
     } else {
-        logger.debug(`Wallet ${tx.wallet} does not exist in balances response - wallet balance: 0`)
+        logger.info(`Wallet ${tx.wallet} does not exist in balances response - wallet balance: 0`)
         return 0
     }
 }
@@ -217,8 +218,9 @@ async function allowance(ownerRecord) {
             callerId: Crypto.generateKeyPair().publicKey
         }
     )
-    logger.debug(`Allowance result %o`, result)
-    return result.decode()
+    let allowance = await result.decode()
+    logger.debug(`Fetched allowance: ${allowance}`)
+    return allowance
 }
 
 async function checkInvestmentPreconditions(project, investor, amount) {

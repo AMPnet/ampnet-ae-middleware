@@ -28,7 +28,7 @@ function start() {
 
 async function scanAndProcess() {
     let interval = config.get().dbScanPeriod
-    logger.info(`DB-SCANNER: ${interval} minute(s) passed. Starting database consistency check...`)
+    logger.debug(`DB-SCANNER: ${interval} minute(s) passed. Starting database consistency check...`)
     handlePendingRecords()
     handleSupervisorRequiredRecords()
 }
@@ -38,7 +38,7 @@ async function handlePendingRecords() {
     let scanOlderThanMinutes = config.get().dbScanOlderThan
     let pendingRecords = await repo.getPendingOlderThan(scanOlderThanMinutes)
     if (pendingRecords.length === 0) {
-        logger.info(`DB-SCANNER: Found 0 records older than ${scanOlderThanMinutes} minute(s) with PENDING transaction state.`)
+        logger.debug(`DB-SCANNER: Found 0 records older than ${scanOlderThanMinutes} minute(s) with PENDING transaction state.`)
     } else {
         logger.warn(`DB-SCANNER: Found ${pendingRecords.length} record(s) older than ${scanOlderThanMinutes} minute(s) with PENDING transaction state. Starting recovery...`)
         for (tx of pendingRecords) {
@@ -74,7 +74,7 @@ async function handleSupervisorRequiredRecords() {
     let scanOlderThanMinutes = config.get().dbScanOlderThan
     let records = await repo.getSupervisorRequiredOlderThan(scanOlderThanMinutes)
     if (records.length === 0) {
-        logger.info(`DB-SCANNER: Found 0 records older than ${scanOlderThanMinutes} minute(s) with supervisor status REQUIRED.`)
+        logger.debug(`DB-SCANNER: Found 0 records older than ${scanOlderThanMinutes} minute(s) with supervisor status REQUIRED.`)
     } else {
         logger.warn(`DB-SCANNER: Found ${records.length} record(s) older than ${scanOlderThanMinutes} minute(s) with supervisor status REQUIRED. Starting recovery...`)
         for (tx of records) {

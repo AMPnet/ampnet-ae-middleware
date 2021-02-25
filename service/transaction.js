@@ -22,17 +22,17 @@ async function postTransactionGrpc(call, callback) {
 }
 
 async function postTransaction(tx, coop, callback) {
-    logger.debug(`Received request to post transaction`)
     try {
+        logger.info(`Received request to post transaction`)
         let txData = TxBuilder.unpackTx(tx)
         let txHash = TxBuilder.buildTxHash(tx)
-        logger.debug(`Precalculated tx hash: ${txHash}`)
+        logger.info(`Precalculated tx hash: ${txHash}`)
 
         let coopInfo = await repo.getCooperative(coop)
 
         let existingRecords = await repo.get({ hash: txHash })
         if (existingRecords.length === 0) {
-            logger.debug(`Transaction ${txHash} does not exist in database and was never broadcasted to blockchain. Moving on...`)
+            logger.info(`Transaction ${txHash} does not exist in database and was never broadcasted to blockchain. Moving on...`)
             await performSecurityChecks(txData, coopInfo)
             let dryRunResult = await dryRun(txData)
             await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult, coopInfo)
@@ -40,32 +40,31 @@ async function postTransaction(tx, coop, callback) {
             let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
             txProcessor.process(result.hash)
         
-            logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
+            logger.info(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
             callback(null, { txHash: result.hash })
         } else {
             let tx = existingRecords[0]
             let txExistsOnBlockchain = await util.transactionExists(txHash)
             if (txExistsOnBlockchain) {
-                logger.debug(`Transaction ${txHash} exists in database and was broadcasted to blockchain!`)
+                logger.info(`Transaction ${txHash} exists in database and was broadcasted to blockchain!`)
                 queueClient.publishTxProcessJob(txHash)
                 callback(null, { txHash: txHash })
             } else {
-                logger.debug(`Transaction ${txHash} exists in database but was never broadcasted to blockchain!`)
+                logger.info(`Transaction ${txHash} exists in database but was never broadcasted to blockchain!`)
                 let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
                 txProcessor.process(result.hash)
                 callback(null, { txHash: result.txHash })
             }
         }
     } catch(error) {
-        logger.error("Error while posting transaction \n%o", error)
         logger.error("Error log \n%o", err.pretty(error))
         err.handle(error, callback)
     }
 }
 
 async function getPortfolio(call, callback) {
-    logger.debug(`Received request to fetch portfolio for user with wallet txHash ${call.request.txHash}`)
     try {
+        logger.info(`Received request to fetch portfolio for user with wallet txHash ${call.request.txHash}`)
         let tx = await repo.findByHashOrThrow(call.request.txHash)
         let userWallet = tx.wallet
         logger.debug(`Address represented by given hash: ${tx.wallet}`)
@@ -84,6 +83,7 @@ async function getPortfolio(call, callback) {
                 portfolioMap.set(project, amount)
             }
         }
+        logger.debug(`Processed user's uncanceled investments. Portfolio map: %o`, portfolioMap)
 
         let marketRecords = await repo.getUserMarketTransactions(userWallet, tx.coop_id)
         let marketRecordsLength = marketRecords.length
@@ -96,6 +96,7 @@ async function getPortfolio(call, callback) {
                 portfolioMap.set(info.project, preOwnedShares - Number(info.shares))
             }
         }
+        logger.debug(`Processed user's market transactions. Portfolio map: %o`, portfolioMap)
 
         let portfolio = Array.from(portfolioMap).map(entry => {
             return {
@@ -103,7 +104,8 @@ async function getPortfolio(call, callback) {
                 amount: entry[1]
             }
         }).filter(entry => { return entry.amount > 0 })
-        logger.debug("Successfully fetched portfolio \n%o", portfolio)
+        logger.debug(`Filtered out all the 0-amount transactions. Portfolio map: %o`, portfolioMap)
+        logger.info("Successfully fetched portfolio!")
         callback(null, { portfolio: portfolio })
     } catch (error) {
         logger.error(`Error while fetching portfolio: \n%o`, error)
@@ -135,7 +137,7 @@ async function getTransactionInfo(call, callback) {
         let from = call.request.from
         let to = call.request.to
 
-        logger.debug(`Received request to fetch info for transaction with hash ${hash}.`)
+        logger.info(`Received request to fetch info for transaction with hash ${hash}.`)
         if (from) { logger.debug(`From: ${from}`) }
         if (to)   { logger.debug(`From: ${to}`) }
 
@@ -161,7 +163,7 @@ async function getTransactionInfo(call, callback) {
             supervisorStatus: enums.supervisorStatusToGrpc(records[0].supervisor_status),
             date: commonUtil.dateToUnixEpoch(records[0].created_at)
         }
-        logger.debug(`Successfully fetched transaction info, state: ${info.state}`)
+        logger.info(`Successfully fetched transaction info, state: ${info.state}`)
         callback(null, info)
     } catch (error) {
         logger.error(`Error while fetching transaction info: \n%o`, error)
@@ -171,7 +173,7 @@ async function getTransactionInfo(call, callback) {
 
 async function getTransactions(call, callback) {
     try {
-        logger.debug(`Received request to fetch transactions for user with wallet data ${call.request.walletHash}`)
+        logger.info(`Received request to fetch transactions for user with wallet data ${call.request.walletHash}`)
         let walletTx = await repo.findByHashOrThrow(call.request.walletHash)
         let wallet = walletTx.wallet
         let coopId = walletTx.coop_id
@@ -251,7 +253,7 @@ async function getTransactions(call, callback) {
                 }
             })
         let transactions = await Promise.all(transactionsPromisified)
-        logger.debug("Successfully fetched user's transactions \n%o", transactions)
+        logger.info(`Successfully fetched user's transactions. Transactions count: ${transactions.length}`)
         callback(null, { transactions: transactions })
     } catch (error) {
         logger.error(`Error while fetching transactions: \n%o`, error)
@@ -260,8 +262,8 @@ async function getTransactions(call, callback) {
 }
 
 async function getInvestmentsInProject(call, callback) {
-    logger.debug(`Received request to fetch investments in project ${call.request.projectTxHash} for user with wallet ${call.request.fromAddress}`)
     try {
+        logger.info(`Received request to fetch investments in project ${call.request.projectTxHash} for user with wallet ${call.request.fromAddress}`)
         let projectTx = await repo.findByHashOrThrow(call.request.projectTxHash)
         logger.debug(`Project address represented by given hash: ${projectTx.wallet}`)
         let investments = (await repo.getUserUncanceledInvestments(call.request.fromAddress, projectTx.coop_id))
@@ -279,7 +281,7 @@ async function getInvestmentsInProject(call, callback) {
                     state: enums.txStateToGrpc(tx.state)
                 }
             })
-        logger.debug(`Successfully fetched investments \n%o`, investments)
+        logger.info(`Successfully fetched investments!`)
         callback(null, { transactions: investments })
     } catch (error) {
         logger.error(`Error while fetching investments in project \n%o`, error)
@@ -435,9 +437,9 @@ async function dryRun(txData) {
             } 
             let callObj = result.callObj
             if (callObj.returnType === "revert" || callObj.returnType === "error") {
-                logger.debug(`Error detected while dryRunning transaction!`)
+                logger.warn(`Error detected while dryRunning transaction!`)
                 let errorMessage = await err.decode(callObj)
-                logger.debug(`Decoded error message: ${errorMessage}`)
+                logger.warn(`Decoded error message: ${errorMessage}`)
                 if (err.isErrorFormatValid(errorMessage)) {
                     throw err.generateAborted(errorMessage)
                 } else {
@@ -451,13 +453,13 @@ async function dryRun(txData) {
                 throw err.generate(ErrorType.DRY_RUN_ERROR)
             }
         } else if (status === "error") {
-            logger.debug(`Error detected while dryRunning transaction!`)
+            logger.warn(`Error detected while dryRunning transaction!`)
             if (typeof result.reason === 'undefined') {
                 logger.warn(`Error while parsing dry run result. <reason> field not found.`)
                 throw err.generate(ErrorType.DRY_RUN_ERROR)
             }
             let errorMessage = result.reason
-            logger.debug(`Error message: ${errorMessage}`)
+            logger.warn(`Error message: ${errorMessage}`)
             throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
         } else {
             logger.warn(`Error while parsing dry run result. Unexpected <result> field value.`)

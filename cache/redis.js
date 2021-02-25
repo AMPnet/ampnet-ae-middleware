@@ -65,18 +65,21 @@ function fetchAndCache(key, fetchData) {
             if (err) {
                 logger.warn(`REDIS-CACHE: Error while fetching value for key ${key}`)
                 let fetchedData = await fetchData() 
-                logger.info(`REDIS-CACHE: Fetched data from real source: %o`, fetchedData)
+                logger.info(`REDIS-CACHE: Fetched data from real source.`)
+                logger.debug(`REDIS-CACHE: %o`, fetchedData)
                 cache(key, fetchedData)
                 resolve(fetchedData)
             } else {
                 if (data !== null) {
                     let dataJson = JSON.parse(data)
-                    logger.info(`REDIS-CACHE: Found cached value for key ${key}: %o`, dataJson)
+                    logger.info(`REDIS-CACHE: Found cached value for key ${key}.`)
+                    logger.debug(`REDIS-CACHE: %o`, dataJson)
                     resolve(dataJson)
                 } else {
                     logger.info(`REDIS-CACHE: No cached data found for key ${key}`)
                     let fetchedData = await fetchData() 
-                    logger.info(`REDIS-CACHE: Fetched data from real source: %o`, fetchedData)
+                    logger.info(`REDIS-CACHE: Fetched data from real source.`)
+                    logger.debug(`REDIS-CACHE: %o`, fetchedData)
                     cache(key, fetchedData)
                     resolve(fetchedData)
                 }
@@ -90,7 +93,8 @@ async function cache(key, data) {
         if (err) {
             logger.warn(`REDIS-CACHE: Error while storing data with key ${key}: %o`, err)
         } else {
-            logger.info(`REDIS-CACHE: Stored data with key ${key} and value %o`, data)
+            logger.info(`REDIS-CACHE: Stored data for key ${key}.`)
+            logger.debug(`REDIS-CACHE: %o`, data)
         }
     })
 }

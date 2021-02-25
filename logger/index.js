@@ -39,14 +39,26 @@ function create(format) {
                 level: 'debug',
                 format: format,
                 transports: [
-                    new transports.Console(),
+                    new transports.Console({
+                        level: 'info'
+                    }),
                     new DailyRotateFile({
                         filename: 'ae-middleware-%DATE%.log',
                         dirname: '/var/log',
                         datePattern: 'YYYY-MM-DD',
                         zippedArchive: true,
                         maxSize: '20m',
-                        maxFiles: '7d'
+                        maxFiles: '7d',
+                        level: 'info'
+                    }),
+                    new DailyRotateFile({
+                        filename: 'ae-middleware-%DATE%-DEBUG.log',
+                        dirname: '/var/log',
+                        datePattern: 'YYYY-MM-DD',
+                        zippedArchive: true,
+                        maxSize: '20m',
+                        maxFiles: '7d',
+                        level: 'debug'
                     })
                 ]
             })

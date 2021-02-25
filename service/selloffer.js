@@ -11,7 +11,7 @@ let logger = require('../logger')(module)
 let { Crypto } = require('@aeternity/aepp-sdk')
 
 async function createSellOffer(fromTxHash, projectTxHash, shares, price) {
-    logger.debug(`Received request to generate createSellOffer transaction.\n\tSeller: ${fromTxHash}\n\tProject: ${projectTxHash}\n\tShares: ${shares}\n\tPrice: ${price}`)
+    logger.info(`Received request to generate createSellOffer transaction.\n\tSeller: ${fromTxHash}\n\tProject: ${projectTxHash}\n\tShares: ${shares}\n\tPrice: ${price}`)
     let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
     logger.debug(`Seller wallet: ${fromWallet}`)
     let projectContract = util.enforceCtPrefix(
@@ -32,12 +32,12 @@ async function createSellOffer(fromTxHash, projectTxHash, shares, price) {
         gas: config.get().contractCreateGasAmount,
         callData: callData
     })
-    logger.debug(`Successfully generated createSellOffer transaction!`)
+    logger.info(`Successfully generated createSellOffer transaction!`)
     return result.tx
 }
 
 async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerTxHash) {
-    logger.debug(`Received request to generate acceptCounterOffer transaction.\n\tSeller: ${fromTxHash}\n\tSell Offer: ${sellOfferTxHash}\n\tBuyer: ${buyerTxHash}`)
+    logger.info(`Received request to generate acceptCounterOffer transaction.\n\tSeller: ${fromTxHash}\n\tSell Offer: ${sellOfferTxHash}\n\tBuyer: ${buyerTxHash}`)
     let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
     logger.debug(`Seller wallet: ${fromWallet}`)
     let buyerWallet = ((await repo.findByHashOrThrow(buyerTxHash)).wallet)
@@ -52,13 +52,13 @@ async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerTxHash) {
         gas: config.get().contractCallGasAmount,
         callData: callData
     })
-    logger.debug(`Successfully generated acceptCounterOffer transaction.`)
+    logger.info(`Successfully generated acceptCounterOffer transaction.`)
     return tx
 }
 
 async function getActiveSellOffers(call, callback) {
     try {
-        logger.debug(`Received request to fetch active sell offers for coop ${call.request.coop}.`)
+        logger.info(`Received request to fetch active sell offers for coop ${call.request.coop}.`)
         let coopId = call.request.coop
         let sellOfferCreateTransactions = await repo.get({
             type: enums.TxType.SELL_OFFER_CREATE,
@@ -82,7 +82,9 @@ async function getActiveSellOffers(call, callback) {
                 })
             })
         }))
+        logger.debug(`Fetched sell offers: %o`, sellOffers)
         let sellOffersFiltered = sellOffers.filter(offer => !offer[5])
+        logger.debug(`Filtered sell offers: %o`, sellOffersFiltered)
         let sellOffersTransformed = await Promise.all(sellOffersFiltered.map(async (offer) => {
             let projectTxHash = (await repo.findByWalletOrThrow(offer[0], coopId)).hash
             let sellerTxHash = (await repo.findByWalletOrThrow(offer[1], coopId)).hash
@@ -108,7 +110,8 @@ async function getActiveSellOffers(call, callback) {
                 counterOffers: counterOffers
             }
         }))
-        logger.debug(`Successfully fetched active sell offers: %o`, sellOffersTransformed)
+        logger.debug(`Transformed sell offers: %o`, sellOffersTransformed)
+        logger.info(`Successfully fetched active sell offers!`)
         callback(null, {
             offers: sellOffersTransformed
         })

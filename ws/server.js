@@ -21,7 +21,7 @@ async function start(server) {
 
     ws.on('connection', (socket) => {
         socket.id = uuid()
-        logger.info(`WS: Connection opened. ID: ${socket.id}`)
+        logger.debug(`WS: Connection opened. ID: ${socket.id}`)
         socket.on('message', (data) => {
             let json
             
@@ -44,17 +44,17 @@ async function start(server) {
                 return
             }
 
-            logger.info(`WS: Subscribing to transaction updates for wallet ${wallet}`)
+            logger.debug(`WS: Subscribing to transaction updates for wallet ${wallet}`)
             addNewConnection(socket, wallet)
             addNewSubscriber(socket, wallet)
         })
         socket.on('close', (e) => {
             let wallets = connections[socket.id] || []
-            logger.info(`WS: Closing connection ${socket.id}. Connection tracks wallets: ${wallets}`)
+            logger.debug(`WS: Closing connection ${socket.id}. Connection tracks wallets: ${wallets}`)
             for (wallet of wallets) {
                 let subs = subscriptions[wallet] || []
                 subscriptions[wallet] = subs.filter(c => c.id !== socket.id)
-                logger.info(`WS: Removing subscription for wallet ${wallet} and connection ${socket.id}`)
+                logger.debug(`WS: Removing subscription for wallet ${wallet} and connection ${socket.id}`)
             }
             connections[socket.id] = undefined
             logger.info(`WS: Removed connection ${socket.id}`)
@@ -66,7 +66,7 @@ function addNewConnection(connection, wallet) {
     connections[connection.id] = connections[connection.id] || []
     if (!connections[connection.id].includes(wallet)) {
         connections[connection.id].push(wallet)
-        logger.info(`WS: Added new connection with id: ${connection.id}. Connection tracks wallet ${wallet}`)
+        logger.debug(`WS: Added new connection with id: ${connection.id}. Connection tracks wallet ${wallet}`)
     }
 }
 
@@ -74,12 +74,12 @@ function addNewSubscriber(connection, wallet) {
     subscriptions[wallet] = subscriptions[wallet] || []
     for (subscription of subscriptions[wallet]) {
         if (subscription.id === connection.id) {
-            logger.info(`WS: Connection already subscribed to changes for wallet ${wallet}. Ignoring request.`)
+            logger.debug(`WS: Connection already subscribed to changes for wallet ${wallet}. Ignoring request.`)
             return
         }
     }
     subscriptions[wallet].push(connection)
-    logger.info(`WS: Added new subscriber for transaction changes on wallet ${wallet}`)
+    logger.debug(`WS: Added new subscriber for transaction changes on wallet ${wallet}`)
 }
 
 function notifySubscribersForTransaction(tx) {
@@ -92,11 +92,11 @@ function notifiySubscribers(wallet) {
     let count = subscribers.length
     if (count > 0) {
         let i = count
-        logger.info(`WS: Notifiyng total of ${count} subscriber(s) for a change on wallet ${wallet}`)
+        logger.debug(`WS: Notifiyng total of ${count} subscriber(s) for a change on wallet ${wallet}`)
         while (i--) {
             let connection = subscribers[i]
             if (connection.readyState === WebSocket.CLOSED) {
-                logger.info(`WS: Removing subscriber listening on changes for wallet ${wallet}`)
+                logger.debug(`WS: Removing subscriber listening on changes for wallet ${wallet}`)
                 subscribers.splice(i, 1)
             } else {
                 logger.info(`WS: Notifying subscriber for change on wallet ${wallet}`)
@@ -104,7 +104,7 @@ function notifiySubscribers(wallet) {
                     wallet: wallet
                 }))
             }
-            logger.info(`WS: Total of ${(subscriptions[wallet] || []).length} still listening on changes for wallet ${wallet}`)
+            logger.debug(`WS: Total of ${(subscriptions[wallet] || []).length} still listening on changes for wallet ${wallet}`)
         }
     }
 }

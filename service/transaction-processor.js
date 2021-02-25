@@ -25,7 +25,7 @@ async function process(hash) {
 
     await clients.instance().poll(hash)
     let info = await clients.instance().getTxInfo(hash)
-    logger.info(`Fetched tx info \n%o`, info)
+    logger.debug(`Fetched tx info \n%o`, info)
     
     sendFundsIfRequired(info)
     
@@ -96,7 +96,7 @@ async function handleTransactionFailed(hash, info) {
 }
 
 async function storeTransactionData(txHash, txData, txInfo, coopInfo, originatedFrom = null) {
-    logger.debug(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
+    logger.info(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData, coopInfo)
@@ -106,7 +106,7 @@ async function storeTransactionData(txHash, txData, txInfo, coopInfo, originated
             to_wallet: record.to_wallet
         })
         if (existingRecords.length > 0) {
-            logger.debug(`Transaction records with hash ${record.hash} already exist in database. Updating records...`)
+            logger.info(`Transaction records with hash ${record.hash} already exist in database. Updating records...`)
             await repo.update(
                 { hash: record.hash },
                 { 
@@ -121,11 +121,11 @@ async function storeTransactionData(txHash, txData, txInfo, coopInfo, originated
                 coop_id: coopInfo.id,
                 originated_from: originatedFrom
             })
-            logger.debug(`Stored new record:\n%o`, record)
+            logger.info(`Stored new record:\n%o`, record)
         }
         ws.notifySubscribersForTransaction(record)
     }
-    logger.debug(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
+    logger.info(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
 }
 
 async function generateTxRecord(info, hash, event, txData, coopInfo) {
@@ -414,7 +414,7 @@ async function callSpecialActions(tx) {
                 [ investorWallet ]
             ))
             await handleDryRunErr(tx, dryRunErr)
-            logger.info(`Approve investment dry run result: %o`, dryRunResult)
+            logger.debug(`Approve investment dry run result: %o`, dryRunResult)
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
             logger.info(`Approve investment precalculated hash: ${precalculatedHash}. Caching transaction data...`)
@@ -455,7 +455,7 @@ async function callSpecialActions(tx) {
                     [ ]
                 ))
                 await handleDryRunErr(tx, dryRunErr)
-                logger.info(`Revenue batch payout dry run result: %o`, dryRunResult)
+                logger.debug(`Revenue batch payout dry run result: %o`, dryRunResult)
                 let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
                 let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
                 logger.info(`Revenue batch payout precalculated hash: ${precalculatedHash}. Caching transaction data...`)
@@ -500,7 +500,7 @@ async function callSpecialActions(tx) {
                 [ buyerWallet ]
             ))
             await handleDryRunErr(tx, dryRunErr)
-            logger.info(`Market tryToSettle dry run result %o`, dryRunResult)
+            logger.debug(`Market tryToSettle dry run result %o`, dryRunResult)
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
             logger.info(`Market tryToSettle precalculated hash: ${precalculatedHash}. Caching transaction data...`)

@@ -27,8 +27,7 @@ async function createCooperative(call, callback) {
 
 async function addWallet(call, callback) {
     try {
-        logger.debug(`Received request to generate addWallet transaction. Wallet: ${call.request.wallet} Coop: ${call.request.coop}`)
-
+        logger.info(`Received request to generate addWallet transaction. Wallet: ${call.request.wallet} Coop: ${call.request.coop}`)
         let coopInfo = await repo.getCooperative(call.request.coop)
         if (call.request.wallet.startsWith("th")) {
             let txInfo = await client.instance().getTxInfo(call.request.wallet)
@@ -54,7 +53,7 @@ async function addWallet(call, callback) {
             gas : config.get().contractCallGasAmount,
             callData : callData
         })
-        logger.debug('Successfully generated addWallet transaction \n%o', tx)
+        logger.info('Successfully generated addWallet transaction!')
         callback(null, { tx: tx })
     } catch (error) {
         logger.error(`Error generating addWallet transaction \n%o`, err.pretty(error))
@@ -63,8 +62,8 @@ async function addWallet(call, callback) {
 }
 
 async function walletActive(call, callback) {
-    logger.debug(`Received request to check is wallet with txHash ${call.request.walletTxHash} active.`)
     try {
+        logger.info(`Received request to check is wallet with txHash ${call.request.walletTxHash} active.`)
         let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
         logger.debug(`Address represented by given hash: ${tx.wallet}; Coop: ${tx.coop_id}`)
         let walletActiveResult = await cache.walletActive(
@@ -87,7 +86,7 @@ async function walletActive(call, callback) {
                 }
             }
         )
-        logger.debug(`Wallet active result: %o`, walletActiveResult)
+        logger.info(`Wallet active result: ${walletActiveResult.active}`)
         callback(null, walletActiveResult)
     } catch (error) {
         logger.error(`Error fetching wallet active status \n%o`, err.pretty(error))
@@ -97,8 +96,9 @@ async function walletActive(call, callback) {
 
 async function getPlatformManager(call, callback) {
     try {
-        logger.debug(`Received request to fetch platform manager wallet for coop ${call.request.coop}.`)
+        logger.info(`Received request to fetch platform manager wallet for coop ${call.request.coop}.`)
         let coopInfo = await repo.getCooperative(call.request.coop)
+        logger.info(`Successfully fetched platform manager wallet: ${coopInfo.coop_owner}`)
         callback(null, { wallet: coopInfo.coop_owner })
     } catch (error) {
         logger.error(`Error while fetching platform manager wallet:\n%o`, err.pretty(error))
@@ -108,7 +108,7 @@ async function getPlatformManager(call, callback) {
 
 async function transferOwnership(call, callback) {
     try {
-        logger.debug(`Received request to generate platform manager ownership transaction. New owner: ${call.request.newOwnerWallet}; Coop: ${call.request.coop}`)
+        logger.info(`Received request to generate platform manager ownership transaction. New owner: ${call.request.newOwnerWallet}; Coop: ${call.request.coop}`)
         let newOwnerWallet = call.request.newOwnerWallet
         let coopInfo = await repo.getCooperative(call.request.coop)
         let callData = await codec.coop.encodeTransferCoopOwnership(newOwnerWallet)
@@ -120,7 +120,7 @@ async function transferOwnership(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug('Successfully generated transferOwnership transaction \n%o', tx)
+        logger.info('Successfully generated transferOwnership transaction!')
         callback(null, { tx: tx })
     } catch(error) {
         logger.error(`Error while generating platform manager ownership change transaction:\n%o`, err.pretty(error))

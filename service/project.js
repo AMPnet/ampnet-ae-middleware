@@ -11,8 +11,8 @@ let logger = require('../logger')(module)
 let { Crypto } = require('@aeternity/aepp-sdk')
 
 async function createProject(call, callback) {
-    logger.debug(`Received request to generate createProject transaction.\nCaller: ${call.request.fromTxHash}`)
     try {
+        logger.info(`Received request to generate createProject transaction.\nCaller: ${call.request.fromTxHash}`)
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller address represented by given hash: ${fromWallet}`)
         let orgContract = util.enforceCtPrefix(
@@ -36,7 +36,7 @@ async function createProject(call, callback) {
             gas: config.get().contractCreateGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated createProject transaction!`)
+        logger.info(`Successfully generated createProject transaction!`)
         callback(null, { tx: result.tx })
     } catch (error) {
         logger.error(`Error generating createProject transaction \n%o`, err.pretty(error))
@@ -46,7 +46,7 @@ async function createProject(call, callback) {
 
 async function approveWithdraw(call, callback) {
     try {
-        logger.debug(`Received request to generate approveWithdrawProjectFunds transaction.\nCaller: ${call.request.fromTxHash} wants to withdraw ${call.request.amount} tokens from project with hash ${call.request.projectTxHash}`)
+        logger.info(`Received request to generate approveWithdrawProjectFunds transaction.\nCaller: ${call.request.fromTxHash} wants to withdraw ${call.request.amount} tokens from project with hash ${call.request.projectTxHash}`)
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller wallet: ${fromWallet}`)
         let amount = util.eurToToken(call.request.amount)
@@ -62,7 +62,7 @@ async function approveWithdraw(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated approveWithdrawProjectFunds transaction: ${tx}`)
+        logger.info(`Successfully generated approveWithdrawProjectFunds transaction!`)
         callback(null, { tx: tx })
     } catch(error) {
         logger.error(`Error while generating approveWithdrawProjectFunds transaction \n%o`, err.pretty(error))
@@ -72,7 +72,7 @@ async function approveWithdraw(call, callback) {
 
 async function cancelInvestment(call, callback) {
     try {
-        logger.debug(`Received request to generate cancelInvestment transaction.\nCaller: ${call.request.fromTxHash} wants to cancel investment in project with hash ${call.request.projectTxHash}`)
+        logger.info(`Received request to generate cancelInvestment transaction.\nCaller: ${call.request.fromTxHash} wants to cancel investment in project with hash ${call.request.projectTxHash}`)
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller wallet: ${fromWallet}`)
         let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
@@ -86,7 +86,7 @@ async function cancelInvestment(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated cancelInvestment transaction: ${tx}`)
+        logger.info(`Successfully generated cancelInvestment transaction!`)
         callback(null, { tx: tx })
     } catch(error) {
         logger.error(`Error while generating cancelInvestment transaction \n%o`, err.pretty(error))
@@ -96,7 +96,7 @@ async function cancelInvestment(call, callback) {
 
 async function startRevenueSharesPayout(call, callback) {
     try {
-        logger.debug(`Received request to generate startRevenueSharesPayout transaction.\nCaller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
+        logger.info(`Received request to generate startRevenueSharesPayout transaction.\nCaller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller wallet: ${fromWallet}`)
         let revenue = util.eurToToken(call.request.revenue)
@@ -113,7 +113,7 @@ async function startRevenueSharesPayout(call, callback) {
             gas: config.get().contractCallGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated startRevenueSharesPayout transaction: ${tx}`)
+        logger.info(`Successfully generated startRevenueSharesPayout transaction!`)
         callback(null, { tx: tx })
     } catch(error) {
         logger.error(`Error while generating startRevenueSharesPayout transaction \n%o`, err.pretty(error))
@@ -122,7 +122,7 @@ async function startRevenueSharesPayout(call, callback) {
 }
 
 async function getInvestmentDetails(projectTxHash, investorTxHash) {
-    logger.debug(`Received request to fetch investment details.`)
+    logger.info(`Received request to fetch investment details.`)
     let investorWalletTx = await repo.findByHashOrThrow(investorTxHash) 
     let investorWallet = investorWalletTx.wallet
     logger.debug(`Investor wallet: ${investorWallet}`)
@@ -143,6 +143,7 @@ async function getInvestmentDetails(projectTxHash, investorTxHash) {
                 }
             )
             let decodedResult = await result.decode()
+            logger.info(`Successfully fetched investment details: %o`, decodedResult)
             return {
                 walletBalance: util.tokenToEur(decodedResult[0]),
                 amountInvested: util.tokenToEur(decodedResult[1]),
@@ -170,7 +171,7 @@ async function checkSharePayoutPreconditions(caller, project, revenue) {
 }
 
 async function activateSellOffer(fromTxHash, sellOfferTxHash) {
-    logger.debug(`Received request to generate activateSellOffer transaction.\nCaller ${fromTxHash} wants to activate sell offer ${sellOfferTxHash}`)
+    logger.info(`Received request to generate activateSellOffer transaction.\nCaller ${fromTxHash} wants to activate sell offer ${sellOfferTxHash}`)
     let fromWallet = (await repo.findByHashOrThrow(fromTxHash)).wallet
     logger.debug(`Caller wallet: ${fromWallet}`)
     let sellOfferCreateRecord = await repo.findByHashOrThrow(sellOfferTxHash)
@@ -188,12 +189,12 @@ async function activateSellOffer(fromTxHash, sellOfferTxHash) {
         gas: config.get().contractCallGasAmount,
         callData: callData
     })
-    logger.debug(`Successfully generated activateSellOffer transaction: ${tx}`)
+    logger.info(`Successfully generated activateSellOffer transaction!`)
     return tx
 }
 
 async function getProjectInfoByWallet(wallet, coopId) {
-    logger.debug(`Fetching info for project ${wallet}`)
+    logger.info(`Fetching info for project ${wallet}`)
     let projectInfoResult = await cache.getProjectInfo(
         coopId,
         wallet,
@@ -209,7 +210,7 @@ async function getProjectInfoByWallet(wallet, coopId) {
             )
             logger.debug(`Fetched result: %o`, result)
             let decoded = await result.decode()
-            logger.debug(`Decoded project info: %o`, decoded)
+            logger.info(`Decoded project info: %o`, decoded)
             return {
                 minPerUserInvestment: util.tokenToEur(decoded[0]),
                 maxPerUserInvestment: util.tokenToEur(decoded[1]),
@@ -225,7 +226,7 @@ async function getProjectInfoByWallet(wallet, coopId) {
 }
 
 async function getProjectInfoByHash(txHash) {
-    logger.debug(`Fetching info for project with hash ${txHash}`)
+    logger.info(`Fetching info for project with hash ${txHash}`)
     let walletTx = await repo.findByHashOrThrow(txHash)
     let wallet = walletTx.wallet
     let coopId = walletTx.coop_id

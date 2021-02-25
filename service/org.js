@@ -9,7 +9,7 @@ let logger = require('../logger')(module)
 
 async function createOrganization(call, callback) {
     try {
-        logger.debug(`Received request to generate createOrganization transaction. Caller: ${call.request.fromTxHash}`)
+        logger.info(`Received request to generate createOrganization transaction. Caller: ${call.request.fromTxHash}`)
         let walletTx = await repo.findByHashOrThrow(call.request.fromTxHash)
         logger.debug(`Address represented by given hash: ${walletTx.wallet}`)
         let callData = await codec.org.encodeCreateOrganization(walletTx.coop_contract)
@@ -23,7 +23,7 @@ async function createOrganization(call, callback) {
             gas: config.get().contractCreateGasAmount,
             callData: callData
         })
-        logger.debug(`Successfully generated createOrganization transaction!`)
+        logger.info(`Successfully generated createOrganization transaction!`)
         callback(null, { tx: result.tx })
     } catch (error) {
         logger.error(`Error while generating organization create transaction \n%o`, err.pretty(error))
