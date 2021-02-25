@@ -10,7 +10,7 @@ const enums = require('../enums/enums')
 const txProcessor = require('../service/transaction-processor')
 const config = require('../config')
 const ws = require('../ws/server')
-const walletServiceGrpcClient = require('../grpc/wallet-service')
+const amqp = require('../amqp/amqp')
 
 let supervisorQueue
 let txProcessorQueue 
@@ -135,7 +135,7 @@ async function supervisorQueueJobHandler(job) {
         logger.info(`SUPERVISOR-QUEUE: Admin wallet creation transaction info saved.`)
 
         queueClient.publishJobFromTx(adminWalletCreateTx)
-        walletServiceGrpcClient.activateWallet(adminWallet, coopId, activateAdminWalletResult.hash)
+        amqp.sendMessage(amqp.QUEUE_MIDDLEWARE_ACTIVATE_WALLET, { address: adminWallet, coop: coopId, hash: activateAdminWalletResult.hash})
     } catch(error) {
         if (error.verifyTx) {
             let verificationResult = await error.verifyTx()

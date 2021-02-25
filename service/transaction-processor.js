@@ -10,7 +10,6 @@ const queueClient = require('../queue/queueClient')
 const cache = require('../cache/redis')
 const ws = require('../ws/server')
 const { Universal, Crypto, Node, MemoryAccount, TxBuilder } = require('@aeternity/aepp-sdk')
-const walletServiceGrpcClient = require('../grpc/wallet-service')
 const projectService = require('./project')
 const amqp = require('../amqp/amqp')
 
@@ -523,7 +522,7 @@ async function callSpecialActions(tx) {
             coop_owner: newOwner
         }).then(_ => {
             logger.info(`Successfully updated Platform Manager of ${coopInfo.id} to ${newOwner}.`)
-            walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
+            amqp.sendMessage(amqp.QUEUE_MIDDLEWARE_UPDATE_COOP_ROLES,  { coop: coopInfo.id })
             ws.notifySubscribersForTransaction(tx)
         })
     }
@@ -534,7 +533,7 @@ async function callSpecialActions(tx) {
             eur_owner: newOwner
         }).then(_ => {
             logger.info(`Successfully updated Token Issuer of ${coopInfo.id} to ${newOwner}.`)
-            walletServiceGrpcClient.updateCoopRoles(coopInfo.id)
+            amqp.sendMessage(amqp.QUEUE_MIDDLEWARE_UPDATE_COOP_ROLES,  { coop: coopInfo.id })
             ws.notifySubscribersForTransaction(tx)
         })
     }

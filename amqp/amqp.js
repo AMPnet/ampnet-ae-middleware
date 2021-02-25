@@ -3,6 +3,8 @@ const config = require('../config')
 
 const QUEUE_MAIL_PROJECT_FULLY_FUNDED = 'mail.middleware.project-funded'
 const QUEUE_MAIL_SUCCESSFULLY_INVESTED = 'mail.middleware.project-invested'
+const QUEUE_MIDDLEWARE_ACTIVATE_WALLET = "wallet.middleware.activate-wallet"
+const QUEUE_MIDDLEWARE_UPDATE_COOP_ROLES = "wallet.middleware.update-coop-roles"
 
 async function sendMessage(queue, message) {
     const amqp_url = config.get().amqp
@@ -18,5 +20,9 @@ async function sendMessage(queue, message) {
 }
 
 module.exports = {
-    sendMessage, QUEUE_MAIL_PROJECT_FULLY_FUNDED, QUEUE_MAIL_SUCCESSFULLY_INVESTED
+    sendMessage,
+    QUEUE_MAIL_PROJECT_FULLY_FUNDED,
+    QUEUE_MAIL_SUCCESSFULLY_INVESTED,
+    QUEUE_MIDDLEWARE_ACTIVATE_WALLET,
+    QUEUE_MIDDLEWARE_UPDATE_COOP_ROLES
 }
