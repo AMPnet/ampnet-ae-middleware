@@ -19,10 +19,10 @@ describe('Ownership transfer tests', function() {
 
     before(async () => {
         await db.clearTransactions(adminWalletTx.hash)
+        await amqpUtil.init()
     })
 
     beforeEach( async () => {
-        await amqpUtil.init()
         amqpUtil.clearAllMessages()
     })
 
