@@ -192,7 +192,7 @@ function configureHealthAndMetrics() {
     logger.info(`Health info and basic metrics available at /info and /metrics`)
     prometheus.register.clear()
     prometheus.collectDefaultMetrics()
-    expr.get('/prometheus', (req, res) => {
+    expr.get('/prometheus', async (req, res) => {
         res.set('Content-Type', prometheus.register.contentType)
         res.end(await prometheus.register.metrics())
     })
