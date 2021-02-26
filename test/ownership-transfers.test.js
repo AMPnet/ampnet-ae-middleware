@@ -1,6 +1,7 @@
 let { Crypto } = require('@aeternity/aepp-sdk')
 let chai = require('chai');
 let assert = chai.assert;
+let expect = chai.expect
 
 let client = require('../ae/client')
 let codec = require('../ae/codec')
@@ -12,11 +13,17 @@ let accounts = require('./ae/accounts')
 let util = require('./util/util')
 let db = require('./util/db')
 let globalSetup = require('./global-setup')
+let amqpUtil = require('./util/amqp-util')
 
 describe('Ownership transfer tests', function() {
 
     before(async () => {
         await db.clearTransactions(adminWalletTx.hash)
+        await amqpUtil.init()
+    })
+
+    beforeEach( async () => {
+        amqpUtil.clearAllMessages()
     })
 
     it("Should be able to change Coop and Eur ownership", async () => {
@@ -62,6 +69,12 @@ describe('Ownership transfer tests', function() {
         assert.strictEqual(eurOwnershipChangeRecord.type, TxType.EUR_OWNERSHIP_TRANSFER)
 
         await globalSetup.changeOwner(newOwner)
+
+        // Verify AMQP messages
+        const updateCoopRolesMessages = amqpUtil.getUpdateCoopRolesMessages()
+        const messageSent = amqpUtil.createUpdateCoopRolesMessage(coopId)
+        expect(updateCoopRolesMessages).to.have.lengthOf(2)
+        expect(updateCoopRolesMessages).to.contain(messageSent)
     })
 
     it('Should fail if non-owner tries to change ownership of Eur/Coop', async () => {
@@ -93,6 +106,13 @@ describe('Ownership transfer tests', function() {
         let forbiddenEurOwnershipTransferTxSigned = await clients.alice().signTransaction(forbiddenEurOwnershipTransferTx)
         let forbiddenEurOwnership = await grpcClient.postTransaction(forbiddenEurOwnershipTransferTxSigned, coopId)
         assert.equal(forbiddenEurOwnership.details, "616 > Only Token Issuer can make this action!")
+
+        // Verify no AMQP messages sent
+        const updateCoopRolesMessages = amqpUtil.getUpdateCoopRolesMessages()
+        expect(updateCoopRolesMessages).to.have.lengthOf(0)
     })
 
+    after(async () => {
+        await amqpUtil.stop()
+    })
 })

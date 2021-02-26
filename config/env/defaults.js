@@ -27,7 +27,6 @@ function get() {
         deployer: deployer,
         grpc: grpc,
         amqp: amqp,
-        walletServiceGrpc: valueOrDefault(process.env.WALLET_SERVICE_GRPC_URL, "0.0.0.0:50051"),
         http: http,
         ws: ws,
         db: db,
