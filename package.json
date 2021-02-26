@@ -1,6 +1,6 @@
 {
   "name": "node-grpc-middleware",
-  "version": "0.0.59",
+  "version": "0.0.60",
   "dependencies": {
     "@aeternity/aepp-sdk": "7.7.0",
     "@grpc/proto-loader": "^0.5.6",
