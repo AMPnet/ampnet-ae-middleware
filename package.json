@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "axios": "^0.21.1",
-    "chai": "^4.3.0",
+    "chai": "^4.3.4",
     "mocha": "^8.3.0",
     "node-grpc-client": "^1.4.0"
   }
