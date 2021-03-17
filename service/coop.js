@@ -34,8 +34,11 @@ async function addWallet(call, callback) {
             if (records.length === 0) {
                 throw err.generate(err.type.TX_NOT_FOUND)
             }
-            if (records[0].state !== 'MINED') {
+            if (records[0].state === 'PENDING') {
                 throw err.generate(err.type.TX_NOT_MINED)
+            }
+            if (records[0].state === 'FAILED') {
+                throw err.generate(err.type.TX_FAILED)
             }
             let txInfo = await client.instance().getTxInfo(call.request.wallet)
             address = util.enforceAkPrefix(txInfo.contractId)
