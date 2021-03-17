@@ -1,8 +1,9 @@
 const Queue = require('bull')
-const { Crypto, TxBuilder } = require('@aeternity/aepp-sdk')
+const { Crypto, TxBuilder, MemoryAccount, Universal, Node } = require('@aeternity/aepp-sdk')
 
 const clients = require('../ae/client')
 const contracts = require('../ae/contracts')
+const { waitForTxConfirm } = require('../ae/util')
 const queueClient = require('./queueClient')
 const logger = require('../logger')(module)
 const repo = require('../persistence/repository')
@@ -52,69 +53,84 @@ async function init() {
 
 async function supervisorQueueJobHandler(job) {
     try {
-        logger.info(`SUPERVISOR-QUEUE: Processing job with queue id ${job.id}`)
-        let adminWallet = job.data.adminWallet
-        let coopId = job.data.coopId
+        let funds = 1000000000000000000
+        let deployer = await Crypto.generateKeyPair()
+        await clients.deployer().spend(funds, deployer.publicKey)
+        let balance = await clients.deployer().balance(deployer.publicKey)
+        if (balance != funds) { throw new Error("Funding deployer failed!") }
+        createCooperative(job.data.coopId, job.data.adminWallet, deployer)
+    } catch(error) {
+        if (error.verifyTx) {
+            let verificationResult = await error.verifyTx()
+            logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, verificationResult)
+        } else {
+            logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
+        }
+    }
+}
 
-        logger.info(`SUPERVISOR-QUEUE: Creating cooperative with id ${coopId} and owner ${adminWallet}`)
+async function createCooperative(coopId, adminWallet, deployerKeypair, attempts = 3) {
+    try {
+        let aeNode = await Node({
+            url: config.get().node.url,
+            internalUrl: config.get().node.internalUrl
+        })
+        let deployer = await Universal({
+            nodes: [
+                { name: "node", instance: aeNode } 
+            ],
+            compilerUrl: config.get().node.compilerUrl,
+            accounts: [
+                MemoryAccount({ keypair: deployerKeypair })
+            ],
+            address: deployerKeypair.publicKey,
+            networkId: config.get().networkId
+        })
+
+        logger.info(`COOP-DEPLOYER: Creating cooperative with id ${coopId} and owner ${adminWallet}`)
         let existingCooperatives = await repo.getCooperatives({
-            id: job.data.coopId
+            id: coopId
         })
         if (existingCooperatives.length > 0) {
-            logger.warn(`SUPERVISOR-QUEUE: Failed to create cooperative, ${job.data.coopId} already exists!`)
+            logger.warn(`COOP-DEPLOYER: Failed to create cooperative, ${job.data.coopId} already exists!`)
             return
         }
 
-        let coopInstance = await clients.deployer().getContractInstance(contracts.coopSource, {
-            opt: {
-                verify: false
-            }
-        })
-        let coopDeployResult = await executeUntilNonceOk(() => coopInstance.deploy([ ]))
-        logger.info(`SUPERVISOR-QUEUE: Coop deployed at ${coopDeployResult.contractId}`)
+        let coopInstance = await deployer.getContractInstance(contracts.coopSource)
+        let coopDeployResult = await coopInstance.deploy([ ])
+        let coopDeployInfo = await waitForTxConfirm(coopDeployResult.transaction)
+        logger.info(`COOP-DEPLOYER: Coop deployed at ${coopDeployInfo.contractId}`)
 
-        let eurInstance = await clients.deployer().getContractInstance(contracts.eurSource, {
-            opt: {
-                verify: false
-            }
-        })
-        let eurDeployResult = await executeUntilNonceOk(() => eurInstance.deploy([coopDeployResult.contractId]))
-        logger.info(`SUPERVISOR-QUEUE: EUR deployed at ${eurDeployResult.contractId}`)
+        let eurInstance = await deployer.getContractInstance(contracts.eurSource)
+        let eurDeployResult = await eurInstance.deploy([coopDeployInfo.contractId])
+        let eurDeployInfo = await waitForTxConfirm(eurDeployResult.transaction)
+        logger.info(`COOP-DEPLOYER: EUR deployed at ${eurDeployInfo.contractId}`)
 
-        let coopInstanceDeployed = await clients.deployer().getContractInstance(contracts.coopSource, {
-            contractAddress: coopDeployResult.contractId,
-            opt: {
-                verify: false
-            }
-        })
-        let eurInstanceDeployed = await clients.deployer().getContractInstance(contracts.eurSource, {
-            contractAddress: eurDeployResult.contractId,
-            opt: {
-                verify: false
-            }
-        })
+        let setTokenResult = await coopInstance.call('set_token', [ eurDeployInfo.contractId ])
+        let setTokenInfo = await waitForTxConfirm(setTokenResult.hash)
+        logger.info(`COOP-DEPLOYER: EUR token registered in Coop contract`)
 
-        await executeUntilNonceOk(() => coopInstanceDeployed.call('set_token', [eurDeployResult.contractId]))
-        logger.info(`SUPERVISOR-QUEUE: EUR token registered in Coop contract`)
+        let activateAdminWalletResult = await coopInstance.call('add_wallet', [ adminWallet ])
+        let activateAdminWalletInfo = await waitForTxConfirm(activateAdminWalletResult.hash)
+        logger.info(`COOP-DEPLOYER: Admin wallet activated. Hash: ${activateAdminWalletResult.hash}`)
 
-        let activateAdminWalletResult = await executeUntilNonceOk(() => coopInstanceDeployed.call('add_wallet', [ adminWallet ]))
-        logger.info(`SUPERVISOR-QUEUE: Admin wallet activated. Hash: ${activateAdminWalletResult.hash}`)
+        let transferCoopOwnershipResult = await coopInstance.call('transfer_ownership', [ adminWallet ])
+        let transferCoopOwnershipInfo = await waitForTxConfirm(transferCoopOwnershipResult.hash)
+        logger.info(`COOP-DEPLOYER: Coop ownership transferred to admin wallet.`)
 
-        await executeUntilNonceOk(() => coopInstanceDeployed.call('transfer_ownership', [ adminWallet ]))
-        logger.info(`SUPERVISOR-QUEUE: Coop ownership transferred to admin wallet.`)
-
-        await executeUntilNonceOk(() => eurInstanceDeployed.call('transfer_ownership', [ adminWallet ]))
-        logger.info(`SUPERVISOR-QUEUE: EUR ownership transferred to admin wallet.`)
+        let transferEurOwnershipResult = await eurInstance.call('transfer_ownership', [ adminWallet ])
+        let transferEurOwnershipInfo = await waitForTxConfirm(transferEurOwnershipResult.hash)
+        logger.info(`COOP-DEPLOYER: EUR ownership transferred to admin wallet.`)
 
         await repo.saveCooperative({
             id: coopId,
-            coop_contract: coopDeployResult.contractId,
-            eur_contract: eurDeployResult.contractId,
+            coop_contract: coopDeployInfo.contractId,
+            eur_contract: eurDeployInfo.contractId,
             coop_owner: adminWallet,
             eur_owner: adminWallet
         })
-        logger.info(`SUPERVISOR-QUEUE: Cooperative info saved.`)
-    
+        logger.info(`COOP-DEPLYOER: Cooperative info saved.`)
+
         let workerWallet = Crypto.generateKeyPair()
         let adminWalletCreateTx = {
             hash: activateAdminWalletResult.hash,
@@ -132,16 +148,15 @@ async function supervisorQueueJobHandler(job) {
             coop_id: coopId
         }
         await repo.saveTransaction(adminWalletCreateTx)
-        logger.info(`SUPERVISOR-QUEUE: Admin wallet creation transaction info saved.`)
+        logger.info(`COOP-DEPLOYER: Admin wallet creation transaction info saved.`)
 
         queueClient.publishJobFromTx(adminWalletCreateTx)
         amqp.sendMessage(amqp.QUEUE_MIDDLEWARE_ACTIVATE_WALLET, { address: adminWallet, coop: coopId, hash: activateAdminWalletResult.hash})
-    } catch(error) {
-        if (error.verifyTx) {
-            let verificationResult = await error.verifyTx()
-            logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, verificationResult)
-        } else {
-            logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
+    } catch(err) {
+        logger.warn(`COOP-DEPLOYER: Error while creating cooperative ${coopId}: %o`, err)
+        if (attempts > 0) {
+            logger.warn(`COOP-DEPLOYER: ${attempts} attempts left, trying again.`)
+            createCooperative(coopId, adminWallet, deployerKeypair, attempts - 1)
         }
     }
 }

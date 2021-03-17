@@ -22,8 +22,7 @@ const amqp = require('../amqp/amqp')
 async function process(hash) {
     logger.info(`Processing transaction ${hash}`)
 
-    await clients.instance().poll(hash)
-    let info = await clients.instance().getTxInfo(hash)
+    let info = await util.waitForTxConfirm(hash)
     logger.debug(`Fetched tx info \n%o`, info)
     
     sendFundsIfRequired(info)

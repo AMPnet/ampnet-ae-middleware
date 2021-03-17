@@ -11,6 +11,7 @@ let db = require('./util/db')
 before(async () => {
     process.env['DB_SCAN_ENABLED'] = "false"
     process.env['DB_SCAN_OLDER_THAN'] = 0
+    process.env['CONFIRMATIONS'] = 0
 
     await grpcServer.start()
     await grpcClient.start()

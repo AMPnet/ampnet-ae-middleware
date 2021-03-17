@@ -30,6 +30,13 @@ async function addWallet(call, callback) {
         logger.info(`Received request to generate addWallet transaction. Wallet: ${call.request.wallet} Coop: ${call.request.coop}`)
         let coopInfo = await repo.getCooperative(call.request.coop)
         if (call.request.wallet.startsWith("th")) {
+            let records = await repo.get({ hash: call.request.wallet })
+            if (records.length === 0) {
+                throw err.generate(err.type.TX_NOT_FOUND)
+            }
+            if (records[0].state !== 'MINED') {
+                throw err.generate(err.type.TX_NOT_MINED)
+            }
             let txInfo = await client.instance().getTxInfo(call.request.wallet)
             address = util.enforceAkPrefix(txInfo.contractId)
         } else {
