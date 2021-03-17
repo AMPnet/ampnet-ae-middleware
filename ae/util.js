@@ -20,21 +20,26 @@ function transactionExists(hash) {
 }
 
 async function waitForTxConfirm(hash, maxAttempts = 3) {
-    let numberOfConfirmations = config.get().confirmations
-    // logger.debug(`Waiting for transaction ${hash}; Number of confirmations: ${numberOfConfirmations}; Attempts left: ${maxAttempts};`)
-    if (maxAttempts == 0) throw new Error(`Error: Waiting for transaction ${hash} confirmation timed out...`)
-    let pollResult = await client.instance().poll(hash, { blocks: 10, interval: 10000 })
-    // logger.debug(`Transaction ${hash} poll result: %o`, pollResult)
-    let currentHeight = await client.instance().waitForTxConfirm(hash, { confirm: numberOfConfirmations, interval: 10000, attempts: 20 })
-    // logger.debug(`Wait for ${hash} tx confirm result: %o`, currentHeight)
-    let txInfo = await client.instance().tx(hash)
-    // logger.debug(`Fetched tx info again for ${hash}. Result: %o`, txInfo)
-    if (txInfo.blockHeight === -1 || (currentHeight - txInfo.blockHeight) < numberOfConfirmations) {
-        // logger.debug(`Height does not look good for transaction ${hash}. Executing recursive call...`)
+    try {
+        let numberOfConfirmations = config.get().confirmations
+        console.log(`Waiting for transaction ${hash}; Number of confirmations: ${numberOfConfirmations}; Attempts left: ${maxAttempts};`)
+        if (maxAttempts == 0) throw new Error(`Error: Waiting for transaction ${hash} confirmation timed out...`)
+        let pollResult = await client.instance().poll(hash, { blocks: 10, interval: 10000 })
+        console.log(`Transaction ${hash} poll result: `, pollResult)
+        let currentHeight = await client.instance().waitForTxConfirm(hash, { confirm: numberOfConfirmations, interval: 10000, attempts: 20 })
+        console.log(`Wait for ${hash} tx confirm result: `, currentHeight)
+        let txInfo = await client.instance().tx(hash)
+        console.log(`Fetched tx info again for ${hash}. Result: `, txInfo)
+        if (txInfo.blockHeight === -1 || (currentHeight - txInfo.blockHeight) < numberOfConfirmations) {
+            console.log(`Height does not look good for transaction ${hash}. Executing recursive call...`)
+            return await waitForTxConfirm(hash, maxAttempts - 1)
+        } else {
+            if (txInfo.returnType !== 'ok') { throw new Error(`Error: Transaction ${hash} mined with error status!`) }
+            return txInfo
+        }
+    } catch(err) {
+        console.log(`Error while checking for transaction ${hash}. %o`, err)
         return await waitForTxConfirm(hash, maxAttempts - 1)
-    } else {
-        if (txInfo.returnType !== 'ok') { throw new Error(`Error: Transaction ${hash} mined with error status!`) }
-        return txInfo
     }
 }
 
