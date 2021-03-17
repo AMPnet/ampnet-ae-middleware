@@ -30,7 +30,7 @@ async function waitForTxConfirm(hash, maxAttempts = 3) {
     let txInfo = await client.instance().tx(hash)
     // logger.debug(`Fetched tx info again for ${hash}. Result: %o`, txInfo)
     if (txInfo.blockHeight === -1 || (currentHeight - txInfo.blockHeight) < numberOfConfirmations) {
-        logger.debug(`Height does not look good for transaction ${hash}. Executing recursive call...`)
+        // logger.debug(`Height does not look good for transaction ${hash}. Executing recursive call...`)
         return await waitForTxConfirm(hash, maxAttempts - 1)
     } else {
         if (txInfo.returnType !== 'ok') { throw new Error(`Error: Transaction ${hash} mined with error status!`) }
