@@ -31,6 +31,7 @@ async function addWallet(call, callback) {
         let coopInfo = await repo.getCooperative(call.request.coop)
         if (call.request.wallet.startsWith("th")) {
             let txInfo = await client.instance().getTxInfo(call.request.wallet)
+            if (txInfo.blockHeight === -1) { throw err.generate(err.type.TX_NOT_MINED) }
             address = util.enforceAkPrefix(txInfo.contractId)
         } else {
             address = call.request.wallet
@@ -51,6 +52,7 @@ async function addWallet(call, callback) {
             contractId : coopAddress,
             amount : 0,
             gas : config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData : callData
         })
         logger.info('Successfully generated addWallet transaction!')
@@ -118,6 +120,7 @@ async function transferOwnership(call, callback) {
             contractId: coopInfo.coop_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info('Successfully generated transferOwnership transaction!')

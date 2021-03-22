@@ -35,6 +35,9 @@ function get() {
         refundThreshold: Number(valueOrDefault(process.env.REFUND_THRESHOLD, 0.1)),
         contractCreateGasAmount: Number(valueOrDefault(process.env.CONTRACT_CREATE_GAS_AMOUNT, 50000)),
         contractCallGasAmount: Number(valueOrDefault(process.env.CONTRACT_CALL_GAS_AMOUNT, 10000)),
+        gasPrice: Number(valueOrDefault(process.env.GAS_PRICE, 2000000000)),
+        confirmations: Number(valueOrDefault(process.env.CONFIRMATIONS, 0)),
+        confirmationsTxTypes: getConfirmationsTxTypes(),
         dbScanEnabled: (dbScanEnabledString === "true"),
         dbScanPeriod: Number(valueOrDefault(process.env.DB_SCAN_PERIOD, 1)),
         dbScanOlderThan: Number(valueOrDefault(process.env.DB_SCAN_OLDER_THAN, 1))
@@ -185,6 +188,18 @@ function getRedis() {
         host: valueOrDefault(process.env.REDIS_HOST, '127.0.0.1'),
         port: Number(valueOrDefault(process.env.REDIS_PORT, 6379)),
         cacheTimeoutSeconds: Number(valueOrDefault(process.env.CACHE_TIMEOUT_SECONDS, 180))
+    }
+}
+
+function getConfirmationsTxTypes() {
+    let types = valueOrDefault(process.env.CONFIRMATIONS_TX_TYPES, "").trim()
+    if (types) {
+        let typesArray = types.split(",")
+        return typesArray.map(type => {
+            return type.trim().toUpperCase()
+        })
+    } else {
+        return [ ]
     }
 }
 

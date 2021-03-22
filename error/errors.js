@@ -38,7 +38,8 @@ let DefaultMessages = new Map([
     [type.AEPP_SDK_ERROR, "Ae Sdk error was thrown."],
     [type.DRY_RUN_ERROR, "Unknown error occured while dry running transaction. Contact system administrator!"],
     [type.PRECONDITION_FAILED_ERROR, "Error: precondition failed."],
-    [type.TX_NOT_FOUND, "Transaction not found."]
+    [type.TX_NOT_FOUND, "Transaction not found."],
+    [type.TX_NOT_MINED, "This is still being verified on blockchain. Please wait for a few more minutes and then try again."]
 ])
 
 function generate(errorType, message = DefaultMessages.get(errorType)) {
@@ -54,6 +55,7 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
         case type.PRECONDITION_FAILED_ERROR:
         case type.TX_NOT_SIGNED:
         case type.TX_NOT_FOUND: 
+        case type.TX_NOT_MINED:
         case type.COOP_NOT_FOUND: return new grpcErrors.FailedPreconditionError(errorData)
         
         case type.TX_INVALID_CONTRACT_CALLED:

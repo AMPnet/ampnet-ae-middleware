@@ -24,6 +24,7 @@ async function mint(call, callback) {
             contractId: record.eur_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated mint transaction!`)
@@ -47,6 +48,7 @@ async function approveWithdraw(call, callback) {
             contractId: record.eur_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated approve withdraw transaction!`)
@@ -71,6 +73,7 @@ async function burnFrom(call, callback) {
             contractId: record.eur_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated burn transaction!`)
@@ -109,6 +112,7 @@ async function invest(call, callback) {
             contractId: investorRecord.eur_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated invest tx!`)
@@ -134,6 +138,7 @@ async function acceptSellOffer(fromTxHash, sellOfferTxHash, counterOfferPrice) {
         contractId: buyerRecord.eur_contract,
         amount: 0,
         gas: config.get().contractCallGasAmount,
+        gasPrice: config.get().gasPrice,
         callData: callData
     })
     logger.info(`Successfully generated acceptSellOffer tx!`)
@@ -163,6 +168,7 @@ async function transferOwnership(call, callback) {
             contractId: coopInfo.eur_contract,
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info('Successfully generated transferOwnership transaction!')

@@ -24,11 +24,12 @@ function publishCreateCoopJob(coopId, adminWallet) {
     })
 }
 
-function publishTxProcessJob(hash) {
+function publishTxProcessJob(hash, type) {
     processorQueue.add({
-        hash: hash
+        hash: hash,
+        type: type
     }).then(result => {
-        logger.info(`QUEUE-PUBLISHER: Process transaction ${hash} job published successfully. Job id: ${result.id}`)
+        logger.info(`QUEUE-PUBLISHER: Process transaction ${hash} of type ${type} job published successfully. Job id: ${result.id}`)
     }, err => {
         logger.error(`QUEUE-PUBLISHER: Process transaction ${hash} job failed to get published. Error: %o`, err)
     })

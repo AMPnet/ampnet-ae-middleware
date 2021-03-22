@@ -47,7 +47,7 @@ async function postTransaction(tx, coop, callback) {
             let txExistsOnBlockchain = await util.transactionExists(txHash)
             if (txExistsOnBlockchain) {
                 logger.info(`Transaction ${txHash} exists in database and was broadcasted to blockchain!`)
-                queueClient.publishTxProcessJob(txHash)
+                queueClient.publishTxProcessJob(txHash, tx.type)
                 callback(null, { txHash: txHash })
             } else {
                 logger.info(`Transaction ${txHash} exists in database but was never broadcasted to blockchain!`)

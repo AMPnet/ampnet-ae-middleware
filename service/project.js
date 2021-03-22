@@ -33,6 +33,7 @@ async function createProject(call, callback) {
             abiVersion: 3,
             deposit: 0,
             amount: 0,
+            gasPrice: config.get().gasPrice,
             gas: config.get().contractCreateGasAmount,
             callData: callData
         })
@@ -60,6 +61,7 @@ async function approveWithdraw(call, callback) {
             contractId: util.enforceCtPrefix(projectWallet),
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated approveWithdrawProjectFunds transaction!`)
@@ -84,6 +86,7 @@ async function cancelInvestment(call, callback) {
             contractId: util.enforceCtPrefix(projectWallet),
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated cancelInvestment transaction!`)
@@ -111,6 +114,7 @@ async function startRevenueSharesPayout(call, callback) {
             contractId: util.enforceCtPrefix(projectWallet),
             amount: 0,
             gas: config.get().contractCallGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated startRevenueSharesPayout transaction!`)
@@ -187,6 +191,7 @@ async function activateSellOffer(fromTxHash, sellOfferTxHash) {
         contractId: projectContract,
         amount: 0,
         gas: config.get().contractCallGasAmount,
+        gasPrice: config.get().gasPrice,
         callData: callData
     })
     logger.info(`Successfully generated activateSellOffer transaction!`)

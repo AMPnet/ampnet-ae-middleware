@@ -30,6 +30,7 @@ async function createSellOffer(fromTxHash, projectTxHash, shares, price) {
         deposit: 0,
         amount: 0,
         gas: config.get().contractCreateGasAmount,
+        gasPrice: config.get().gasPrice,
         callData: callData
     })
     logger.info(`Successfully generated createSellOffer transaction!`)
@@ -50,6 +51,7 @@ async function acceptCounterOffer(fromTxHash, sellOfferTxHash, buyerTxHash) {
         contractId: util.enforceCtPrefix(sellOffer),
         amount: 0,
         gas: config.get().contractCallGasAmount,
+        gasPrice: config.get().gasPrice,
         callData: callData
     })
     logger.info(`Successfully generated acceptCounterOffer transaction.`)

@@ -4,6 +4,7 @@ const logger = require('../logger')(module)
 const err = require('../error/errors')
 const config = require('../config')
 const util = require('../ae/util')
+const { waitForTxConfirm } = require('../ae/tx-util')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
 const queueClient = require('../queue/queueClient')
@@ -17,13 +18,14 @@ const amqp = require('../amqp/amqp')
  * Updates record states for given transaction hash, after transaction has been mined or failed.
  * Return
  * @param {string} hash Transaction hash 
+ * @param {TxType} type Transaction type
  * @returns {Array.<Object>} Returns list of records updated in db
  */
-async function process(hash) {
+async function process(hash, type) {
     logger.info(`Processing transaction ${hash}`)
 
     await clients.instance().poll(hash)
-    let info = await clients.instance().getTxInfo(hash)
+    let info = await waitForTxConfirm(hash, type)
     logger.debug(`Fetched tx info \n%o`, info)
     
     sendFundsIfRequired(info)

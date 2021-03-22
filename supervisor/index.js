@@ -48,7 +48,7 @@ async function handlePendingRecords() {
             util.transactionExists(hash).then(exists => {
                 if (exists) {
                     logger.warn(`DB-SCANNER: Transaction ${hash} was broadcasted to chain but remained in PENDING state for atleast ${interval} minute(s). Further investigation may be required. Sending transaction to tx processor queue...`)
-                    queueClient.publishTxProcessJob(hash)
+                    queueClient.publishTxProcessJob(hash, type)
                 } else {
                     logger.warn(`DB-SCANNER: Transaction ${hash} was never broadcasted to chain. Updating state to failed with error description.`)
                     repo.update(
@@ -86,7 +86,7 @@ async function handleSupervisorRequiredRecords() {
             }).then(chainedTransactions => {
                 if (chainedTransactions.length === 0) {
                     logger.warn(`DB-SCANNER: Found 0 transactions originated from transaction ${hash}. Sending origin transaction to tx processor queue again...`)
-                    queueClient.publishTxProcessJob(hash)
+                    queueClient.publishTxProcessJob(hash, type)
                     return
                 }
                 logger.warn(`DB-SCANNER: Found ${chainedTransactions.length} transaction(s) originated from transaction ${hash}`)
@@ -98,7 +98,7 @@ async function handleSupervisorRequiredRecords() {
                             projectService.getProjectInfoByWallet(tx.to_wallet, tx.coop_id).then(info => {
                                 if (info.payoutInProcess) {
                                     logger.warn(`DB-SCANNER: Revenue share payout was not finalized. One or more batches were not processed. Sending origin transaction to tx processor queue again...`)
-                                    queueClient.publishTxProcessJob(hash)
+                                    queueClient.publishTxProcessJob(hash, type)
                                 } else {
                                     logger.warn(`DB-SCANNER: Special action call was processed for transaction ${hash} but supervisor status in origin transaction was not updated. Updating supervisor status...`)
                                     repo.update(
@@ -132,7 +132,7 @@ async function handleSupervisorRequiredRecords() {
                         break
                     case TxState.FAILED:
                         logger.warn(`DB-SCANNER: Special action call was executed for transaction ${hash} but chained transaction was mined with status FAILED. Sending origin transaction to tx processor queue again...`)
-                        queueClient.publishTxProcessJob(hash)
+                        queueClient.publishTxProcessJob(hash, type)
                         break
                 }
             })

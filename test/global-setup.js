@@ -1,6 +1,6 @@
 let grpcServer = require('../grpc/server')
 let queue = require('../queue/queue')
-
+let { Crypto } = require("@aeternity/aepp-sdk")
 let grpcClient = require('./grpc/client')
 let clients = require('./ae/clients')
 let accounts = require('./ae/accounts')

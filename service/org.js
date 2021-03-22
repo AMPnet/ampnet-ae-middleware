@@ -21,6 +21,7 @@ async function createOrganization(call, callback) {
             deposit: 0,
             amount: 0,
             gas: config.get().contractCreateGasAmount,
+            gasPrice: config.get().gasPrice,
             callData: callData
         })
         logger.info(`Successfully generated createOrganization transaction!`)
