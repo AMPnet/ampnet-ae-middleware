@@ -24,7 +24,6 @@ const amqp = require('../amqp/amqp')
 async function process(hash, type) {
     logger.info(`Processing transaction ${hash}`)
 
-    await clients.instance().poll(hash)
     let info = await waitForTxConfirm(hash, type)
     logger.debug(`Fetched tx info \n%o`, info)
     
@@ -99,6 +98,7 @@ async function handleTransactionFailed(hash, info) {
 async function storeTransactionData(txHash, txData, txInfo, coopInfo, originatedFrom = null) {
     logger.info(`Storing transaction records based on dry run result for transaction with precalculated hash ${txHash}. Parsing total of ${txInfo.log.length} event(s) emitted in transaction dry run result.`)
     
+    let records = []
     for (event of txInfo.log) {
         let record = await generateTxRecord(txInfo, txHash, event, txData, coopInfo)
         let existingRecords = await repo.get({
@@ -116,6 +116,7 @@ async function storeTransactionData(txHash, txData, txInfo, coopInfo, originated
                     originated_from: originatedFrom
                 }
             )
+            records.push(...existingRecords)
         } else {
             await repo.saveTransaction({
                 ...record,
@@ -123,10 +124,12 @@ async function storeTransactionData(txHash, txData, txInfo, coopInfo, originated
                 originated_from: originatedFrom
             })
             logger.info(`Stored new record:\n%o`, record)
+            records.push(record)
         }
         ws.notifySubscribersForTransaction(record)
     }
     logger.info(`Stored total of ${txInfo.log.length} record(s) for transaction with precalculated hash ${txHash}.`)
+    return records
 }
 
 async function generateTxRecord(info, hash, event, txData, coopInfo) {

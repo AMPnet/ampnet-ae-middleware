@@ -35,10 +35,11 @@ async function postTransaction(tx, coop, callback) {
             logger.info(`Transaction ${txHash} does not exist in database and was never broadcasted to blockchain. Moving on...`)
             await performSecurityChecks(txData, coopInfo)
             let dryRunResult = await dryRun(txData)
-            await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult, coopInfo)
+            let records = await txProcessor.storeTransactionData(txHash, txData.tx.encodedTx.tx, dryRunResult, coopInfo)
+            let type = records[0].type
 
             let result = await client.instance().sendTransaction(tx, { waitMined: false, verify: true })
-            txProcessor.process(result.hash)
+            txProcessor.process(result.hash, type)
         
             logger.info(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
             callback(null, { txHash: result.hash })

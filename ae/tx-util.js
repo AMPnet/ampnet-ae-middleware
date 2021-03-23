@@ -6,10 +6,12 @@ async function waitForTxConfirm(hash, type, maxAttempts = 3) {
     try {
         let numberOfConfirmations = config.get().confirmations
         let confirmationsTxTypes = config.get().confirmationsTxTypes
-        logger.info(`Waiting for transaction ${hash}; Number of confirmations: ${numberOfConfirmations}; Attempts left: ${maxAttempts};`)
+        logger.info(`Waiting for transaction ${hash} of type ${type}; Number of confirmations: ${numberOfConfirmations}; Attempts left: ${maxAttempts};`)
         if (maxAttempts == 0) throw new Error(`Error: Waiting for transaction ${hash} confirmation timed out...`)
         let pollResult = await client.instance().poll(hash, { blocks: 10, interval: 10000 })
         logger.debug(`Transaction ${hash} poll result: %o`, pollResult)
+        console.log("cofirmationsTxTypes", confirmationsTxTypes)
+        console.log("cofirmationsTxTypes includes type", confirmationsTxTypes.includes(type))
         if (numberOfConfirmations > 0 && confirmationsTxTypes.includes(type)) {
             let currentHeight = await client.instance().waitForTxConfirm(hash, { confirm: numberOfConfirmations, interval: 10000, attempts: 20 })
             logger.debug(`Wait for ${hash} tx confirm result: ${currentHeight}`)
