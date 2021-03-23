@@ -429,7 +429,7 @@ async function callSpecialActions(tx) {
                 waitMined: false
             })
             logger.info(`Approve investment transaction posted to blockchain and will be added to tx processor queue.`)
-            process(result.hash)
+            process(result.hash, enums.TxType.INVEST)
         } else if (tx.type == enums.TxType.START_REVENUE_PAYOUT) {
             let projectManagerWalletCreationTx = await repo.findByWalletOrThrow(tx.from_wallet, coopInfo.id)
             let projectWalletCreationTx = await repo.findByWalletOrThrow(tx.to_wallet, coopInfo.id)
@@ -474,7 +474,7 @@ async function callSpecialActions(tx) {
                 shouldPayoutAnotherBatch = await client.contractDecodeData(contracts.projSource, enums.functions.proj.payoutRevenueSharesBatch, info.returnValue, info.returnType)
                 batchCount++
                 logger.info(`Payed out batch #${batchCount}.`)
-                process(result.hash)
+                process(result.hash, enums.TxType.SHARE_PAYOUT)
             } while(shouldPayoutAnotherBatch)
             logger.info(`All batches payed out.`)
         } else if (tx.type == enums.TxType.APPROVE_COUNTER_OFFER) {
@@ -508,14 +508,14 @@ async function callSpecialActions(tx) {
             let signedTx = await client.signTransaction(dryRunResult.tx.encodedTx)
             let precalculatedHash = await TxBuilder.buildTxHash(signedTx)
             logger.info(`Market tryToSettle precalculated hash: ${precalculatedHash}. Caching transaction data...`)
-            await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, coopInfo, tx.hash)
+            let records = await storeTransactionData(precalculatedHash, dryRunResult.tx.params, dryRunResult.result, coopInfo, tx.hash)
             logger.info(`Market tryToSettletransaction cached. Posting transaction to blockchain.`)
             let result = await client.sendTransaction(signedTx, {
                 waitMined: false,
                 verify: true
             })
             logger.info(`Market tryToSettle transaction posted to blockchain and will be added to tx processor queue.`)
-            process(result.hash)
+            process(result.hash, records[0].type)
         } else if (tx.type == enums.TxType.WALLET_CREATE && tx.wallet_type == enums.WalletType.USER) {
             queueClient.publishJobFromTx(tx)
         }
