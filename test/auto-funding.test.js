@@ -54,7 +54,7 @@ describe('Auto funding test', function() {
         let createOrgTxSigned = await client.signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
-        await util.sleep(10000)
+        await util.sleep(20000)
         let balanceAfterAutoFund = await clients.empty().balance(randomWallet.publicKey)
 
         assert.isTrue(Number(balanceAfterAutoFund) > Number(balanceAfterSpend))
