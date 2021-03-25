@@ -35,6 +35,8 @@ async function waitForTxConfirm(hash, type, maxAttempts = 3) {
         console.log(`Error while checking for transaction ${hash}. %o`, err)
         if (maxAttempts > 0) {
             return await waitForTxConfirm(hash, maxAttempts - 1)
+        } else {
+            throw new Error(`Error while checking for transaction ${hash}. 0 attempts left, giving up...`)
         }
     }
 }

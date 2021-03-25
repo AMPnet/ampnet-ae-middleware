@@ -89,10 +89,10 @@ function getDeployer() {
         publicKey: "ak_B9BENA4p6hxcfpmbBr8iJEcnQacPjcSwpT2C1n4XxSbKL7aWt",
         secretKey: "414833cf1f3b659af9c7509e58d8efdd55e189a058d9fe6c54d3c8029d2c0de51706bcc56c75cf55e0a3b25085bbdfc928bc893fc2972393c76e40bbfe8f9480"
     }
-    if (process.env.COOP_DEPLOYER_PUBLIC_KEY !== undefined && process.env.COOP_DEPLOYER_PRIVATE_KEY !== undefined) {
+    if (process.env.DEPLOYER_PUBLIC_KEY !== undefined && process.env.DEPLOYER_PRIVATE_KEY !== undefined) {
         return {
-            publicKey: process.env.COOP_DEPLOYER_PUBLIC_KEY,
-            secretKey: process.env.COOP_DEPLOYER_PRIVATE_KEY
+            publicKey: process.env.DEPLOYER_PUBLIC_KEY,
+            secretKey: process.env.DEPLOYER_PRIVATE_KEY
         }
     }
     switch (process.env.NODE_ENV) {

@@ -22,12 +22,17 @@ async function init() {
     let redisConfig = {
         redis: config.get().redis
     }
-    txProcessorQueue = new Queue("ampnet-ae-middleware-tx-processor-queue", redisConfig)
+    txProcessorQueue = new Queue("ampnet-ae-middleware-tx-processor-queue", {
+        settings: {
+            lockDuration: 600000
+        },
+        ...redisConfig
+    })
     autoFunderQueueServer = new Queue("ampnet-auto-funder-queue-server", redisConfig)
     autoFunderQueueClient = new Queue("ampnet-auto-funder-queue-client", redisConfig)
     supervisorQueue = new Queue("ampnet-ae-supervisor-queue", {
         settings: {
-            lockDuration: 500000
+            lockDuration: 1200000
         },
         ...redisConfig
     })
@@ -171,13 +176,15 @@ async function supervisorQueueJobHandler(job) {
                 logger.warn(`SUPERVISOR-QUEUE: Error while creating new cooperative %o`, error)
             }
             if (maxAttempts > 0) {
-                return createCooperative(maxAttempts - 1)    
+                return await createCooperative(maxAttempts - 1)    
+            } else {
+                throw new Error(`SUPERVISOR-QUEUE: Error while creating cooperative. 0 attempts left, giving up...`)
             }
         }
     }
 
     let transactions = await createCooperative()
-    await Promise.all(transactions.map(hash => waitForTxConfirm(hash)))
+    return await Promise.all(transactions.map(hash => waitForTxConfirm(hash)))
 }
 
 async function supervisorQueueJobCompleteHandler(job, result) {

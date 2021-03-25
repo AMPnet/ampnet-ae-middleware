@@ -15,6 +15,8 @@ async function createProject(call, callback) {
         logger.info(`Received request to generate createProject transaction.\nCaller: ${call.request.fromTxHash}`)
         let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Caller address represented by given hash: ${fromWallet}`)
+        let orgCreationTxInfo = await client.instance().getTxInfo(call.request.organizationTxHash)
+        if (orgCreationTxInfo.blockHeight === -1) { throw err.generate(err.type.TX_NOT_MINED) }
         let orgContract = util.enforceCtPrefix(
             (await repo.findByHashOrThrow(call.request.organizationTxHash)).wallet
         )
