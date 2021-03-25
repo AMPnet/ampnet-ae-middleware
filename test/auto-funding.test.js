@@ -54,10 +54,16 @@ describe('Auto funding test', function() {
         let createOrgTxSigned = await client.signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned, coopId)
         await util.waitTxProcessed(createOrgTxHash)
-        await util.sleep(30000)
-        let balanceAfterAutoFund = await clients.empty().balance(randomWallet.publicKey)
-
-        assert.isTrue(Number(balanceAfterAutoFund) > Number(balanceAfterSpend))
+        await waitBalanceGreaterThan(randomWallet.publicKey, Number(balanceAfterSpend))
     })
+
+    async function waitBalanceGreaterThan(address, threshold, maxAttempts = 20, sleepTime = 1000) {
+        if (maxAttempts === 0) { throw new Error("Waiting for balance timed out!") }
+        let balance = await clients.empty().balance(address)
+        if (Number(balance) <= threshold) {
+            await util.sleep(sleepTime)
+            waitBalanceGreaterThan(address, threshold, maxAttempts - 1, sleepTime)
+        }
+    }
 
 })
