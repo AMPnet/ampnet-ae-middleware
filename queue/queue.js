@@ -161,13 +161,15 @@ async function supervisorQueueJobHandler(job) {
             queueClient.publishJobFromTx(adminWalletCreateTx)
             amqp.sendMessage(amqp.QUEUE_MIDDLEWARE_ACTIVATE_WALLET, { address: adminWallet, coop: coopId, hash: activateAdminWalletResult.hash})
 
-            return [
-                coopDeployResult.transaction,
-                eurDeployResult.transaction,
-                setTokenResult.hash,
-                transferCoopOwnershipResult.hash,
-                transferEurOwnershipResult.hash
-            ]
+            return await Promise.all(
+                [
+                    coopDeployResult.transaction,
+                    eurDeployResult.transaction,
+                    setTokenResult.hash,
+                    transferCoopOwnershipResult.hash,
+                    transferEurOwnershipResult.hash
+                ].map(hash => waitForTxConfirm(hash))
+            )
         } catch(error) {
             if (error.verifyTx) {
                 let verificationResult = await error.verifyTx()
@@ -183,8 +185,7 @@ async function supervisorQueueJobHandler(job) {
         }
     }
 
-    let transactions = await createCooperative()
-    return await Promise.all(transactions.map(hash => waitForTxConfirm(hash)))
+    return await createCooperative()
 }
 
 async function supervisorQueueJobCompleteHandler(job, result) {

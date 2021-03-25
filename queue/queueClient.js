@@ -15,9 +15,10 @@ function init(funderQueueInstance, processorQueueInstance, supervisorQueueInstan
 }
 
 function publishCreateCoopJob(coopId, adminWallet) {
-    supervisorQueue.add({
-      coopId, adminWallet  
-    }).then(result => {
+    supervisorQueue.add(
+        { coopId, adminWallet },
+        { attempts: 3 }
+    ).then(result => {
         logger.info(`QUEUE-PUBLISHER: Create cooperative ${coopId} job published successfully. Job id: ${result.id}`)
     }, err => {
         logger.error(`QUEUE-PUBLISHER: Create cooperative ${coopId} job failed to get published. Error: %o`, err)
