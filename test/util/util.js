@@ -51,7 +51,7 @@ function waitWalletExists() {
 function waitTxProcessed(txHash, from, to) {
     return new Promise(async (resolve, reject) => {
         let interval = 1000 //ms
-        let maxChecks = 30
+        let maxChecks = 50
         var attempts = 0
         var txState = enums.txStateToGrpc(enums.TxState.PENDING)
         var supervisorState = enums.supervisorStatusToGrpc(enums.SupervisorStatus.REQUIRED)
