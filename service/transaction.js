@@ -411,63 +411,27 @@ async function dryRun(txData) {
     let callerId = unpackedTx.txType === 'contractCreateTx' ? unpackedTx.tx.ownerId : unpackedTx.tx.callerId
     logger.debug(`Caller id: ${callerId}`)
     
-    let response = await client.chainNode().txDryRun([unsignedTx], [{ pubKey: callerId, amount: 0 }])
-    if (typeof response.results === 'undefined') {
-        logger.warn(`Error while dry running tx. Expected json with <results> field but got: %o`, response)
-        throw err.generate(ErrorType.DRY_RUN_ERROR)
-    }
-    let results = response.results
-    if (results.length == 0) {
-        logger.warn(`Error while dry running tx. <results> field in response empty! Full response: %o`, response)
-        throw err.generate(ErrorType.DRY_RUN_ERROR)
-    }
-    if (results.length > 1) {
-        logger.warn(`Warning: Dry run resulted in more than one result. Further analysis is required! Full response: %o`, response)
+    let response = await client.chainNode().txDryRun(unsignedTx, callerId)
+    if (response === 'undefined' || response.callObj === 'undefined') {
+        logger.warn(`Error while dry running tx. Expected json with <callObj> field but got: %o`, response)
         throw err.generate(ErrorType.DRY_RUN_ERROR)
     }
 
-    let result = results[0]
-    logger.debug(`Received result:\n%o`, result)
-    
-    if (typeof result.result !== 'undefined') {
-        let status = result.result
-        if (status === "ok") {
-            if (typeof result.callObj === 'undefined') {
-                logger.warn(`Warning: <callObj> property missing in json result. Further analysis is required!`)
-                throw err.generate(ErrorType.DRY_RUN_ERROR) 
-            } 
-            let callObj = result.callObj
-            if (callObj.returnType === "revert" || callObj.returnType === "error") {
-                logger.warn(`Error detected while dryRunning transaction!`)
-                let errorMessage = await err.decode(callObj)
-                logger.warn(`Decoded error message: ${errorMessage}`)
-                if (err.isErrorFormatValid(errorMessage)) {
-                    throw err.generateAborted(errorMessage)
-                } else {
-                    throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
-                }
-            } else if (callObj.returnType === "ok") {
-                logger.debug(`No errors detected while dryRunning transaction! Transaction is safe for broadcasting.`)
-                return callObj
-            } else {
-                logger.warn(`Unknown <returnType> field value detected in callObj response. Further analysis is requried!`)
-                throw err.generate(ErrorType.DRY_RUN_ERROR)
-            }
-        } else if (status === "error") {
-            logger.warn(`Error detected while dryRunning transaction!`)
-            if (typeof result.reason === 'undefined') {
-                logger.warn(`Error while parsing dry run result. <reason> field not found.`)
-                throw err.generate(ErrorType.DRY_RUN_ERROR)
-            }
-            let errorMessage = result.reason
-            logger.warn(`Error message: ${errorMessage}`)
-            throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
+    let callObj = response.callObj
+    if (callObj.returnType === "revert" || callObj.returnType === "error") {
+        logger.warn(`Error detected while dryRunning transaction!`)
+        let errorMessage = await err.decode(callObj)
+        logger.warn(`Decoded error message: ${errorMessage}`)
+        if (err.isErrorFormatValid(errorMessage)) {
+            throw err.generateAborted(errorMessage)
         } else {
-            logger.warn(`Error while parsing dry run result. Unexpected <result> field value.`)
-            throw err.generate(ErrorType.DRY_RUN_ERROR)
+            throw err.generate(ErrorType.DRY_RUN_ERROR, errorMessage)
         }
+    } else if (callObj.returnType === "ok") {
+        logger.debug(`No errors detected while dryRunning transaction! Transaction is safe for broadcasting.`)
+        return callObj
     } else {
-        logger.warn(`Error while parsing dry run result. Missing <result> field.`)
+        logger.warn(`Unknown <returnType> field value detected in callObj response. Further analysis is requried!`)
         throw err.generate(ErrorType.DRY_RUN_ERROR)
     }
 }

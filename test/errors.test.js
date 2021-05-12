@@ -32,7 +32,7 @@ describe('Error handling tests', function() {
         let unsignedTx = await grpcClient.generateAddWalletTx(accounts.jane.publicKey, coopId)
         let errResponse = await grpcClient.postTransaction(unsignedTx, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.TX_NOT_SIGNED).message)
-    }) 
+    })
 
     it('Should fail with correct error message if invalid contract is called', async () => {
         let randomContractId = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
@@ -66,7 +66,7 @@ describe('Error handling tests', function() {
         let badTxSigned = await clients.bob().signTransaction(badTx.tx)
         let errResponse = await grpcClient.postTransaction(badTxSigned, coopId)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.GROUP_INVALID_COOP_ARG).message)
-    }) 
+    })
 
     it('Should fail with correct error message if Proj is created with invalid Org as argument', async () => {
         let badOrgAddr = 'ct_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp'
