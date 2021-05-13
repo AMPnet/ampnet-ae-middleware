@@ -73,23 +73,7 @@ function generateAborted(message) {
 }
 
 function handle(error, callback) {
-    if (error.response) {
-        callback(generate(type.AEPP_SDK_ERROR, error.response.obj.reason), null)
-    } else if (error.message) {
-        let filtered = filterMessage(error.message)
-        if (isErrorFormatValid(filtered)) {
-            callback(generateAborted(filtered), null)
-        } else {
-            callback(generate(type.PRECONDITION_FAILED_ERROR, filtered), null)
-        }
-    } else if (typeof error.decodedError !== 'undefined') {
-        let filtered = filterMessage(error.decodedError)
-        if (isErrorFormatValid(filtered)) {
-            callback(generateAborted(filtered), null)
-        } else {
-            callback(generate(type.PRECONDITION_FAILED_ERROR, filtered), null)
-        }
-    } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
+    if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
         if (isErrorFormatValid(error.message) || errorCodeExists(error.message)) {
             callback(error, null)
         } else {
@@ -103,6 +87,22 @@ function handle(error, callback) {
             } else {
                 callback(generate(type.GENERIC_ERROR), null)
             }
+        }
+    } else if (error.response) {
+        callback(generate(type.AEPP_SDK_ERROR, error.response.obj.reason), null)
+    } else if (error.message) {
+        let filtered = (error.message.contains("#")) ? filterMessage(error.message) : error.message
+        if (isErrorFormatValid(filtered)) {
+            callback(generateAborted(filtered), null)
+        } else {
+            callback(generate(type.PRECONDITION_FAILED_ERROR, filtered), null)
+        }
+    } else if (typeof error.decodedError !== 'undefined') {
+        let filtered = filterMessage(error.decodedError)
+        if (isErrorFormatValid(filtered)) {
+            callback(generateAborted(filtered), null)
+        } else {
+            callback(generate(type.PRECONDITION_FAILED_ERROR, filtered), null)
         }
     } else {
         callback(generate(type.GENERIC_ERROR), null)
