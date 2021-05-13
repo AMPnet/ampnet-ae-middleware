@@ -73,8 +73,15 @@ function generateAborted(message) {
 }
 
 function handle(error, callback) {
-    if (typeof error.response !== 'undefined') {
-        callback(generate(type.AEPP_SDK_ERROR, error.response.data.reason), null)
+    if (error.response) {
+        callback(generate(type.AEPP_SDK_ERROR, error.response.obj.reason), null)
+    } else if (error.message) {
+        let filtered = filterMessage(error.message)
+        if (isErrorFormatValid(filtered)) {
+            callback(generateAborted(filtered), null)
+        } else {
+            callback(generate(type.PRECONDITION_FAILED_ERROR, filtered), null)
+        }
     } else if (typeof error.decodedError !== 'undefined') {
         let filtered = filterMessage(error.decodedError)
         if (isErrorFormatValid(filtered)) {

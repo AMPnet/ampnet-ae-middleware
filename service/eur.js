@@ -8,6 +8,7 @@ let commonUtil = require('../util/util')
 let err = require('../error/errors')
 let cache = require('../cache/redis')
 let { Crypto } = require('@aeternity/aepp-sdk')
+let { BigNumber } = require('bignumber.js')
 
 let config = require('../config')
 let logger = require('../logger')(module)
@@ -225,8 +226,9 @@ async function allowance(ownerRecord) {
         }
     )
     let allowance = await result.decode()
-    logger.debug(`Fetched allowance: ${allowance}`)
-    return allowance
+    let allowanceStringified = BigNumber(allowance.toString()).toString(10)
+    logger.debug(`Fetched allowance: ${allowanceStringified}`)
+    return allowanceStringified
 }
 
 async function checkInvestmentPreconditions(project, investor, amount) {
