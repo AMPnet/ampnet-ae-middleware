@@ -91,7 +91,7 @@ function handle(error, callback) {
     } else if (error.response) {
         callback(generate(type.AEPP_SDK_ERROR, error.response.obj.reason), null)
     } else if (error.message) {
-        let filtered = (error.message.contains("#")) ? filterMessage(error.message) : error.message
+        let filtered = (error.message.includes("#")) ? filterMessage(error.message) : error.message
         if (isErrorFormatValid(filtered)) {
             callback(generateAborted(filtered), null)
         } else {
@@ -146,11 +146,17 @@ function pretty(error) {
 
 function filterMessage(str) {
     let startPosition = str.indexOf("#")
+    console.log("startPosition", startPosition)
     let endPosition = str.lastIndexOf("#")
+    console.log("endPosition", endPosition)
     if (startPosition == -1 || endPosition == -1 || startPosition == endPosition) {
-        return str.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim()
+        let v = str.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim() 
+        console.log("true, v", v)
+        return v
     } else {
-        return str.substring(startPosition + 1, endPosition)
+        let v = str.substring(startPosition + 1, endPosition)
+        console.log("false, v", v) 
+        return v
     }
 }
 
