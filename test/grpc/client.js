@@ -128,7 +128,6 @@ module.exports = {
                 walletTxHash: walletTxHash
             }, (err, result) => {
                 if (err != null) {
-                    console.log("err", err)
                     resolve(err)
                 } else {
                     resolve(result.active)
@@ -147,7 +146,6 @@ module.exports = {
                 endInvestmentTime: endsAt
             }, (err, result) => {
                 if (err != null) {
-                    console.log("err", err)
                     resolve(err)
                 } else {
                     resolve(result.tx)
@@ -315,6 +313,17 @@ module.exports = {
     getActiveSellOffers: async function(coop) {
         return new Promise(resolve => {
             client.getActiveSellOffers({coop: coop}, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result)
+                }
+            })
+        })
+    },
+    getUserWalletsForCoopAndTxType: async function(coop, type) {
+        return new Promise(resolve => {
+            client.getUserWalletsForCoopAndTxType({ coop, type }, (err, result) => {
                 if (err != null) {
                     resolve(err)
                 } else {

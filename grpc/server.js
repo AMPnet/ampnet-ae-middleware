@@ -123,6 +123,7 @@ module.exports = {
             generateTransferTokenIssuerOwnershipTx: eurSvc.transferOwnership,
             getActiveSellOffers: sellOfferSvc.getActiveSellOffers,
             createCooperative: coopSvc.createCooperative,
+            getUserWalletsForCoopAndTxType: txSvc.getUserWalletsForCoopAndTxType
         });
 
         // Bind GRPC server

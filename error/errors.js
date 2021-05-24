@@ -146,16 +146,12 @@ function pretty(error) {
 
 function filterMessage(str) {
     let startPosition = str.indexOf("#")
-    console.log("startPosition", startPosition)
     let endPosition = str.lastIndexOf("#")
-    console.log("endPosition", endPosition)
     if (startPosition == -1 || endPosition == -1 || startPosition == endPosition) {
         let v = str.replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '').trim() 
-        console.log("true, v", v)
         return v
     } else {
         let v = str.substring(startPosition + 1, endPosition)
-        console.log("false, v", v) 
         return v
     }
 }
