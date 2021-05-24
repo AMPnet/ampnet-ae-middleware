@@ -172,6 +172,40 @@ async function getTransactionInfo(call, callback) {
     }
 }
 
+async function getUserWalletsForCoopAndTxType(call, callback) {
+    try {
+        let txType = enums.grpcToTxType(call.request.type)
+        let coopId = call.request.coop
+        logger.info(`Received request to fetch wallets list for coop ${call.request.coop} and transaction type ${txType}`)
+        let transactions = await repo.get({
+            coop_id: coopId,
+            type: txType,
+            state: enums.TxState.MINED
+        })
+        let resultMap = new Map()
+        for (let i = 0; i < transactions.length; i++) {
+            let t = transactions[i]
+            let fromWalletAddress = t.from_wallet
+            let toWalletAddress = t.to_wallet
+            let fromWallet = await repo.findByWalletOrThrow(fromWalletAddress, coopId)
+            let toWallet = await repo.findByWalletOrThrow(toWalletAddress, coopId)
+            if (fromWallet.wallet_type === enums.WalletType.USER) {
+                resultMap.set(fromWalletAddress, fromWallet.hash)
+            }
+            if (toWallet.wallet_type === enums.WalletType.USER) {
+                resultMap.set(toWalletAddress, toWallet.hash)
+            }
+        }
+        logger.info(`Fetched ${resultMap.size} unique wallets for coop ${coopId} and transcation type ${txType}`)
+        callback(null, {
+            wallets: Array.from(resultMap, ([wallet, walletTxHash]) => ({ wallet, walletTxHash }))
+        })
+    } catch (error) {
+        logger.error(`Error while fetching user wallets for coop ${call.request.coop} and tx type ${txType}: \n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 async function getTransactions(call, callback) {
     try {
         logger.info(`Received request to fetch transactions for user with wallet data ${call.request.walletHash}`)
@@ -461,5 +495,6 @@ module.exports = {
     getPortfolio, 
     getTransactions,
     getInvestmentsInProject,
-    getTransactionInfo
+    getTransactionInfo,
+    getUserWalletsForCoopAndTxType
 }

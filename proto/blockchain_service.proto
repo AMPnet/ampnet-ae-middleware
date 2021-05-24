@@ -181,6 +181,19 @@ message ActiveSellOffersResponse {
     repeated SellOffer offers = 1;
 }
 
+message UserWalletsForCoopAndTxTypeRequest {
+    string coop = 1;
+    TransactionType type = 2;
+}
+
+message UserWalletsForCoopAndTxTypeResponse {
+    message WalletWithHash {
+        string wallet = 1;
+        string wallet_tx_hash = 2;
+    }
+    repeated WalletWithHash wallets = 1;
+}
+
 
 ///////// Contract create messages /////////
 
@@ -291,4 +304,5 @@ service BlockchainService {
     rpc GetInvestmentsInProject(InvestmentsInProjectRequest) returns (TransactionsResponse);
     rpc GetTransactionInfo(TransactionInfoRequest) returns (TransactionInfo);
     rpc GetActiveSellOffers(ActiveSellOffersRequest) returns (ActiveSellOffersResponse);
+    rpc GetUserWalletsForCoopAndTxType(UserWalletsForCoopAndTxTypeRequest) returns (UserWalletsForCoopAndTxTypeResponse);
 }

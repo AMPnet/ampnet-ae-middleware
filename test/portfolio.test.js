@@ -1,7 +1,7 @@
 let chai = require('chai');
 let assert = chai.assert;
 
-let { TxType, TxState, WalletType } = require('../enums/enums')
+let { TxType, TxState, WalletType, txTypeToGrpc } = require('../enums/enums')
 
 let grpcClient = require('./grpc/client')
 let db = require('./util/db')
@@ -217,6 +217,12 @@ describe('Portfolio fetch tests', function() {
         
         let p9 = await grpcClient.getPortfolio(sellerWalletHash)
         assert.isUndefined(p9)
+
+        let txType = txTypeToGrpc(TxType.INVEST)
+        let distinctWalletsWithInvestActivity = (await grpcClient.getUserWalletsForCoopAndTxType(coopId, txType)).wallets
+        assert.equal(distinctWalletsWithInvestActivity.length, 2)
+        assert.includeDeepMembers(distinctWalletsWithInvestActivity, [{ wallet: userWallet, walletTxHash: userWalletHash }])
+        assert.includeDeepMembers(distinctWalletsWithInvestActivity, [{ wallet: sellerWallet, walletTxHash: sellerWalletHash }])
     })
 
 })

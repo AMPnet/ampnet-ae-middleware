@@ -143,6 +143,31 @@ function supervisorStatusToGrpc(status) {
     }
 }
 
+function grpcToTxType(grpcType) {
+    switch (grpcType) {
+        case 0:     return TxType.DEPOSIT
+        case 1:     return TxType.WITHDRAW
+        case 2:     return TxType.INVEST
+        case 3:     return TxType.SHARE_PAYOUT
+        case 4:     return TxType.CANCEL_INVESTMENT
+        case 5:     return TxType.APPROVE_INVESTMENT
+        case 6:     return TxType.WALLET_CREATE
+        case 7:     return TxType.ORG_CREATE
+        case 8:     return TxType.PROJ_CREATE
+        case 9:     return TxType.SELL_OFFER_CREATE
+        case 10:    return TxType.APPROVE_USER_WITHDRAW
+        case 11:    return TxType.PENDING_PROJ_WITHDRAW
+        case 12:    return TxType.APPROVE_COUNTER_OFFER
+        case 13:    return TxType.START_REVENUE_PAYOUT
+        case 14:    return TxType.COOP_OWNERSHIP_TRANSFER
+        case 15:    return TxType.EUR_OWNERSHIP_TRANSFER
+        case 16:    return TxType.COUNTER_OFFER_PLACED
+        case 17:    return TxType.COUNTER_OFFER_REMOVED
+        case 18:    return TxType.SHARES_SOLD
+        default: throw new Error(`Cannot convert ${grpcType} to TxType!`)
+    }
+}
+
 function txTypeToGrpc(type) {
     switch (type) {
         case TxType.DEPOSIT:                    return 0
@@ -193,6 +218,7 @@ module.exports = {
     functions,
     fromEvent,
     txTypeToGrpc,
+    grpcToTxType,
     txStateToGrpc,
     supervisorStatusToGrpc
 }
