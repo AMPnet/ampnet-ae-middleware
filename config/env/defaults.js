@@ -34,7 +34,7 @@ function get() {
         autoFund: (autoFundString === "true"),
         refundThreshold: Number(valueOrDefault(process.env.REFUND_THRESHOLD, 0.1)),
         contractCreateGasAmount: Number(valueOrDefault(process.env.CONTRACT_CREATE_GAS_AMOUNT, 50000)),
-        contractCallGasAmount: Number(valueOrDefault(process.env.CONTRACT_CALL_GAS_AMOUNT, 10000)),
+        contractCallGasAmount: Number(valueOrDefault(process.env.CONTRACT_CALL_GAS_AMOUNT, 30000)),
         gasPrice: Number(valueOrDefault(process.env.GAS_PRICE, 2000000000)),
         confirmations: Number(valueOrDefault(process.env.CONFIRMATIONS, 0)),
         confirmationsTxTypes: getConfirmationsTxTypes(),
