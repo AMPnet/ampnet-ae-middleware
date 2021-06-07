@@ -16,7 +16,7 @@
     "express": "^4.17.1",
     "express-actuator": "^1.7.0",
     "from-exponential": "^1.0.0",
-    "google-protobuf": "^3.16.0",
+    "google-protobuf": "^3.17.2",
     "grpc": "^1.24.9",
     "grpc-errors": "^1.1.4",
     "grpc-middleware": "^1.1.0",
