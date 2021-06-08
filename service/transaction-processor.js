@@ -60,6 +60,7 @@ async function process(hash, type) {
 
 async function handleTransactionMined(hash) {
     logger.info(`Handling mined tx success case.`)
+    const tx = (await repo.get({ hash: hash }))[0];
     let transactions = await repo.update(
         { hash: hash }, 
         {
@@ -69,9 +70,11 @@ async function handleTransactionMined(hash) {
     )
     logger.info(`Updated total of ${transactions.length} transaction record(s) with hash ${hash}. State: ${enums.TxState.MINED}`)
     
-    for (tx of transactions) {
-        ws.notifySubscribersForTransaction(tx)
-        callSpecialActions(tx)
+    if (tx.state !== enums.TxState.MINED) {
+        for (tx of transactions) {
+            ws.notifySubscribersForTransaction(tx)
+            callSpecialActions(tx)
+        }
     }
     return transactions
 }
